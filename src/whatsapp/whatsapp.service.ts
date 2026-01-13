@@ -93,6 +93,7 @@ export class WhatsappService {
         for (const change of entry.changes) {
           const value = change.value;
           const phoneNumberId = value.metadata?.phone_number_id;
+          // Verifica que el numero de teléfono corresponda a una empresa registrada
           const tenant =
             await this.identityService.resolveTenantByPhoneId(phoneNumberId);
 
