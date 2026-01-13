@@ -18,7 +18,7 @@ import type {
   MetaBatchResponse,
   MetaCatalogListResponse,
   SyncInventoryResult,
-} from '../../../whatsapp/dto/meta-catalog.dto';
+} from '../../../dto/meta-catalog.dto';
 import { SupabaseService } from '../../database/supabase.service';
 
 interface SupabaseProduct {

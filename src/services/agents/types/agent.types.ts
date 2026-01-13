@@ -69,6 +69,8 @@ export interface TenantContext {
   phoneNumberId?: string;
   adminPhoneIds?: string[];
   displayPhoneNumber?: string | null;
+  /** Alias para companyConfig - compatibilidad con bridge */
+  config?: Record<string, any>;
 }
 
 /**

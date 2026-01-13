@@ -12,6 +12,13 @@ import type {
   SessionSnapshot,
   SessionEvent,
 } from '../types/agent.types';
+import type {
+  AdkSessionSnapshot,
+  TenantContext,
+  UserRole,
+  Intent,
+  SanitizedTextResult,
+} from '../../../types/whatsapp.types';
 
 /**
  * Estructura de una fila de sesión en la base de datos
@@ -111,9 +118,10 @@ export class AdkSessionService {
     stateDelta: AgentSessionState,
   ): Promise<void> {
     // Obtener sesión actual
-    let session = this.sessionCache.get(sessionId);
+    let session: SessionSnapshot | undefined = this.sessionCache.get(sessionId);
     if (!session) {
-      session = await this.fetchSession(sessionId);
+      const fetched = await this.fetchSession(sessionId);
+      session = fetched ?? undefined;
     }
 
     if (!session) {
@@ -265,6 +273,113 @@ export class AdkSessionService {
     return {
       state: (obj.state as AgentSessionState) ?? {},
       events: (obj.events as SessionEvent[]) ?? [],
+    };
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Métodos de compatibilidad con WhatsApp Service
+  // ─────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Carga una sesión de WhatsApp (compatibilidad con WhatsappService)
+   */
+  async loadSession(
+    tenant: TenantContext,
+    senderId: string,
+    role: UserRole,
+  ): Promise<AdkSessionSnapshot> {
+    const sessionId = this.buildSessionId(tenant.companyId, senderId);
+    const existing = await this.fetchSession(sessionId);
+
+    const baseContext = this.buildBaseContext(tenant, role);
+    let mergedContext = { ...baseContext };
+
+    if (existing) {
+      // Merge existing state with base context
+      const existingContext = existing.state as Record<string, unknown>;
+      mergedContext = {
+        ...existingContext,
+        ...baseContext,
+        company_name: baseContext.company_name,
+        company_tone: baseContext.company_tone,
+        inventory_context: baseContext.inventory_context,
+        today_date: baseContext.today_date,
+        user_role: baseContext.user_role,
+      };
+    }
+
+    const snapshot: AdkSessionSnapshot = {
+      sessionId,
+      companyId: tenant.companyId,
+      senderId,
+      context: mergedContext,
+    };
+
+    // Persist as SessionSnapshot
+    await this.persistSession({
+      sessionId,
+      companyId: tenant.companyId,
+      state: mergedContext as AgentSessionState,
+      events: existing?.events ?? [],
+      updatedAt: new Date(),
+    });
+
+    return snapshot;
+  }
+
+  /**
+   * Registra una interacción (compatibilidad con WhatsappService)
+   */
+  async recordInteraction(params: {
+    session: AdkSessionSnapshot;
+    intent: Intent | 'FALLBACK';
+    sanitized: SanitizedTextResult;
+  }): Promise<void> {
+    const updatedContext = {
+      ...params.session.context,
+      last_intent: params.intent,
+      last_user_text: params.sanitized.normalizedText,
+      last_updated_at: new Date().toISOString(),
+      tokens: params.sanitized.tokens,
+    };
+
+    params.session.context = updatedContext;
+
+    await this.persistSession({
+      sessionId: params.session.sessionId,
+      companyId: params.session.companyId,
+      state: updatedContext as AgentSessionState,
+      events: [],
+      updatedAt: new Date(),
+    });
+  }
+
+  private buildSessionId(companyId: string, senderId: string): string {
+    return `${companyId}:${this.cleanNumber(senderId)}`;
+  }
+
+  private cleanNumber(value: string): string {
+    return value.replace(/\D/g, '');
+  }
+
+  private buildBaseContext(tenant: TenantContext, role: UserRole) {
+    const config = tenant.companyConfig ?? {};
+    const tone =
+      (config.company_tone as string) ??
+      (config.companyTone as string) ??
+      (config.tone as string) ??
+      'Neutral';
+    const inventoryContext =
+      (config.inventory_context as string) ??
+      (config.inventoryContext as string) ??
+      'Inventario General';
+
+    return {
+      company_name: tenant.companyName,
+      company_tone: tone,
+      inventory_context: inventoryContext,
+      today_date: new Date().toISOString().slice(0, 10),
+      user_role: role,
     };
   }
 }

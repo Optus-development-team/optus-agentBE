@@ -7,21 +7,22 @@
  * Reemplaza a AgentRouterService con el patrón multi-agente de Google ADK.
  */
 import { Injectable, Logger } from '@nestjs/common';
-import { AdkOrchestratorService } from '../agents/adk-orchestrator.service';
-import { SanitizationService } from '../../whatsapp/services/sanitization.service';
-import { OnboardingService } from '../../whatsapp/services/onboarding.service';
+import { AdkOrchestratorService } from './adk-orchestrator.service';
+import { SanitizationService } from '../sanitization/sanitization.service';
+import { OnboardingService } from '../onboarding/onboarding.service';
 import type {
   AgentMessageContext,
   OrchestrationResult,
   TenantContext,
-} from '../agents/types/agent.types';
-import type {
-  RouterMessageContext,
-  RouterResult,
-  SanitizedTextResult,
-  UserRole,
-  RouterAction,
-} from '../../whatsapp/whatsapp.types';
+} from './types/agent.types';
+import {
+  Intent,
+  type RouterMessageContext,
+  type RouterResult,
+  type SanitizedTextResult,
+  type UserRole,
+  type RouterAction,
+} from '../../types/whatsapp.types';
 
 @Injectable()
 export class WhatsappAdkBridgeService {
@@ -84,17 +85,21 @@ export class WhatsappAdkBridgeService {
       companyName: context.tenant.companyName,
       companyTone: context.tenant.companyConfig?.profile?.tone || 'profesional',
       currency: context.tenant.companyConfig?.sales_policy?.currency || 'MXN',
-      config: context.tenant.companyConfig,
+      companyConfig: context.tenant.companyConfig,
     };
 
     // Generar ID de sesión único basado en compañía + usuario
     const sessionId = `${context.tenant.companyId}:${context.senderId}`;
 
+    // Extraer nombre del contacto desde el contexto de sesión ADK
+    const sessionContext = context.adkSession?.context as Record<string, unknown> | undefined;
+    const senderName = (sessionContext?.contact_name as string) || undefined;
+
     return {
       sessionId,
       message: sanitized.normalizedText,
       senderPhone: context.senderId,
-      senderName: context.adkSession?.contact_name,
+      senderName,
       userRole: context.role as unknown as import('../agents/types/agent.types').UserRole,
       tenantContext,
       referredProduct: context.referredProduct,
@@ -144,14 +149,14 @@ export class WhatsappAdkBridgeService {
   /**
    * Mapea el intent del orquestador al formato de WhatsApp
    */
-  private mapIntentFromOrchestrator(intent: string): string {
-    const intentMap: Record<string, string> = {
-      sales: 'SHOPPING',
-      appointment: 'BOOKING',
-      reporting: 'REPORTING',
-      greeting: 'GREETING',
-      farewell: 'FAREWELL',
-      help: 'HELP',
+  private mapIntentFromOrchestrator(intent: string): Intent | 'FALLBACK' {
+    const intentMap: Record<string, Intent | 'FALLBACK'> = {
+      sales: Intent.SHOPPING,
+      appointment: Intent.BOOKING,
+      reporting: Intent.REPORTING,
+      greeting: 'FALLBACK',
+      farewell: 'FALLBACK',
+      help: 'FALLBACK',
       general: 'FALLBACK',
       unknown: 'FALLBACK',
       fallback: 'FALLBACK',
