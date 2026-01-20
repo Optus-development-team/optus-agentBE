@@ -1,0 +1,1 @@
+INSERT INTO "public"."instituciones" ("id_institucion", "nombre") VALUES ('1', 'Colegio Militar'), ('2', 'Escuela Naval');

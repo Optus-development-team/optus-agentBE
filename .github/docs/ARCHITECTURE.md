@@ -60,49 +60,49 @@ graph TB
     SUPABASE -->|4. TenantContext + config| IDS
     IDS -->|5. wa_id + adminPhones| USERS
     USERS -->|6. UserRole| IDS
-    
+
     WCTRL -->|7. context + role| ADK_SESS
     ADK_SESS <-->|8. Sesión persiste| SESS_DB
-    
+
     WCTRL -->|9. RouterMessageContext| ROUTER
     ROUTER -->|10. Sanitizar| SANIT
     ROUTER -.->|11. Check OAuth| ONBOARD
-    
+
     %% Detección de intención con Gemini
     ROUTER -->|12. Detectar intención| GEMINI
     GEMINI -->|13. generateText| GEMINI_API
     GEMINI_API -->|14. Intent detectado| GEMINI
     GEMINI -->|15. Intent| ROUTER
-    
+
     %% Delegación a agentes
     ROUTER -->|16a. Intent.BOOKING| APPOINT
     ROUTER -->|16b. Intent.SHOPPING| SALES
     ROUTER -->|16c. Intent.REPORTING<br/>(admin only)| REPORT
-    
+
     %% Agentes usan Gemini
     APPOINT -->|17a. Extraer fecha/hora| GEMINI
     GEMINI -->|Lenguaje natural→JSON| APPOINT
     APPOINT -->|18a. Persistir| APPOINTMENTS
-    
+
     SALES -->|17b. Extraer monto| GEMINI
     GEMINI -->|"dos mil pesos"→2000| SALES
     SALES -->|18b. Generar QR| PAY_CLIENT
     SALES -->|18c. Sync orden| ORDERS_SYNC
     ORDERS_SYNC -->|18d. INSERT/UPDATE| ORDERS
-    
+
     REPORT -->|17c. Query metrics| SUPABASE
     SUPABASE -->|18c. Datos reales| REPORT
     REPORT -->|19c. Analizar + generar reporte| GEMINI
     GEMINI -->|Reporte ejecutivo| REPORT
-    
+
     %% Respuestas
     APPOINT -->|20a. AgentResponse| ROUTER
     SALES -->|20b. AgentResponse| ROUTER
     REPORT -->|20c. AgentResponse| ROUTER
-    
+
     ROUTER -->|21. RouterResult| WCTRL
     WCTRL -->|22. dispatchAction| WA
-    
+
     %% Webhooks de pago
     PW -->|Evento QR/2FA| PWCTRL
     PWCTRL -->|Resolver tenant| IDS
@@ -119,7 +119,7 @@ graph TB
     classDef agentClass fill:#34a853,stroke:#0f9d58,color:#fff
     classDef dbClass fill:#ea4335,stroke:#c5221f,color:#fff
     classDef routerClass fill:#fbbc04,stroke:#f9ab00,color:#000
-    
+
     class GEMINI,GEMINI_API geminiClass
     class APPOINT,SALES,REPORT agentClass
     class SUPABASE,COMPANIES,USERS,APPOINTMENTS,ORDERS,INTEGRATIONS,SESS_DB dbClass
@@ -129,14 +129,16 @@ graph TB
 ## Componentes Clave
 
 ### 1. **Google Gemini Integration (Nuevo)**
+
 - **GeminiService**: Wrapper singleton que inicializa el modelo Gemini 2.0 Flash
 - **Método principal**: `generateText(prompt: string)` - llamada directa a `Gemini.generateContentAsync()`
-- **Configuración**: 
+- **Configuración**:
   - API Key: `GOOGLE_GENAI_API_KEY`
   - Vertex AI: `GOOGLE_GENAI_USE_VERTEXAI=true` + project/location
 - **Uso**: Todos los agentes consumen este servicio para NLP
 
 ### 2. **Agent Router (Orquestador con IA)**
+
 - **Detección de intención**: Ya no usa regex, sino **prompt a Gemini** que retorna enum de intents
 - **Fallback contextualizado**: Genera respuestas dinámicas usando `companies.config` como contexto
 - **Control de acceso**: Valida `UserRole.ADMIN` antes de permitir `Intent.REPORTING` o `Intent.TWO_FA`
@@ -144,32 +146,37 @@ graph TB
 ### 3. **Agentes Especializados (Gemini-Powered)**
 
 #### **AppointmentAgent**
+
 - **Con Gemini**: Entiende "mañana a las 3", "próximo martes", "en 2 horas"
 - **Extrae**: Fecha/hora en JSON estructurado
 - **Contexto**: `companies.config.appointment_policy` (duración, buffer, cancelación)
 - **Fallback**: Regex tradicional si Gemini no disponible
 
 #### **SalesAgent**
-- **Con Gemini**: 
+
+- **Con Gemini**:
   - Extrae montos: "dos mil pesos" → 2000
   - Detecta intención: "quiero pagar" → `checkout`
   - Genera respuestas naturales usando `sales_policy`
 - **Estado**: Mantiene máquina de estados (CART → AWAITING_QR → QR_SENT → VERIFYING → COMPLETED)
 - **Integración**: Banco QR via PaymentClientService
 
-#### **ReportingAgent** 
-- **Con Gemini**: 
+#### **ReportingAgent**
+
+- **Con Gemini**:
   - Query a Supabase para métricas reales
   - Genera reporte ejecutivo en lenguaje natural
   - Usa `business_info.industry` para personalizar análisis
 - **Admin-only**: Bloqueado para roles no-admin en el router
 
 ### 4. **Multi-Tenancy & Identity**
+
 - **Resolución por `whatsapp_phone_id`** → Company
 - **Role detection**: Admin si `senderId` en `companies.whatsapp_admin_phone_ids` o en `company_users` table
 - **wa_id handling**: Extrae de `contacts` array del webhook y usa para matching
 
 ### 5. **Session Management**
+
 - **AdkSessionService**: Persistencia en `adk_sessions` table
 - **Session ID**: `${companyId}:${senderId}`
 - **Context injection**: Config de empresa + role + fecha actual
@@ -180,7 +187,7 @@ graph TB
 
 ```
 1. Usuario: "Hola quiero una cita mañana a las 3pm"
-2. WhatsApp → WhatsappController 
+2. WhatsApp → WhatsappController
 3. IdentityService → resolve tenant (phoneNumberId) → role=CLIENT
 4. RouterMessageContext creado con tenant.config
 5. Router → Gemini: "¿Es BOOKING, SHOPPING, REPORTING o NONE?"

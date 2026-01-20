@@ -18,6 +18,7 @@ import {
   GoogleAuthController,
   CatalogTestController,
   PaymentProxyController,
+  SheetsSyncController,
 } from './controllers';
 
 // Services - Database
@@ -31,6 +32,9 @@ import { CompanyIntegrationsService } from './services/integrations/company-inte
 import { OnboardingService } from './services/onboarding/onboarding.service';
 import { OrdersSyncService } from './services/orders/orders-sync.service';
 import { GeminiService } from './services/gemini/gemini.service';
+
+// Services - Sheets Sync (Universal Schema)
+import { SheetsSyncService } from './services/sheets-sync/sheets-sync.service';
 
 // Services - ADK Agents
 import { AdkOrchestratorService } from './services/agents/adk-orchestrator.service';
@@ -64,6 +68,7 @@ import { WhatsappService } from './services/whatsapp/whatsapp.service';
     GoogleAuthController,
     CatalogTestController,
     PaymentProxyController,
+    SheetsSyncController,
   ],
   providers: [
     // Database
@@ -77,6 +82,9 @@ import { WhatsappService } from './services/whatsapp/whatsapp.service';
     OnboardingService,
     OrdersSyncService,
     GeminiService,
+
+    // Sheets Sync (Universal Schema)
+    SheetsSyncService,
 
     // ADK Session
     AdkSessionService,
@@ -114,6 +122,7 @@ import { WhatsappService } from './services/whatsapp/whatsapp.service';
     WhatsappAdkBridgeService,
     SupabaseService,
     IdentityService,
+    SheetsSyncService,
   ],
 })
 export class WhatsappModule {}

@@ -27,11 +27,17 @@ export class AppointmentAgentService implements OnModuleInit {
 
   private initializeAgent(): void {
     const apiKey = this.config.get<string>('GOOGLE_GENAI_API_KEY', '');
-    const useVertexAi = this.config.get<string>('GOOGLE_GENAI_USE_VERTEXAI') === 'true';
-    const modelName = this.config.get<string>('GOOGLE_GENAI_MODEL', 'gemini-2.0-flash');
+    const useVertexAi =
+      this.config.get<string>('GOOGLE_GENAI_USE_VERTEXAI') === 'true';
+    const modelName = this.config.get<string>(
+      'GOOGLE_GENAI_MODEL',
+      'gemini-2.0-flash',
+    );
 
     if (!apiKey && !useVertexAi) {
-      this.logger.warn('Google AI no configurado. AppointmentAgent en modo fallback.');
+      this.logger.warn(
+        'Google AI no configurado. AppointmentAgent en modo fallback.',
+      );
       return;
     }
 
@@ -40,7 +46,10 @@ export class AppointmentAgentService implements OnModuleInit {
 
       if (useVertexAi) {
         const project = this.config.get<string>('GOOGLE_CLOUD_PROJECT');
-        const location = this.config.get<string>('GOOGLE_CLOUD_LOCATION', 'us-central1');
+        const location = this.config.get<string>(
+          'GOOGLE_CLOUD_LOCATION',
+          'us-central1',
+        );
 
         model = new Gemini({
           model: modelName,
@@ -88,7 +97,8 @@ IMPORTANTE:
         name: 'appointment_agent',
         model,
         instruction,
-        description: 'Agente especializado en gestión de citas, reservas y calendario',
+        description:
+          'Agente especializado en gestión de citas, reservas y calendario',
         tools: appointmentTools,
       });
 

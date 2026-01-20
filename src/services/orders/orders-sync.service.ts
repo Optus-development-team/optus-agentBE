@@ -130,7 +130,8 @@ export class OrdersSyncService {
     if (order.x402JobId) metadata.x402_job_id = order.x402JobId;
     if (order.paymentUrl) metadata.payment_url = order.paymentUrl;
     if (order.x402Negotiation)
-      metadata.x402_negotiation = order.x402Negotiation as X402NegotiationResponse;
+      metadata.x402_negotiation =
+        order.x402Negotiation as X402NegotiationResponse;
     if (order.x402Settlement)
       metadata.x402_settlement = order.x402Settlement as X402SettlementResponse;
 

@@ -60,7 +60,9 @@ export class AdkOrchestratorService implements OnModuleInit {
     );
 
     if (!apiKey && !useVertexAi) {
-      this.logger.warn('Google AI no configurado. Orchestrator en modo fallback.');
+      this.logger.warn(
+        'Google AI no configurado. Orchestrator en modo fallback.',
+      );
       return;
     }
 
@@ -375,8 +377,7 @@ IMPORTANTE:
     context: AgentMessageContext,
     startTime: number,
   ): OrchestrationResult {
-    const companyName =
-      context.tenantContext.companyName || 'nuestro negocio';
+    const companyName = context.tenantContext.companyName || 'nuestro negocio';
 
     return {
       success: true,

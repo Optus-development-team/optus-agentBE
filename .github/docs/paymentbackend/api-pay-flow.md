@@ -3,24 +3,27 @@
 This document describes how the unified `GET /api/pay` endpoint negotiates and settles payments for both fiat QR and x402 crypto paths. Use it whenever you need to reason about changes that impact payment orchestration or when instructing another LLM to touch this flow.
 
 ## 1. Request Shape
+
 - **Method / Path:** `GET /api/pay`
 - **Headers:** Optional `X-PAYMENT` (base64 JSON). Required only when the client submits a payment payload.
 - **Query parameters:**
-  - `orderId` *(string, required)* – business identifier, reused in job maps and webhook payloads.
-  - `amountUsd` *(number, required)* – amount in USD for the crypto path (converted to USDC atomic units).
-  - `description` *(string, optional)* – memo/description; reused for fiat glosa sanitization when available.
-  - `resource` *(string, optional)* – friendly resource label for x402 metadata (defaults to `Product`).
-  - `fiatAmount` *(number, optional)* – local currency amount offered inside the QR option. Falls back to `amountUsd` when omitted.
-  - `currency` *(string, optional)* – fiat currency code (default `BOB`).
-  - `symbol` *(string, optional)* – fiat currency symbol (default `Bs.`).
-  - `requiresManualConfirmation` *(boolean, optional)* – whether crypto settlements should pause until a human confirms.
+  - `orderId` _(string, required)_ – business identifier, reused in job maps and webhook payloads.
+  - `amountUsd` _(number, required)_ – amount in USD for the crypto path (converted to USDC atomic units).
+  - `description` _(string, optional)_ – memo/description; reused for fiat glosa sanitization when available.
+  - `resource` _(string, optional)_ – friendly resource label for x402 metadata (defaults to `Product`).
+  - `fiatAmount` _(number, optional)_ – local currency amount offered inside the QR option. Falls back to `amountUsd` when omitted.
+  - `currency` _(string, optional)_ – fiat currency code (default `BOB`).
+  - `symbol` _(string, optional)_ – fiat currency symbol (default `Bs.`).
+  - `requiresManualConfirmation` _(boolean, optional)_ – whether crypto settlements should pause until a human confirms.
 
 ## 2. Payment Job Creation
+
 1. `X402PaymentService.createPaymentJob` is called before any branching logic. It deduplicates by `orderId`, returning the existing job if one is still active.
 2. Payment requirements (`PaymentRequirements`) describe the EIP-3009 authorization to be signed by the client. These values seed the crypto option exposed in the HTTP 402 response.
 3. Jobs live in memory (Map keyed by `jobId`), track status transitions (`payment_required`, `verifying`, `settled`, etc.), and expire after `X402_PAYMENT_TIMEOUT_MS` (default 5 minutes).
 
 ## 3. Negotiation Phase (no `X-PAYMENT` header)
+
 1. When the header is absent, the controller must return `402 Payment Required` with an `accepts` array describing available methods.
 2. `buildAccepts` is responsible for composing this array:
    - **Crypto accept:** Always available unless the job is already locked to fiat. It mirrors the x402 requirements (scheme, network, payTo, amount).
@@ -36,13 +39,21 @@ This document describes how the unified `GET /api/pay` endpoint negotiates and s
    {
      "x402Version": 1,
      "resource": "Product",
-     "accepts": [ { /* crypto option */ }, { /* optional fiat option */ } ],
+     "accepts": [
+       {
+         /* crypto option */
+       },
+       {
+         /* optional fiat option */
+       }
+     ],
      "error": "X-PAYMENT header is required",
      "jobId": "x402_..."
    }
    ```
 
 ## 4. Fiat Path (`X-PAYMENT` contains `{ type: "fiat", ... }`)
+
 1. The header is decoded with `decodePaymentHeader`. `isFiatPaymentPayload` identifies the fiat variant.
 2. Guard rails:
    - If the job is already locked to crypto, immediately return `402` with `error: "Payment method already locked to crypto"` and refreshed `accepts`.
@@ -64,6 +75,7 @@ This document describes how the unified `GET /api/pay` endpoint negotiates and s
 8. On success, mark the job as `completed`, set `updatedAt`, and send `200 OK`.
 
 ## 5. Crypto Path (`X-PAYMENT` contains `{ type: "crypto", ... }`)
+
 1. `X402PaymentService.processPayment` performs the heavy lifting:
    - Rejects expired jobs and jobs already locked to fiat.
    - Decodes the payload and ensures it is crypto-specific.
@@ -78,6 +90,7 @@ This document describes how the unified `GET /api/pay` endpoint negotiates and s
    - On settlement failure, rebuild `accepts` and return `402` so the client can retry; otherwise respond `200 OK` with the settlement JSON.
 
 ## 6. Shared Behaviors & Timeouts
+
 - **Job locking:** Only one method (fiat or crypto) may complete per `orderId`. Once a method is locked, the other path returns `402` with a descriptive error.
 - **Fiat automation queue:** `JobQueueService` serializes all Playwright actions. `generateQrWithTimeout` and `verifyPaymentInline` reuse the same queue to avoid concurrent browser usage.
 - **Glosa normalization:** Every fiat-related entry point calls `normalizeDetails` to ensure strings are uppercase `A-Z0-9`. Inputs producing fewer than 3 valid characters are rejected before hitting Ecofuturo.
@@ -88,11 +101,13 @@ This document describes how the unified `GET /api/pay` endpoint negotiates and s
   - Payment jobs expire after `X402_PAYMENT_TIMEOUT_MS` (default 5 minutes). Expired jobs emit `X402_PAYMENT_EXPIRED` and reject new payloads with `status: 'expired'`.
 
 ## 7. Observability Hooks
+
 - `WebhookService.sendQrGenerated` and `sendVerificationResult` inform upstream systems about fiat-side progress (QR availability and verification success/failure).
 - `X402WebhookService` provides lifecycle updates for crypto jobs.
-- The controller echoes errors in JSON bodies *and* in `X-PAYMENT-RESPONSE.errorReason`, ensuring clients parsing either channel can act accordingly.
+- The controller echoes errors in JSON bodies _and_ in `X-PAYMENT-RESPONSE.errorReason`, ensuring clients parsing either channel can act accordingly.
 
 ### Quick Reference Checklist for Modifying `/api/pay`
+
 1. **Additions to Accepts:** Update both the JSON body and the cached job state so retries behave consistently.
 2. **Settlement Schema Changes:** Reflect updates in both the header encoder (`encodeSettlementHeader`) and any JSON bodies.
 3. **Timeout Tweaks:** Keep `fiatTimeoutMs` (controller) and `X402_PAYMENT_TIMEOUT_MS` (service/env) aligned with operational limits.

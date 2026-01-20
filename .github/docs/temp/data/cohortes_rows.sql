@@ -1,0 +1,1 @@
+INSERT INTO "public"."cohortes" ("id_cohorte", "id_institucion", "id_nivel", "activo", "casos_exito") VALUES ('1', '1', '1', 'true', '5'), ('2', '1', '2', 'true', '5'), ('3', '1', '3', 'true', '6'), ('4', '1', '4', 'true', '5'), ('5', '2', '1', 'true', '6'), ('6', '2', '2', 'true', '5'), ('7', '2', '3', 'true', '5'), ('8', '2', '4', 'true', '6');

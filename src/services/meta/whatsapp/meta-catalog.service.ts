@@ -160,10 +160,9 @@ export class MetaCatalogService implements OnModuleInit {
     try {
       const result = await this.supabase.query<{
         business_catalog_id: string;
-      }>(
-        'SELECT business_catalog_id FROM companies WHERE id = $1 LIMIT 1',
-        [companyId],
-      );
+      }>('SELECT business_catalog_id FROM companies WHERE id = $1 LIMIT 1', [
+        companyId,
+      ]);
 
       if (!result || result.length === 0) {
         this.logger.error(`No se encontró compañía con id ${companyId}`);

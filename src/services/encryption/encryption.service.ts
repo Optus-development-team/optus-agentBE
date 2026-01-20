@@ -103,10 +103,7 @@ export class EncryptionService {
     return createHash('sha256').update(secret).digest();
   }
 
-  private tryDecode(
-    value: string,
-    encoding: 'base64' | 'hex',
-  ): Buffer | null {
+  private tryDecode(value: string, encoding: 'base64' | 'hex'): Buffer | null {
     try {
       const decoded = Buffer.from(value, encoding);
       if (decoded.length === 32) {

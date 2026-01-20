@@ -34,6 +34,7 @@ curl -X GET \
 ```
 
 **Respuesta esperada:**
+
 ```json
 {
   "data": [
@@ -56,6 +57,7 @@ curl -X GET \
 ```
 
 **Respuesta esperada:**
+
 ```json
 {
   "code_verification_status": "VERIFIED",
@@ -79,6 +81,7 @@ curl -X POST \
 ```
 
 **Métodos disponibles:**
+
 - `SMS`: Código por mensaje de texto
 - `VOICE`: Código por llamada de voz
 
@@ -94,6 +97,7 @@ curl -X POST \
 ```
 
 **Respuesta exitosa:**
+
 ```json
 {
   "success": true
@@ -120,6 +124,7 @@ curl -X GET \
 ```
 
 **Respuesta:**
+
 ```json
 {
   "id": "213510245181779777",
@@ -130,21 +135,25 @@ curl -X GET \
 ```
 
 **Niveles de throughput:**
+
 - `STANDARD`: 80 mensajes/segundo (por defecto para cuentas nuevas)
 - `HIGH`: 1000 mensajes/segundo (requiere verificación de negocio)
 
 ## Notas Importantes
 
 ⚠️ **Diferencia entre tokens:**
+
 - **Token de Cloud API** (`WHATSAPP_API_TOKEN`): Solo para enviar/recibir mensajes
 - **Token de Business Management**: Para gestionar números, plantillas, configuración
 
 ⚠️ **Requisitos del número:**
+
 - Debe ser un número móvil (no VoIP)
 - No puede estar registrado en otra cuenta de WhatsApp Business
 - Debe poder recibir SMS o llamadas para verificación
 
 ⚠️ **API Limitations:**
+
 - La API de Business Management **NO permite agregar o eliminar números**, solo listarlos y verificarlos
 - Para agregar nuevos números, debes usar [Embedded Signup](https://developers.facebook.com/docs/whatsapp/embedded-signup) o Meta Business Suite UI
 
@@ -192,8 +201,7 @@ echo -e "\n=== Verificación completa ==="
 curl -X POST \
   "https://graph.facebook.com/v24.0/2392249954565713/subscribed_apps" \
   -H "Authorization: Bearer EAAMS3BBPkroBQMltJMInMplq9NRCxM3kDwtVQ2lzyFEoXkAcDJ46gqKDgHWuCK6ZBKLZAwZCzabmN9JrmZBF3RSzaFbtiYpqWish9JONCaoZAQxTR1uv5OZAivo3jj9oeTYr4qcXclTatXCZAS9BAWhuZCZAdBZBWlwvd7K8LQDTvNdkH9vDsaJviFDHVC6MtsIFfOLQZDZD" \
-  -d '{                             
+  -d '{
     "data": ["messages"]
   }'
 ```
-

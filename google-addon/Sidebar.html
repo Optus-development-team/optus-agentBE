@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <style>
+    body {
+      font-family: 'Google Sans', Arial, sans-serif;
+      margin: 0;
+      padding: 16px;
+      background: #f8f9fa;
+    }
+    
+    .container {
+      max-width: 400px;
+      margin: 0 auto;
+    }
+    
+    .header {
+      text-align: center;
+      margin-bottom: 24px;
+    }
+    
+    .header img {
+      width: 64px;
+      height: 64px;
+      margin-bottom: 12px;
+    }
+    
+    .header h1 {
+      font-size: 20px;
+      color: #202124;
+      margin: 0;
+    }
+    
+    .header p {
+      font-size: 14px;
+      color: #5f6368;
+      margin: 8px 0 0 0;
+    }
+    
+    .card {
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+    
+    .card h2 {
+      font-size: 16px;
+      color: #202124;
+      margin: 0 0 16px 0;
+    }
+    
+    .form-group {
+      margin-bottom: 16px;
+    }
+    
+    .form-group label {
+      display: block;
+      font-size: 14px;
+      color: #5f6368;
+      margin-bottom: 6px;
+    }
+    
+    .form-group input {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #dadce0;
+      border-radius: 4px;
+      font-size: 14px;
+      box-sizing: border-box;
+    }
+    
+    .form-group input:focus {
+      outline: none;
+      border-color: #1a73e8;
+      box-shadow: 0 0 0 2px rgba(26,115,232,0.2);
+    }
+    
+    .form-group .hint {
+      font-size: 12px;
+      color: #80868b;
+      margin-top: 4px;
+    }
+    
+    .btn {
+      display: inline-block;
+      padding: 10px 24px;
+      border-radius: 4px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      border: none;
+      transition: background 0.2s;
+    }
+    
+    .btn-primary {
+      background: #1a73e8;
+      color: white;
+    }
+    
+    .btn-primary:hover {
+      background: #1557b0;
+    }
+    
+    .btn-secondary {
+      background: #f8f9fa;
+      color: #1a73e8;
+      border: 1px solid #dadce0;
+    }
+    
+    .btn-secondary:hover {
+      background: #e8f0fe;
+    }
+    
+    .btn-block {
+      display: block;
+      width: 100%;
+    }
+    
+    .status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px;
+      border-radius: 4px;
+      margin-bottom: 16px;
+    }
+    
+    .status.success {
+      background: #e6f4ea;
+      color: #137333;
+    }
+    
+    .status.error {
+      background: #fce8e6;
+      color: #c5221f;
+    }
+    
+    .status.info {
+      background: #e8f0fe;
+      color: #1a73e8;
+    }
+    
+    .privacy-note {
+      background: #fef7e0;
+      border-left: 4px solid #f9ab00;
+      padding: 12px;
+      font-size: 13px;
+      color: #594300;
+      margin-top: 16px;
+    }
+    
+    .privacy-note strong {
+      display: block;
+      margin-bottom: 4px;
+    }
+    
+    .actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 16px;
+    }
+    
+    .actions .btn {
+      flex: 1;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <img src="https://www.gstatic.com/images/branding/product/2x/apps_script_48dp.png" alt="Optus Sync">
+      <h1>Optus Sheets Sync</h1>
+      <p>Sincroniza datos con tu backend de Optus BMS</p>
+    </div>
+    
+    <div id="statusArea"></div>
+    
+    <div class="card">
+      <h2>Configuración</h2>
+      <form id="configForm">
+        <div class="form-group">
+          <label for="companyId">Company ID *</label>
+          <input type="text" id="companyId" name="companyId" required 
+                 placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx">
+          <div class="hint">UUID de tu empresa en Optus BMS</div>
+        </div>
+        
+        <div class="form-group">
+          <label for="secretKey">Secret Key *</label>
+          <input type="password" id="secretKey" name="secretKey" required 
+                 placeholder="••••••••••••">
+          <div class="hint">Clave secreta para autenticar el webhook</div>
+        </div>
+        
+        <div class="form-group">
+          <label for="webhookUrl">Webhook URL</label>
+          <input type="url" id="webhookUrl" name="webhookUrl" 
+                 placeholder="https://tu-backend.com/v1/webhooks/sheets/sync">
+          <div class="hint">Dejar vacío para usar URL por defecto</div>
+        </div>
+        
+        <button type="submit" class="btn btn-primary btn-block">
+          Guardar Configuración
+        </button>
+      </form>
+    </div>
+    
+    <div class="card">
+      <h2>Sincronización</h2>
+      <div class="actions">
+        <button onclick="syncCurrent()" class="btn btn-secondary">
+          Sincronizar Hoja
+        </button>
+        <button onclick="syncAll()" class="btn btn-secondary">
+          Sincronizar Todo
+        </button>
+      </div>
+      
+      <div class="actions" style="margin-top: 12px;">
+        <button onclick="toggleAutoSync()" id="autoSyncBtn" class="btn btn-secondary btn-block">
+          Activar Auto-Sync
+        </button>
+      </div>
+    </div>
+    
+    <div class="privacy-note">
+      <strong>🔒 Nota de Privacidad</strong>
+      Las hojas con nombre que empiecen con <code>[PRIV]</code> serán marcadas como privadas.
+      El Agente IA no podrá acceder a estos datos, aunque se sincronicen para uso administrativo.
+    </div>
+  </div>
+  
+  <script>
+    // Cargar configuración existente al iniciar
+    google.script.run
+      .withSuccessHandler(loadConfig)
+      .getExistingConfig();
+    
+    function loadConfig(config) {
+      if (config) {
+        document.getElementById('companyId').value = config.companyId || '';
+        document.getElementById('webhookUrl').value = config.webhookUrl || '';
+        updateAutoSyncButton(config.hasAutoSync);
+      }
+    }
+    
+    // Guardar configuración
+    document.getElementById('configForm').onsubmit = function(e) {
+      e.preventDefault();
+      
+      const config = {
+        companyId: document.getElementById('companyId').value,
+        secretKey: document.getElementById('secretKey').value,
+        webhookUrl: document.getElementById('webhookUrl').value
+      };
+      
+      showStatus('info', 'Guardando configuración...');
+      
+      google.script.run
+        .withSuccessHandler(function() {
+          showStatus('success', '✅ Configuración guardada correctamente');
+        })
+        .withFailureHandler(function(err) {
+          showStatus('error', '❌ Error: ' + err.message);
+        })
+        .saveConfigFromSidebar(config);
+    };
+    
+    function syncCurrent() {
+      showStatus('info', '⏳ Sincronizando hoja actual...');
+      google.script.run
+        .withSuccessHandler(function() {
+          showStatus('success', '✅ Sincronización completada');
+        })
+        .withFailureHandler(function(err) {
+          showStatus('error', '❌ Error: ' + err.message);
+        })
+        .syncCurrentSheet();
+    }
+    
+    function syncAll() {
+      showStatus('info', '⏳ Sincronizando todas las hojas...');
+      google.script.run
+        .withSuccessHandler(function() {
+          showStatus('success', '✅ Todas las hojas sincronizadas');
+        })
+        .withFailureHandler(function(err) {
+          showStatus('error', '❌ Error: ' + err.message);
+        })
+        .syncAllSheets();
+    }
+    
+    function toggleAutoSync() {
+      const btn = document.getElementById('autoSyncBtn');
+      const isActive = btn.textContent.includes('Desactivar');
+      
+      showStatus('info', isActive ? 'Desactivando...' : 'Activando...');
+      
+      google.script.run
+        .withSuccessHandler(function(newState) {
+          updateAutoSyncButton(newState);
+          showStatus('success', newState ? '✅ Auto-sync activado' : '🛑 Auto-sync desactivado');
+        })
+        .withFailureHandler(function(err) {
+          showStatus('error', '❌ Error: ' + err.message);
+        })
+        .toggleAutoSyncFromSidebar(!isActive);
+    }
+    
+    function updateAutoSyncButton(isActive) {
+      const btn = document.getElementById('autoSyncBtn');
+      btn.textContent = isActive ? 'Desactivar Auto-Sync' : 'Activar Auto-Sync';
+    }
+    
+    function showStatus(type, message) {
+      const area = document.getElementById('statusArea');
+      area.innerHTML = '<div class="status ' + type + '">' + message + '</div>';
+      
+      if (type !== 'info') {
+        setTimeout(function() {
+          area.innerHTML = '';
+        }, 5000);
+      }
+    }
+  </script>
+</body>
+</html>

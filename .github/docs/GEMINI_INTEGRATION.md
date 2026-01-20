@@ -11,25 +11,27 @@ Este proyecto usa **Google Application Development Kit (ADK)** para integrar **G
 **Ubicación**: `src/whatsapp/services/gemini.service.ts`
 
 **Responsabilidades**:
+
 - Inicializar modelo Gemini en `onModuleInit()`
 - Wrapper simplificado `generateText(prompt: string)` para llamadas directas
 - Manejo de errores y fallback graceful
 
 **Configuración**:
+
 ```typescript
 // API Key (desarrollo)
 new Gemini({
   model: 'gemini-2.5-flash-lite',
-  apiKey: process.env.GOOGLE_GENAI_API_KEY
-})
+  apiKey: process.env.GOOGLE_GENAI_API_KEY,
+});
 
 // Vertex AI (producción)
 new Gemini({
   model: 'gemini-2.5-flash-lite',
   vertexai: true,
   project: process.env.GOOGLE_CLOUD_PROJECT,
-  location: process.env.GOOGLE_CLOUD_LOCATION
-})
+  location: process.env.GOOGLE_CLOUD_LOCATION,
+});
 ```
 
 ### Patrón de Integración
@@ -43,6 +45,7 @@ return this.handleWithFallback(context, sanitized);
 ```
 
 **Ventajas**:
+
 - ✅ Degradación automática a regex si Gemini falla
 - ✅ No rompe funcionalidad existente
 - ✅ Permite testing sin credenciales
@@ -54,11 +57,13 @@ return this.handleWithFallback(context, sanitized);
 #### Detección de Intención
 
 **Antes (regex estático)**:
+
 ```typescript
 if (/(cita|agenda)/.test(text)) return Intent.BOOKING;
 ```
 
 **Ahora (Gemini)**:
+
 ```typescript
 const prompt = `Eres ${agentName}. Analiza: "${text}"
 Intenciones: BOOKING (citas), SHOPPING (compras), REPORTING (reportes), TWO_FA (códigos)
@@ -69,6 +74,7 @@ if (result?.includes('BOOKING')) return Intent.BOOKING;
 ```
 
 **Casos que maneja**:
+
 - ✅ "Necesito una cita" → BOOKING
 - ✅ "Quiero agendar algo" → BOOKING
 - ✅ "Cuánto cuesta" → SHOPPING
@@ -134,6 +140,7 @@ const parsed = JSON.parse(result.match(/\{[\s\S]*\}/)[0]);
 ```
 
 **Casos que maneja**:
+
 - ✅ "mañana a las 3" → {date: "2025-06-12", time: "15:00"}
 - ✅ "próximo martes" → calcula fecha correcta
 - ✅ "en 2 horas" → suma al timestamp actual
@@ -162,6 +169,7 @@ const amount = parseFloat(result);
 ```
 
 **Casos que maneja**:
+
 - ✅ "dos mil quinientos" → 2500
 - ✅ "25.50" → 25.5
 - ✅ "veinticinco pesos" → 25
@@ -238,6 +246,7 @@ const report = await this.geminiService.generateText(instruction);
 ```
 
 **Casos que maneja**:
+
 - ✅ "Dame el reporte" → genera resumen ejecutivo
 - ✅ "Cómo van las ventas" → analiza órdenes
 - ✅ "Cuántas citas tengo" → resume agenda
@@ -245,6 +254,7 @@ const report = await this.geminiService.generateText(instruction);
 ## Manejo de Errores
 
 ### 1. Gemini No Disponible
+
 ```typescript
 if (!this.geminiService.isEnabled()) {
   this.logger.warn('Gemini no disponible, usando regex fallback');
@@ -253,6 +263,7 @@ if (!this.geminiService.isEnabled()) {
 ```
 
 ### 2. Error en Generación
+
 ```typescript
 try {
   const result = await this.geminiService.generateText(prompt);
@@ -264,6 +275,7 @@ try {
 ```
 
 ### 3. Respuesta Inválida
+
 ```typescript
 // Si Gemini retorna JSON malformado
 try {
@@ -290,12 +302,14 @@ const tone = profile.tone || 'amigable y profesional';
 ```
 
 **Ejemplo**: Empresa "Boutique Elegance" vs "Taller Mecánico":
+
 - Boutique: tono sofisticado, menciona envíos gratis, reembolsos 30 días
 - Taller: tono técnico, horarios turno completo, garantía piezas
 
 ## Testing
 
 ### Sin Credenciales
+
 ```bash
 # No configurar GOOGLE_GENAI_API_KEY
 npm run start:dev
@@ -303,6 +317,7 @@ npm run start:dev
 ```
 
 ### Con Credenciales
+
 ```bash
 export GOOGLE_GENAI_API_KEY="AIzaSy..."
 npm run start:dev
@@ -310,6 +325,7 @@ npm run start:dev
 ```
 
 ### Verificar Logs
+
 ```
 [GeminiService] Gemini inicializado con API Key
 [AgentRouterService] Intent detectado con Gemini: BOOKING
@@ -319,20 +335,24 @@ npm run start:dev
 ## Límites y Consideraciones
 
 ### Rate Limits
+
 - **API Key (gratuita)**: 15 RPM, 1500 RPD
 - **Vertex AI**: 60 RPM (configurable)
 - **Solución**: Implementar caching de respuestas comunes
 
 ### Latencia
+
 - **Promedio**: 500-1500ms por llamada
 - **Solución**: Streaming responses (TODO), respuestas parciales
 
 ### Costo
+
 - **API Key**: Gratis hasta 1M tokens/mes
 - **Vertex AI**: ~$0.00025/1K tokens input, ~$0.001/1K tokens output
 - **Presupuesto mensual estimado** (1000 usuarios activos): $50-100 USD
 
 ### Privacidad
+
 - **Datos enviados**: Solo mensajes del usuario + config de empresa
 - **NO se envía**: Datos personales sensibles, tokens bancarios
 - **Cumplimiento**: Usar Vertex AI en región EU para GDPR
@@ -340,6 +360,7 @@ npm run start:dev
 ## Próximos Pasos
 
 ### Fase 2: Runner Integration
+
 ```typescript
 import { Runner, LlmAgent } from '@google/adk';
 
@@ -347,35 +368,37 @@ const appointmentAgent = new LlmAgent({
   name: 'appointment_agent',
   model: 'gemini-2.5-flash-lite',
   instruction: '...',
-  tools: [checkAvailabilityTool]
+  tools: [checkAvailabilityTool],
 });
 
 const runner = new Runner({
   agent: appointmentAgent,
-  sessionService: new InMemorySessionService()
+  sessionService: new InMemorySessionService(),
 });
 
 for await (const event of runner.runAsync({
   userId: senderId,
   sessionId,
-  newMessage: { role: 'user', parts: [{ text }] }
+  newMessage: { role: 'user', parts: [{ text }] },
 })) {
   // Procesar eventos en streaming
 }
 ```
 
 ### Fase 3: Sub-Agents Hierarchy
+
 ```typescript
 const rootAgent = new LlmAgent({
   name: 'coordinator',
   model: 'gemini-2.5-flash-lite',
   description: 'Coordinador multi-tenant',
-  sub_agents: [appointmentAgent, salesAgent, reportingAgent]
+  sub_agents: [appointmentAgent, salesAgent, reportingAgent],
   // → transfer_to_agent automático
 });
 ```
 
 ### Fase 4: Function Tools
+
 ```typescript
 const saveAppointmentTool = new FunctionTool({
   name: 'save_appointment',

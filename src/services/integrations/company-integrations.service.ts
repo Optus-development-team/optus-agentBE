@@ -53,7 +53,10 @@ export class CompanyIntegrationsService {
     );
   }
 
-  async markTwoFactorAttention(companyId: string, flag: boolean): Promise<void> {
+  async markTwoFactorAttention(
+    companyId: string,
+    flag: boolean,
+  ): Promise<void> {
     if (!this.supabase.isEnabled()) {
       return;
     }

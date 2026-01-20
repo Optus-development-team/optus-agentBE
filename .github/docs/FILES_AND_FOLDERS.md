@@ -1,30 +1,30 @@
 # Descripción de Archivos y Carpetas
 
-| Ruta | Descripción |
-| --- | --- |
-| `src/main.ts` | Punto de arranque NestJS; habilita Swagger y expone los controladores HTTP. |
-| `src/app.module.ts` | Módulo raíz que agrega ConfigModule, ScheduleModule y el módulo de WhatsApp. |
-| `src/whatsapp/whatsapp.module.ts` | Declara controladores y servicios específicos del dominio WhatsApp (agentes, integraciones, pagos). |
-| `src/whatsapp/whatsapp.controller.ts` | Expone los endpoints `GET/POST /webhook` para Meta y enruta el cuerpo al servicio principal. |
-| `src/whatsapp/whatsapp.service.ts` | Núcleo del orquestador: resuelve tenants, ADK sessions, intenciones y se encarga de todas las llamadas salientes a Meta usando el `phone_number_id` de cada empresa. |
-| `src/whatsapp/services/identity.service.ts` | Interfaz con Supabase para resolver `TenantContext`, roles, usuarios de compañía y teléfonos administradores. Ahora provee `resolveTenantByCompanyId` para envíos fuera del webhook. |
-| `src/whatsapp/services/supabase.service.ts` | Envuelve `pg` con TLS/pgbouncer habilitado; usado por todos los servicios multi-tenant. |
-| `src/whatsapp/services/adk-session.service.ts` | Persiste y fusiona el contexto de Google ADK en `adk_sessions`. |
-| `src/whatsapp/services/company-integrations.service.ts` | Gestiona credenciales cifradas (Google Calendar, banco, etc.) y banderas de 2FA. |
-| `src/whatsapp/services/google-oauth.service.ts` | Construye URLs de consentimiento y realiza el intercambio de códigos para OAuth. |
-| `src/whatsapp/services/payment-warmup.service.ts` | Job programado que intenta abrir sesiones bancarias y notifica admins cuando se requiere 2FA. |
-| `src/whatsapp/services/payment-client.service.ts` | Cliente HTTP hacia `bms_payment_backend`, incluyendo warmup y generación de QR. |
-| `src/whatsapp/services/orders-sync.service.ts` | Sincroniza estados de órdenes en Supabase en función de los eventos de pago. |
-| `src/whatsapp/services/onboarding.service.ts` | Revisa integraciones pendientes (p. ej. Google Calendar) y responde con instrucciones. |
-| `src/whatsapp/agents/appointment-agent.service.ts` | Administra reservas, calcula slots y persiste en `appointments`. |
-| `src/whatsapp/agents/sales-agent.service.ts` | Implementa el flujo de pagos/ventas, mantiene `PaymentOrder` en memoria y crea acciones para el webhook de pagos. |
-| `src/whatsapp/agents/reporting-agent.service.ts` | Responde a peticiones de reportes agregando datos de Supabase filtrados por `company_id`. |
-| `src/whatsapp/dto/payment-webhook.dto.ts` | DTO del webhook de pagos + definición de `PaymentWebhookAction` con `companyId`. |
-| `src/whatsapp/interfaces/whatsapp.interface.ts` | Tipos compartidos con la API de Meta (mensajes, status, envíos). |
-| `src/whatsapp/whatsapp.types.ts` | Define `TenantContext`, `UserRole`, `Intent`, `RouterAction` y estructuras auxiliares. |
-| `.github/docs/PROGRAM_FLOWS.md` | Este documento. |
-| `.github/docs/FILES_AND_FOLDERS.md` | Visión general de estructura (este archivo). |
-| `.github/docs/ENVIRONMENT.md` | Variables de entorno y consideraciones multi-tenant. |
-| `.github/docs/DATABASE.md` | Diagramas y descripciones de tablas en Supabase. |
+| Ruta                                                    | Descripción                                                                                                                                                                          |
+| ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `src/main.ts`                                           | Punto de arranque NestJS; habilita Swagger y expone los controladores HTTP.                                                                                                          |
+| `src/app.module.ts`                                     | Módulo raíz que agrega ConfigModule, ScheduleModule y el módulo de WhatsApp.                                                                                                         |
+| `src/whatsapp/whatsapp.module.ts`                       | Declara controladores y servicios específicos del dominio WhatsApp (agentes, integraciones, pagos).                                                                                  |
+| `src/whatsapp/whatsapp.controller.ts`                   | Expone los endpoints `GET/POST /webhook` para Meta y enruta el cuerpo al servicio principal.                                                                                         |
+| `src/whatsapp/whatsapp.service.ts`                      | Núcleo del orquestador: resuelve tenants, ADK sessions, intenciones y se encarga de todas las llamadas salientes a Meta usando el `phone_number_id` de cada empresa.                 |
+| `src/whatsapp/services/identity.service.ts`             | Interfaz con Supabase para resolver `TenantContext`, roles, usuarios de compañía y teléfonos administradores. Ahora provee `resolveTenantByCompanyId` para envíos fuera del webhook. |
+| `src/whatsapp/services/supabase.service.ts`             | Envuelve `pg` con TLS/pgbouncer habilitado; usado por todos los servicios multi-tenant.                                                                                              |
+| `src/whatsapp/services/adk-session.service.ts`          | Persiste y fusiona el contexto de Google ADK en `adk_sessions`.                                                                                                                      |
+| `src/whatsapp/services/company-integrations.service.ts` | Gestiona credenciales cifradas (Google Calendar, banco, etc.) y banderas de 2FA.                                                                                                     |
+| `src/whatsapp/services/google-oauth.service.ts`         | Construye URLs de consentimiento y realiza el intercambio de códigos para OAuth.                                                                                                     |
+| `src/whatsapp/services/payment-warmup.service.ts`       | Job programado que intenta abrir sesiones bancarias y notifica admins cuando se requiere 2FA.                                                                                        |
+| `src/whatsapp/services/payment-client.service.ts`       | Cliente HTTP hacia `bms_payment_backend`, incluyendo warmup y generación de QR.                                                                                                      |
+| `src/whatsapp/services/orders-sync.service.ts`          | Sincroniza estados de órdenes en Supabase en función de los eventos de pago.                                                                                                         |
+| `src/whatsapp/services/onboarding.service.ts`           | Revisa integraciones pendientes (p. ej. Google Calendar) y responde con instrucciones.                                                                                               |
+| `src/whatsapp/agents/appointment-agent.service.ts`      | Administra reservas, calcula slots y persiste en `appointments`.                                                                                                                     |
+| `src/whatsapp/agents/sales-agent.service.ts`            | Implementa el flujo de pagos/ventas, mantiene `PaymentOrder` en memoria y crea acciones para el webhook de pagos.                                                                    |
+| `src/whatsapp/agents/reporting-agent.service.ts`        | Responde a peticiones de reportes agregando datos de Supabase filtrados por `company_id`.                                                                                            |
+| `src/whatsapp/dto/payment-webhook.dto.ts`               | DTO del webhook de pagos + definición de `PaymentWebhookAction` con `companyId`.                                                                                                     |
+| `src/whatsapp/interfaces/whatsapp.interface.ts`         | Tipos compartidos con la API de Meta (mensajes, status, envíos).                                                                                                                     |
+| `src/whatsapp/whatsapp.types.ts`                        | Define `TenantContext`, `UserRole`, `Intent`, `RouterAction` y estructuras auxiliares.                                                                                               |
+| `.github/docs/PROGRAM_FLOWS.md`                         | Este documento.                                                                                                                                                                      |
+| `.github/docs/FILES_AND_FOLDERS.md`                     | Visión general de estructura (este archivo).                                                                                                                                         |
+| `.github/docs/ENVIRONMENT.md`                           | Variables de entorno y consideraciones multi-tenant.                                                                                                                                 |
+| `.github/docs/DATABASE.md`                              | Diagramas y descripciones de tablas en Supabase.                                                                                                                                     |
 
 > Nota: cualquier carpeta nueva debe documentarse aquí para mantener la trazabilidad de responsabilidades dentro del backend multi-tenant.

@@ -8,7 +8,10 @@ import {
 } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { PaymentWebhookDto } from '../dto/payment-webhook.dto';
-import { X402WebhookDto, PaymentConfirmationDto } from '../dto/x402-webhook.dto';
+import {
+  X402WebhookDto,
+  PaymentConfirmationDto,
+} from '../dto/x402-webhook.dto';
 import { SalesAgentService } from '../services/agents/subagents/sales-agent.service';
 import { WhatsappService } from '../services/whatsapp/whatsapp.service';
 
@@ -24,7 +27,9 @@ export class PaymentWebhookController {
 
   @Post('payments/result')
   @HttpCode(HttpStatus.ACCEPTED)
-  @ApiOperation({ summary: 'Recibe eventos del microservicio de pagos (legacy)' })
+  @ApiOperation({
+    summary: 'Recibe eventos del microservicio de pagos (legacy)',
+  })
   async handlePaymentEvent(
     @Body() payload: PaymentWebhookDto,
   ): Promise<{ status: string }> {
@@ -63,9 +68,7 @@ export class PaymentWebhookController {
   async handleX402Event(
     @Body() payload: X402WebhookDto,
   ): Promise<{ status: string }> {
-    this.logger.log(
-      `x402 webhook: ${payload.event} para job ${payload.jobId}`,
-    );
+    this.logger.log(`x402 webhook: ${payload.event} para job ${payload.jobId}`);
 
     const actions = await this.salesAgentService.handleX402Webhook(payload);
 
@@ -107,7 +110,9 @@ export class PaymentWebhookController {
     const order = this.salesAgentService.getOrderByX402JobId(payload.orderId);
 
     if (!order) {
-      this.logger.warn(`Orden ${payload.orderId} no encontrada para confirmación`);
+      this.logger.warn(
+        `Orden ${payload.orderId} no encontrada para confirmación`,
+      );
       return {
         status: 'not_found',
         message: 'Orden no encontrada',

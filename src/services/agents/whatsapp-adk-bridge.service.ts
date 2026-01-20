@@ -92,7 +92,9 @@ export class WhatsappAdkBridgeService {
     const sessionId = `${context.tenant.companyId}:${context.senderId}`;
 
     // Extraer nombre del contacto desde el contexto de sesión ADK
-    const sessionContext = context.adkSession?.context as Record<string, unknown> | undefined;
+    const sessionContext = context.adkSession?.context as
+      | Record<string, unknown>
+      | undefined;
     const senderName = (sessionContext?.contact_name as string) || undefined;
 
     return {
@@ -100,7 +102,8 @@ export class WhatsappAdkBridgeService {
       message: sanitized.normalizedText,
       senderPhone: context.senderId,
       senderName,
-      userRole: context.role as unknown as import('../agents/types/agent.types').UserRole,
+      userRole:
+        context.role as unknown as import('../agents/types/agent.types').UserRole,
       tenantContext,
       referredProduct: context.referredProduct,
       whatsappMessageId: context.whatsappMessageId,

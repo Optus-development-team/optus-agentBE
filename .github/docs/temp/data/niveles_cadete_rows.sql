@@ -1,0 +1,1 @@
+INSERT INTO "public"."niveles_cadete" ("id_nivel", "nombre", "orden") VALUES ('1', '1er año', '1'), ('2', '2do año', '2'), ('3', '3er año', '3'), ('4', '4to año', '4');

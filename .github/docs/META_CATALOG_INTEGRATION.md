@@ -18,8 +18,8 @@ WHATSAPP_API_VERSION=v24.0
 En la tabla `companies`, asegúrate de tener configurado el campo `business_catalog_id` con el ID del catálogo de Meta:
 
 ```sql
-UPDATE companies 
-SET business_catalog_id = '2902117086655075' 
+UPDATE companies
+SET business_catalog_id = '2902117086655075'
 WHERE id = 'tu-company-id';
 ```
 
@@ -28,59 +28,71 @@ WHERE id = 'tu-company-id';
 El Sales Agent puede utilizar las siguientes herramientas automáticamente según el contexto de la conversación:
 
 ### 1. Sincronizar Inventario hacia Meta
+
 **Tool Type:** `sync_inventory_to_meta`
 
 Sincroniza todos los productos de Supabase hacia el catálogo de Meta.
 
 **Ejemplo de uso por el usuario:**
+
 - "Actualiza el catálogo de Meta"
 - "Sincroniza los productos con Facebook"
 
 ### 2. Sincronizar Inventario desde Meta
+
 **Tool Type:** `sync_inventory_from_meta`
 
 Trae los productos del catálogo de Meta hacia Supabase.
 
 **Ejemplo de uso por el usuario:**
+
 - "Importa los productos de Meta"
 - "Trae el inventario de Facebook"
 
 ### 3. Buscar Productos
+
 **Tool Type:** `search_products`
 **Parámetros:** `searchTerm` (string)
 
 Busca productos en el catálogo de Meta por nombre.
 
 **Ejemplo de uso por el usuario:**
+
 - "Busca productos con 'camisa'"
 - "¿Tenemos productos de 'zapatos'?"
 
 ### 4. Obtener Información de Producto
+
 **Tool Type:** `get_product_info`
 **Parámetros:** `productId` (string)
 
 Obtiene información detallada de un producto específico.
 
 **Ejemplo de uso por el usuario:**
+
 - "Dame información del producto ABC123"
 - "¿Qué características tiene el producto XYZ?"
 
 ### 5. Actualizar Disponibilidad
+
 **Tool Type:** `update_product_availability`
 **Parámetros:** `productId` (string), `available` (boolean)
 
 Actualiza la disponibilidad de un producto en el catálogo.
 
 **Ejemplo de uso por el usuario:**
+
 - "Marca el producto ABC123 como no disponible"
 - "El producto XYZ está en stock"
 
 ### 6. Listar Todos los Productos
+
 **Tool Type:** `list_all_products`
 
 Lista todos los productos del catálogo de Meta.
 
 **Ejemplo de uso por el usuario:**
+
 - "Lista todos los productos"
 - "Muestra el inventario completo"
 
@@ -101,6 +113,7 @@ graph TD
 ### Endpoints Utilizados
 
 #### Listar Productos
+
 ```http
 GET https://graph.facebook.com/v24.0/{catalog_id}/products
 ?access_token={META_API_TOKEN}
@@ -108,6 +121,7 @@ GET https://graph.facebook.com/v24.0/{catalog_id}/products
 ```
 
 #### Batch Update
+
 ```http
 POST https://graph.facebook.com/v24.0/{catalog_id}/items_batch
 Content-Type: application/x-www-form-urlencoded
@@ -135,6 +149,7 @@ item_type=PRODUCT_ITEM
 ## Estructura de Datos
 
 ### Tabla `products` en Supabase
+
 ```sql
 CREATE TABLE products (
   id TEXT PRIMARY KEY,
@@ -153,8 +168,9 @@ CREATE TABLE products (
 ```
 
 ### Tabla `companies` - Campo adicional
+
 ```sql
-ALTER TABLE companies 
+ALTER TABLE companies
 ADD COLUMN business_catalog_id TEXT;
 ```
 
@@ -177,7 +193,7 @@ const products = await metaCatalogService.searchProducts(catalogId, 'camisa');
 const batchRequest = {
   method: 'UPDATE',
   retailer_id: 'PROD123',
-  data: { availability: 'out of stock' }
+  data: { availability: 'out of stock' },
 };
 await metaCatalogService.batchUpdateProducts(catalogId, [batchRequest]);
 ```
@@ -203,14 +219,17 @@ Bot: "✅ Producto ABC123 marcado como no disponible en el catálogo"
 ## Errores Comunes
 
 ### 1. Catalog ID no encontrado
+
 **Error:** `No se encontró catalog_id para esta compañía`
 **Solución:** Verifica que `business_catalog_id` esté configurado en la tabla `companies`
 
 ### 2. Token inválido
+
 **Error:** `Invalid OAuth 2.0 Access Token`
 **Solución:** Verifica que `META_API_TOKEN` sea válido y tenga los permisos necesarios
 
 ### 3. Rate Limiting
+
 **Error:** `Too many calls for the batch uploads`
 **Solución:** Implementa delay entre llamadas o agrupa más operaciones en un solo batch
 

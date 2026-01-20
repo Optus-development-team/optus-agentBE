@@ -263,15 +263,17 @@ export class WhatsappService {
     if (!message.text) return;
 
     const canonicalSender = contactWaId ?? message.from;
-    this.logger.log(`📨 Procesando mensaje de ${canonicalSender} para empresa ${tenant.companyName}`);
-    
+    this.logger.log(
+      `📨 Procesando mensaje de ${canonicalSender} para empresa ${tenant.companyName}`,
+    );
+
     const role = await this.identityService.resolveRole(
       tenant,
       message.from,
       contactWaId,
     );
     this.logger.debug(`Rol resuelto: ${role}`);
-    
+
     // Garantiza que todo remitente quede registrado como CLIENT por defecto.
     const userId = await this.identityService.ensureCompanyUser(
       tenant.companyId,
@@ -279,7 +281,7 @@ export class WhatsappService {
       role,
     );
     this.logger.debug(`Usuario registrado/recuperado: ${userId}`);
-    
+
     const adkSession = await this.adkSessionService.loadSession(
       tenant,
       canonicalSender,
@@ -311,7 +313,9 @@ export class WhatsappService {
 
     this.logger.debug(`Enrutando mensaje al agente apropiado...`);
     const routerResult = await this.adkBridge.routeTextMessage(context);
-    this.logger.log(`Intent detectado: ${routerResult.intent}, acciones: ${routerResult.actions.length}`);
+    this.logger.log(
+      `Intent detectado: ${routerResult.intent}, acciones: ${routerResult.actions.length}`,
+    );
 
     await this.adkSessionService.recordInteraction({
       session: adkSession,
@@ -353,8 +357,10 @@ export class WhatsappService {
     for (const action of routerResult.actions) {
       await this.dispatchAction(canonicalSender, action, tenant);
     }
-    
-    this.logger.log(`✅ Mensaje procesado completamente para ${canonicalSender}`);
+
+    this.logger.log(
+      `✅ Mensaje procesado completamente para ${canonicalSender}`,
+    );
   }
 
   /**
@@ -516,7 +522,7 @@ export class WhatsappService {
             action.base64,
             `qr-${Date.now()}.png`,
           );
-          
+
           if (publicUrl) {
             // Enviar usando URL pública
             await this.sendImageMessageFromUrl(
@@ -527,10 +533,10 @@ export class WhatsappService {
             );
             break;
           }
-          
+
           this.logger.warn('Pinata falló, usando fallback a upload directo');
         }
-        
+
         // Fallback: subir imagen a Meta directamente
         const buffer = Buffer.from(action.base64, 'base64');
         const { phoneNumberId } = await this.resolvePhoneNumberId({ tenant });
@@ -540,12 +546,9 @@ export class WhatsappService {
           `image-${Date.now()}.png`,
           phoneNumberId,
         );
-        await this.sendImageMessage(
-          recipient,
-          mediaId,
-          action.caption,
-          { tenant },
-        );
+        await this.sendImageMessage(recipient, mediaId, action.caption, {
+          tenant,
+        });
         break;
       }
       default: {
@@ -787,12 +790,16 @@ export class WhatsappService {
 
     try {
       const response = await firstValueFrom(
-        this.httpService.post(this.getMessagesEndpoint(phoneNumberId), payload, {
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${this.apiToken}`,
+        this.httpService.post(
+          this.getMessagesEndpoint(phoneNumberId),
+          payload,
+          {
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${this.apiToken}`,
+            },
           },
-        }),
+        ),
       );
 
       this.logger.log(`Mensaje interactivo CTA URL enviado a ${to}`);
@@ -826,7 +833,7 @@ export class WhatsappService {
 
     // Intentar subir a Pinata para obtener URL pública (requerido por WhatsApp)
     let qrImageUrl: string | null = null;
-    
+
     if (this.pinataService.isEnabled()) {
       try {
         this.logger.debug('Subiendo QR a Pinata Cloud...');
@@ -839,7 +846,9 @@ export class WhatsappService {
         this.logger.error('Error subiendo QR a Pinata:', error);
       }
     } else {
-      this.logger.warn('Pinata no está configurado, no se puede enviar QR en header');
+      this.logger.warn(
+        'Pinata no está configurado, no se puede enviar QR en header',
+      );
     }
 
     // Si no hay URL del QR, enviar mensaje sin header de imagen

@@ -21,7 +21,10 @@ export const getDailyMetricsTool = new FunctionTool({
     'Incluye ventas, citas, mensajes y más.',
   parameters: z.object({
     date: z.string().optional().describe('Fecha para consultar (default: hoy)'),
-    compareWithPrevious: z.boolean().optional().describe('Comparar con día anterior'),
+    compareWithPrevious: z
+      .boolean()
+      .optional()
+      .describe('Comparar con día anterior'),
   }),
   execute: async (args, context?: ToolContext) => {
     const state = context?.state;
@@ -54,7 +57,8 @@ export const getDailyMetricsTool = new FunctionTool({
             appointmentsChange: '-2%',
           }
         : null,
-      message: '📊 Resumen del día: $15,420 en ventas, 23 órdenes, 8 citas agendadas.',
+      message:
+        '📊 Resumen del día: $15,420 en ventas, 23 órdenes, 8 citas agendadas.',
     };
   },
 });
@@ -71,9 +75,15 @@ export const generateSalesReportTool = new FunctionTool({
     period: z
       .enum(['today', 'yesterday', 'week', 'month', 'quarter', 'custom'])
       .describe('Período del reporte'),
-    startDate: z.string().optional().describe('Fecha inicio (solo para "custom")'),
+    startDate: z
+      .string()
+      .optional()
+      .describe('Fecha inicio (solo para "custom")'),
     endDate: z.string().optional().describe('Fecha fin (solo para "custom")'),
-    groupBy: z.enum(['day', 'week', 'product', 'payment_method']).optional().describe('Agrupar por'),
+    groupBy: z
+      .enum(['day', 'week', 'product', 'payment_method'])
+      .optional()
+      .describe('Agrupar por'),
   }),
   execute: async (args, context?: ToolContext) => {
     const state = context?.state;
@@ -118,8 +128,14 @@ export const getLowStockAlertsTool = new FunctionTool({
   name: 'get_low_stock_alerts',
   description: 'Obtiene lista de productos con stock bajo o agotado.',
   parameters: z.object({
-    threshold: z.number().optional().describe('Umbral de stock bajo (default: 10)'),
-    includeOutOfStock: z.boolean().optional().describe('Incluir productos agotados'),
+    threshold: z
+      .number()
+      .optional()
+      .describe('Umbral de stock bajo (default: 10)'),
+    includeOutOfStock: z
+      .boolean()
+      .optional()
+      .describe('Incluir productos agotados'),
   }),
   execute: async (args, context?: ToolContext) => {
     const state = context?.state;
@@ -141,12 +157,18 @@ export const getLowStockAlertsTool = new FunctionTool({
       threshold,
       alerts: [
         { productId: 'PROD-001', name: 'Producto A', stock: 3, status: 'low' },
-        { productId: 'PROD-002', name: 'Producto B', stock: 0, status: 'out_of_stock' },
+        {
+          productId: 'PROD-002',
+          name: 'Producto B',
+          stock: 0,
+          status: 'out_of_stock',
+        },
         { productId: 'PROD-005', name: 'Producto E', stock: 8, status: 'low' },
       ],
       totalLowStock: 2,
       totalOutOfStock: 1,
-      message: '⚠️ Alerta: 2 productos con stock bajo, 1 agotado. Se recomienda reabastecer.',
+      message:
+        '⚠️ Alerta: 2 productos con stock bajo, 1 agotado. Se recomienda reabastecer.',
     };
   },
 });
@@ -159,7 +181,10 @@ export const getAppointmentsReportTool = new FunctionTool({
   description: 'Genera reporte de citas y reservas para un período.',
   parameters: z.object({
     period: z.enum(['today', 'week', 'month']).describe('Período del reporte'),
-    includeNoShows: z.boolean().optional().describe('Incluir citas sin asistir'),
+    includeNoShows: z
+      .boolean()
+      .optional()
+      .describe('Incluir citas sin asistir'),
   }),
   execute: async (args, context?: ToolContext) => {
     const state = context?.state;
@@ -200,7 +225,9 @@ export const getBusinessKpisTool = new FunctionTool({
     'Obtiene indicadores clave de rendimiento (KPIs) del negocio. ' +
     'Incluye retención, satisfacción, conversión y más.',
   parameters: z.object({
-    period: z.enum(['week', 'month', 'quarter']).describe('Período para calcular KPIs'),
+    period: z
+      .enum(['week', 'month', 'quarter'])
+      .describe('Período para calcular KPIs'),
   }),
   execute: async (args, context?: ToolContext) => {
     const state = context?.state;

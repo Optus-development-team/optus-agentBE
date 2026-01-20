@@ -20,7 +20,11 @@ export const checkAvailabilityTool = new FunctionTool({
     'Consulta los horarios disponibles para agendar una cita. ' +
     'Acepta fechas en lenguaje natural (mañana, próximo lunes, etc.).',
   parameters: z.object({
-    date: z.string().describe('Fecha para consultar (puede ser natural: "mañana", "próximo lunes")'),
+    date: z
+      .string()
+      .describe(
+        'Fecha para consultar (puede ser natural: "mañana", "próximo lunes")',
+      ),
     serviceType: z.string().optional().describe('Tipo de servicio a agendar'),
     duration: z.number().optional().describe('Duración estimada en minutos'),
   }),
@@ -122,7 +126,9 @@ export const rescheduleAppointmentTool = new FunctionTool({
     newTime: z.string().describe('Nueva hora'),
   }),
   execute: async (args, _context?: ToolContext) => {
-    logger.debug(`Reprogramando cita ${args.appointmentId} a ${args.newDate} ${args.newTime}`);
+    logger.debug(
+      `Reprogramando cita ${args.appointmentId} a ${args.newDate} ${args.newTime}`,
+    );
 
     // TODO: Implementar con Google Calendar API
     return {

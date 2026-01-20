@@ -21,9 +21,17 @@ export const searchProductsTool = new FunctionTool({
     'Busca productos en el catálogo de la empresa por nombre, categoría o descripción. ' +
     'Usa esta herramienta cuando el usuario pregunte por productos específicos.',
   parameters: z.object({
-    query: z.string().describe('Término de búsqueda (nombre del producto, categoría, etc.)'),
-    category: z.string().optional().describe('Filtrar por categoría específica'),
-    maxResults: z.number().optional().describe('Número máximo de resultados (default: 5)'),
+    query: z
+      .string()
+      .describe('Término de búsqueda (nombre del producto, categoría, etc.)'),
+    category: z
+      .string()
+      .optional()
+      .describe('Filtrar por categoría específica'),
+    maxResults: z
+      .number()
+      .optional()
+      .describe('Número máximo de resultados (default: 5)'),
   }),
   execute: async (args, context?: ToolContext) => {
     logger.debug(`Buscando productos: ${args.query}`);
@@ -90,7 +98,10 @@ export const createPaymentOrderTool = new FunctionTool({
     'Genera un código QR o link de pago según el método configurado.',
   parameters: z.object({
     amount: z.number().describe('Monto total a pagar'),
-    description: z.string().optional().describe('Descripción o concepto del pago'),
+    description: z
+      .string()
+      .optional()
+      .describe('Descripción o concepto del pago'),
     products: z
       .array(
         z.object({
@@ -136,7 +147,9 @@ export const checkPaymentStatusTool = new FunctionTool({
     orderId: z
       .string()
       .optional()
-      .describe('ID de la orden a verificar. Si no se proporciona, busca la más reciente.'),
+      .describe(
+        'ID de la orden a verificar. Si no se proporciona, busca la más reciente.',
+      ),
   }),
   execute: async (args, context?: ToolContext) => {
     const state = context?.state;
@@ -145,7 +158,8 @@ export const checkPaymentStatusTool = new FunctionTool({
     if (!orderId) {
       return {
         success: false,
-        message: 'No se especificó ID de orden y no hay orden reciente en la sesión.',
+        message:
+          'No se especificó ID de orden y no hay orden reciente en la sesión.',
       };
     }
 

@@ -150,3 +150,37 @@ Table adk_sessions {
   context_data jsonb
   updated_at timestamptz [default: `now()`]
 }
+
+// --------------------------------------------------------
+// UNIVERSAL SCHEMA (Entity-Attribute-Value Modernizado)
+// --------------------------------------------------------
+
+Table entity_definitions {
+  id uuid [pk, default: `gen_random_uuid()`]
+  company_id uuid [ref: > companies.id, not null]
+  entity_name text [not null, note: 'Ej: "Horarios", "[PRIV] Costos"']
+  schema_sample jsonb [default: '{}', note: 'Ejemplo de estructura para referencia']
+  is_public_default boolean [default: true, note: 'Flag crítico: si false, el Agente NO puede leer estos datos']
+  created_at timestamptz [default: `now()`]
+  updated_at timestamptz [default: `now()`]
+
+  Indexes {
+    (company_id, entity_name) [unique]
+  }
+}
+
+Table dynamic_records {
+  id uuid [pk, default: `gen_random_uuid()`]
+  company_id uuid [ref: > companies.id, not null]
+  entity_definition_id uuid [ref: > entity_definitions.id, not null]
+  external_row_id text [note: 'ID opcional para sincronización con fuentes externas']
+  data jsonb [not null, note: 'Contenido dinámico: {"dia": "Lunes", "hora": "9am"}']
+  search_text tsvector [note: 'Vector de búsqueda full-text generado']
+  created_at timestamptz [default: `now()`]
+  updated_at timestamptz [default: `now()`]
+
+  Indexes {
+    (company_id, entity_definition_id)
+    data [type: gin]
+  }
+}

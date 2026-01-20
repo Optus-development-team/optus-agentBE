@@ -57,5 +57,8 @@ export * from './pinata';
 // Sanitization
 export * from './sanitization';
 
+// Sheets Sync
+export * from './sheets-sync';
+
 // WhatsApp
 export * from './whatsapp';

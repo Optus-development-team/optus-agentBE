@@ -54,11 +54,17 @@ export class SalesAgentService implements OnModuleInit {
 
   private initializeAgent(): void {
     const apiKey = this.config.get<string>('GOOGLE_GENAI_API_KEY', '');
-    const useVertexAi = this.config.get<string>('GOOGLE_GENAI_USE_VERTEXAI') === 'true';
-    const modelName = this.config.get<string>('GOOGLE_GENAI_MODEL', 'gemini-2.0-flash');
+    const useVertexAi =
+      this.config.get<string>('GOOGLE_GENAI_USE_VERTEXAI') === 'true';
+    const modelName = this.config.get<string>(
+      'GOOGLE_GENAI_MODEL',
+      'gemini-2.0-flash',
+    );
 
     if (!apiKey && !useVertexAi) {
-      this.logger.warn('Google AI no configurado. SalesAgent en modo fallback.');
+      this.logger.warn(
+        'Google AI no configurado. SalesAgent en modo fallback.',
+      );
       return;
     }
 
@@ -67,7 +73,10 @@ export class SalesAgentService implements OnModuleInit {
 
       if (useVertexAi) {
         const project = this.config.get<string>('GOOGLE_CLOUD_PROJECT');
-        const location = this.config.get<string>('GOOGLE_CLOUD_LOCATION', 'us-central1');
+        const location = this.config.get<string>(
+          'GOOGLE_CLOUD_LOCATION',
+          'us-central1',
+        );
 
         model = new Gemini({
           model: modelName,
@@ -110,7 +119,8 @@ IMPORTANTE:
         name: 'sales_agent',
         model,
         instruction,
-        description: 'Agente especializado en ventas, catálogo de productos y procesamiento de pagos',
+        description:
+          'Agente especializado en ventas, catálogo de productos y procesamiento de pagos',
         tools: salesTools,
       });
 
@@ -413,12 +423,16 @@ IMPORTANTE:
     if (product.price) {
       // Eliminar símbolos de moneda y espacios, luego extraer números
       const cleanPrice = product.price.replace(/[^\d,.]/g, '').trim();
-      const priceMatch = cleanPrice.match(/([\d,]+(?:\.[\d]+)?|[\d]+(?:,[\d]+)?)/);
+      const priceMatch = cleanPrice.match(
+        /([\d,]+(?:\.[\d]+)?|[\d]+(?:,[\d]+)?)/,
+      );
       if (priceMatch) {
         // Si usa coma como separador decimal (ej: 400,00), convertir a punto
         let priceStr = priceMatch[1];
         // Si tiene formato 1.234,56 o 1,234.56, determinar cuál es el separador decimal
-        const hasCommaDecimal = priceStr.includes(',') && priceStr.lastIndexOf(',') > priceStr.lastIndexOf('.');
+        const hasCommaDecimal =
+          priceStr.includes(',') &&
+          priceStr.lastIndexOf(',') > priceStr.lastIndexOf('.');
         if (hasCommaDecimal) {
           // Formato europeo: 1.234,56 -> eliminar puntos, reemplazar coma por punto
           priceStr = priceStr.replace(/\./g, '').replace(',', '.');
@@ -560,12 +574,14 @@ ${product.description ? `Descripción: ${product.description}` : ''}
     await this.ordersSyncService.updateStatus(order);
 
     // Log para debug
-    this.logger.debug(`QR recibido del x402: ${!!x402Result.qrImageBase64}, longitud: ${x402Result.qrImageBase64?.length || 0}`);
+    this.logger.debug(
+      `QR recibido del x402: ${!!x402Result.qrImageBase64}, longitud: ${x402Result.qrImageBase64?.length || 0}`,
+    );
 
     // Enviar QR+link usando SOLO mensaje interactivo CTA URL con imagen en header
     if (x402Result.qrImageBase64) {
       const bodyText = `🛒 *${order.details}*\n💰 *Total a pagar:* Bs. ${order.amount?.toFixed(2)}\n\n📱 Escanea el código QR o presiona el botón para completar tu pago de forma segura.`;
-      
+
       order.chatHistory?.push({
         role: 'model',
         text: bodyText,
@@ -589,13 +605,13 @@ ${product.description ? `Descripción: ${product.description}` : ''}
 
     // Si no hay QR (solo crypto disponible), enviar mensaje CTA con header de texto
     const bodyText = `🛒 *${order.details}*\n💰 Total: Bs. ${order.amount?.toFixed(2)}\n\n✅ Tu orden está lista. Presiona el botón para completar el pago.`;
-    
+
     order.chatHistory?.push({
       role: 'model',
       text: bodyText,
       timestamp: new Date(),
     });
-    
+
     return {
       actions: [],
       metadata: {
@@ -659,9 +675,10 @@ Responde SOLO con el número (sin símbolos de moneda) o "null" si no hay monto.
     // Fallback rápido para confirmaciones simples cuando hay producto en carrito
     const normalizedText = text.toLowerCase().trim();
     // Permitir variaciones como "siiii", "okkkk", etc.
-    const isSimpleConfirmation = /^(si+|sí+|ok+|dale|va|yes+|claro|bueno|listo|confirmo|si+\s*pe|sip+|simón|yep+)$/i.test(
-      normalizedText,
-    );
+    const isSimpleConfirmation =
+      /^(si+|sí+|ok+|dale|va|yes+|claro|bueno|listo|confirmo|si+\s*pe|sip+|simón|yep+)$/i.test(
+        normalizedText,
+      );
 
     // Si es confirmación simple y hay un producto en el carrito con precio, es checkout
     if (isSimpleConfirmation && currentState === PaymentState.CART) {
@@ -686,7 +703,10 @@ Responde SOLO con el número (sin símbolos de moneda) o "null" si no hay monto.
         history.length > 0
           ? history
               .slice(-6) // últimos 6 mensajes para contexto
-              .map((h) => `${h.role === 'user' ? 'Usuario' : 'Asistente'}: ${h.text}`)
+              .map(
+                (h) =>
+                  `${h.role === 'user' ? 'Usuario' : 'Asistente'}: ${h.text}`,
+              )
               .join('\n')
           : 'Sin historial previo';
 
@@ -736,15 +756,25 @@ Responde SOLO con una palabra: checkout, confirm_paid, status, other`;
     // Confirmaciones simples cuando hay carrito (permitir variaciones como "siiii")
     if (
       currentState === PaymentState.CART &&
-      /^(si+|sí+|ok+|dale|va|yes+|claro|bueno|listo|confirmo|si+\s*pe|sip+)$/i.test(normalizedText)
+      /^(si+|sí+|ok+|dale|va|yes+|claro|bueno|listo|confirmo|si+\s*pe|sip+)$/i.test(
+        normalizedText,
+      )
     ) {
       return 'checkout';
     }
 
-    if (/(pagar|checkout|qr|cobrar|generar|comprar|link de pago)/.test(normalizedText)) {
+    if (
+      /(pagar|checkout|qr|cobrar|generar|comprar|link de pago)/.test(
+        normalizedText,
+      )
+    ) {
       return 'checkout';
     }
-    if (/(ya pague|ya pagué|listo|pagado|confirmo|transferí|transferi)/.test(normalizedText)) {
+    if (
+      /(ya pague|ya pagué|listo|pagado|confirmo|transferí|transferi)/.test(
+        normalizedText,
+      )
+    ) {
       return 'confirm_paid';
     }
     if (/(estatus|estado|cómo va|como va)/.test(normalizedText)) {
@@ -1009,7 +1039,9 @@ Genera una respuesta natural, breve (máximo 2 líneas) y útil en español, con
 
     if (!order) {
       // Intentar recuperar de Supabase por jobId
-      const dbOrder = await this.ordersSyncService.findByX402JobId(payload.jobId);
+      const dbOrder = await this.ordersSyncService.findByX402JobId(
+        payload.jobId,
+      );
       if (dbOrder) {
         this.logger.warn(
           `Orden x402 ${payload.jobId} encontrada en DB pero no en memoria. Evento: ${payload.event}`,
@@ -1131,7 +1163,10 @@ Genera una respuesta natural, breve (máximo 2 líneas) y útil en español, con
       transaction: order.x402Settlement?.transaction ?? details ?? null,
     };
 
-    await this.companyIntegrations.markTwoFactorAttention(order.companyId, false);
+    await this.companyIntegrations.markTwoFactorAttention(
+      order.companyId,
+      false,
+    );
     await this.ordersSyncService.updateStatus(order);
 
     return [
