@@ -1,1 +1,0 @@
-INSERT INTO "public"."prospectos" ("id_prospecto", "nombre", "telefono", "nivel_interes", "origen", "fecha_contacto", "ultima_interaccion", "notas", "id_institucion", "id_nivel") VALUES ('287a7a5e-3bf2-4c9e-9177-12ad5b43e4db', 'Susana', '1063852168', 'curioso', 'Telegram', '2002-01-15 07:00:00+00', null, null, null, null);

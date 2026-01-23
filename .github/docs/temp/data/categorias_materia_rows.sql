@@ -1,1 +1,0 @@
-INSERT INTO "public"."categorias_materia" ("id_categoria", "nombre", "horas_semana") VALUES ('1', 'Teórica', '2'), ('2', 'Exactas', '4');
