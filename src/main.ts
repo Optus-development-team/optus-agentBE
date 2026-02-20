@@ -1,78 +1,51 @@
-import { Logger, ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
-import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
-import { WhatsAppWebhookModels } from './dto/whatsapp-webhook.dto';
-import * as dotenv from 'dotenv';
-import chokidar from 'chokidar';
-
-// Configurar watcher para recargar .env en tiempo real
-const envWatcher = chokidar.watch('.env', {
-  ignoreInitial: true,
-  persistent: true,
-});
-
-envWatcher.on('change', (path) => {
-  const envLogger = new Logger('EnvWatcher');
-  envLogger.log(`🔄 Archivo ${path} modificado, recargando variables...`);
-  dotenv.config();
-  envLogger.log('✅ Variables de entorno recargadas');
-  envLogger.warn(
-    '⚠️  Nota: Los servicios que cachean valores en constructores NO se actualizarán automáticamente',
-  );
-});
+import { ValidationPipe } from '@nestjs/common';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
 async function bootstrap() {
-  // Cargar variables de entorno al inicio
-  dotenv.config();
-
-  const logger = new Logger('Bootstrap');
   const app = await NestFactory.create(AppModule);
-
+  app.setGlobalPrefix('v1');
+  app.enableCors({
+    origin: [
+      'http://localhost:3000',
+      'http://localhost:3001',
+      'https://optus.bamp.lat',
+      'http://192.168.0.16:3001',
+      'http://192.168.0.16:3000',
+    ],
+  });
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
+      forbidUnknownValues: true,
       transform: true,
-      transformOptions: { enableImplicitConversion: true },
     }),
   );
 
-  // Habilitar CORS para permitir peticiones desde otros dominios
-  app.enableCors({
-    origin: '*',
-    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
-    credentials: true,
-    exposedHeaders: ['X-PAYMENT-RESPONSE'],
-  });
-
   const swaggerConfig = new DocumentBuilder()
-    .setTitle('BMS WhatsApp Webhook API')
+    .setTitle('optus API')
     .setDescription(
-      'Documentación interactiva del webhook de WhatsApp y endpoints auxiliares',
+      'API para autenticación, pagos y webhooks. Usa Bearer token para rutas protegidas.',
     )
-    .setVersion('1.0.0')
+    .setVersion('1.0')
+    .addServer('http://localhost:3001', 'local')
+    .addServer('http://localhost:3000', 'Local')
+    .addServer('https://api.optus.bamp.lat', 'Prod')
+    .addBearerAuth({
+      type: 'http',
+      scheme: 'bearer',
+      bearerFormat: 'JWT',
+      description: 'Token emitido por /auth/login',
+    })
     .build();
 
-  const swaggerDocument = SwaggerModule.createDocument(app, swaggerConfig, {
-    extraModels: WhatsAppWebhookModels,
+  const document = SwaggerModule.createDocument(app, swaggerConfig);
+  SwaggerModule.setup('docs', app, document, {
+    swaggerOptions: { persistAuthorization: true },
+    customSiteTitle: 'optus API Docs',
   });
 
-  SwaggerModule.setup('docs', app, swaggerDocument, {
-    swaggerOptions: {
-      persistAuthorization: true,
-      displayRequestDuration: true,
-    },
-  });
-
-  const port = process.env.PORT ?? 3000;
-  await app.listen(port);
-
-  logger.log(`Aplicación corriendo en: http://localhost:${port}`);
-  logger.log(
-    `Webhook de WhatsApp disponible en: http://localhost:${port}/webhook`,
-  );
-  logger.log(
-    `Documentación Swagger disponible en: http://localhost:${port}/docs`,
-  );
+  await app.listen(process.env.PORT ?? 3000);
 }
-void bootstrap();
+bootstrap();

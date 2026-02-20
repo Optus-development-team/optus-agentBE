@@ -1,0 +1,141 @@
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { SupabaseService } from '../../../common/intraestructure/supabase/supabase.service';
+import type { CompanySummary, CompanyUser } from '../types/company.types';
+
+@Injectable()
+export class CompanyService {
+  private readonly logger = new Logger(CompanyService.name);
+
+  constructor(
+    private readonly supabase: SupabaseService,
+    private readonly config: ConfigService,
+  ) {}
+
+  async listCompaniesForUser(userId: string): Promise<CompanySummary[]> {
+    this.ensureSupabaseReady();
+
+    const rows = await this.supabase.query<{
+      id: string;
+      name: string;
+      currency: string | null;
+    }>(
+      `select c.id, c.name, c.currency
+         from companies c
+         inner join company_users cu on cu.company_id = c.id
+        where cu.id = $1
+        order by c.created_at desc`,
+      [userId],
+    );
+
+    return rows.map((row) => ({
+      id: row.id,
+      name: row.name,
+      currency: row.currency,
+    }));
+  }
+
+  async createCompany(params: {
+    name: string;
+    currency?: string;
+    creatorUserId: string;
+  }): Promise<CompanySummary> {
+    this.ensureSupabaseReady();
+
+    const currency = params.currency?.trim() || this.defaultCurrency();
+
+    const rows = await this.supabase.query<CompanySummary>(
+      `insert into companies (name, currency)
+       values ($1, $2)
+       returning id, name, currency`,
+      [params.name, currency],
+    );
+
+    const company = rows[0];
+    if (!company) {
+      throw new Error('No se pudo crear la empresa');
+    }
+
+    await this.supabase.query(
+      `update company_users set company_id = $1, role = coalesce(role, 'OWNER') where id = $2`,
+      [company.id, params.creatorUserId],
+    );
+
+    return company;
+  }
+
+  async addUserToCompany(params: {
+    companyId: string;
+    userId: string;
+    role?: string;
+  }): Promise<{ updated: boolean }> {
+    this.ensureSupabaseReady();
+    await this.ensureCompanyExists(params.companyId);
+
+    const rows = await this.supabase.query<{ id: string }>(
+      `update company_users
+          set company_id = $1,
+              role = coalesce($3, role)
+        where id = $2
+        returning id`,
+      [params.companyId, params.userId, params.role ?? null],
+    );
+
+    if (!rows.length) {
+      throw new NotFoundException('USER_NOT_FOUND');
+    }
+
+    return { updated: true };
+  }
+
+  async listCompanyUsers(companyId: string): Promise<CompanyUser[]> {
+    this.ensureSupabaseReady();
+    await this.ensureCompanyExists(companyId);
+
+    const rows = await this.supabase.query<{
+      id: string;
+      company_id: string;
+      role: string | null;
+      email: string | null;
+      phone: string | null;
+    }>(
+      `select id, company_id, role, email, phone
+         from company_users
+        where company_id = $1
+        order by created_at desc`,
+      [companyId],
+    );
+
+    return rows.map((row) => ({
+      id: row.id,
+      companyId: row.company_id,
+      role: row.role,
+      email: row.email,
+      phone: row.phone,
+    }));
+  }
+
+  private async ensureCompanyExists(companyId: string): Promise<void> {
+    const rows = await this.supabase.query<{ id: string }>(
+      'select id from companies where id = $1 limit 1',
+      [companyId],
+    );
+
+    if (!rows.length) {
+      throw new NotFoundException('COMPANY_NOT_FOUND');
+    }
+  }
+
+  private ensureSupabaseReady(): void {
+    if (!this.supabase.isEnabled()) {
+      this.logger.error('SupabaseService no está configurado.');
+      throw new Error(
+        'Servicio de empresas deshabilitado por falta de conexión a Supabase',
+      );
+    }
+  }
+
+  private defaultCurrency(): string {
+    return this.config.get<string>('DEFAULT_CURRENCY', 'USD');
+  }
+}
