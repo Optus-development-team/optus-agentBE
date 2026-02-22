@@ -18,7 +18,7 @@ import { AppointmentAdminAgent } from '../../agents/appointment/admin/appointmen
 import { ReestockAgent } from '../../agents/reestock/reestock.agent';
 
 import { OAuthService } from '../../../../features/auth/oauth.service';
-import { WhatsAppMessagingService } from '../../../../features/whatsapp/services/whatsapp.messaging.service';
+import { WhatsAppResponseService } from '../../../../features/whatsapp/services/whatsapp-response.service';
 
 @Injectable()
 export class CompanyOrchestratorService implements OnModuleInit {
@@ -36,7 +36,7 @@ export class CompanyOrchestratorService implements OnModuleInit {
     private readonly appointmentAdminAgent: AppointmentAdminAgent,
     private readonly reestockAgent: ReestockAgent,
     private readonly oauthService: OAuthService,
-    private readonly whatsappService: WhatsAppMessagingService,
+    private readonly whatsappResponse: WhatsAppResponseService,
   ) {}
 
   onModuleInit(): void {
@@ -59,24 +59,41 @@ export class CompanyOrchestratorService implements OnModuleInit {
         );
         try {
           const authUrl = await this.oauthService.getAuthUrl(companyId);
-          await this.whatsappService.sendText(
+          await this.whatsappResponse.sendCtaLink(
             userId,
-            `⚠️ *Configuración necesaria*\n\nPara gestionar tu empresa, es necesario conectar con tu cuenta de Google.\n\nPor favor, haz clic en el siguiente enlace y autoriza el acceso:\n${authUrl}`,
+            {
+              bodyText:
+                '⚠️ *Configuración necesaria*\n\nPara gestionar tu empresa, es necesario conectar con tu cuenta de Google.',
+              buttonDisplayText: 'Conectar Google',
+              buttonUrl: authUrl,
+              footerText: 'Cuando termines, vuelve al chat y continúa.',
+            },
             {
               phoneNumberId:
                 context.phoneNumberId ?? context.tenant?.phoneNumberId,
+              companyId,
+            },
+          );
+          await this.whatsappResponse.sendStickerForEvent(
+            userId,
+            'error_or_unauthorized_action',
+            {
+              phoneNumberId:
+                context.phoneNumberId ?? context.tenant?.phoneNumberId,
+              companyId,
             },
           );
         } catch (error) {
-          this.logger.error(`Error sending auth URL: ${error.message}`);
+          this.logger.error(
+            `Error sending auth URL: ${(error as Error).message}`,
+          );
         }
-        // Continue flow? Or stop?
-        // If we stop, the user might be confused why their message wasn't processed.
-        // But if we continue, the agent might try to use tools that will fail.
-        // The prompt implies we should just send it. It doesn't say stop.
-        // However, it's safer to notify and maybe continue.
-        // But usually this check is a blocker for calendar operations.
-        // Let's just send the message.
+        return {
+          intent: 'UNKNOWN',
+          responseText:
+            'Necesitas completar la conexión con Google Calendar para continuar.',
+          agentUsed: 'company_orchestrator',
+        };
       }
     }
 
@@ -220,7 +237,7 @@ COMPORTAMIENTO:
       'app:phoneNumberId':
         context.tenant?.phoneNumberId ?? context.phoneNumberId ?? undefined,
       'app:displayPhoneNumber': context.tenant?.displayPhoneNumber ?? undefined,
-
+      'app:todayDate': new Date().toISOString().split('T')[0],
     };
   }
 

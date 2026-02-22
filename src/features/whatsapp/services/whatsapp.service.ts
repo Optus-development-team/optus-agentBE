@@ -8,23 +8,38 @@ import {
 } from '../interfaces/whatsapp.interface';
 import { AdkOrchestratorService } from '../../../core/adk/orchestrator/adk-orchestrator.service';
 import { WhatsAppMessagingService } from './whatsapp.messaging.service';
+import { WhatsAppResponseService } from './whatsapp-response.service';
 import { VerificationService } from '../../login/verification.service';
 import { IdentityService } from '../../auth/identity.service';
 import { TenantContext, UserRole } from '../types/whatsapp.types';
+
+interface PendingConversation {
+  canonicalSender: string;
+  contactName?: string;
+  phoneNumberId: string;
+  tenant: TenantContext;
+  role: UserRole;
+  lastMessage: WhatsAppIncomingMessage;
+  fragments: string[];
+  timeout: NodeJS.Timeout;
+}
 
 @Injectable()
 export class WhatsappService {
   private readonly logger = new Logger(WhatsappService.name);
   private readonly defaultPhoneNumberId: string;
   private readonly sendAgentText: boolean;
+  private readonly waitUntilMessageMs: number;
   // Cache in-memory para evitar reprocesar mensajes cuando Meta reintenta el webhook.
   private readonly processedMessageCache = new Map<string, number>();
   private readonly processedMessageTtlMs = 10 * 60 * 1000; // 10 minutos
+  private readonly pendingConversations = new Map<string, PendingConversation>();
 
   constructor(
     private readonly configService: ConfigService,
     private readonly adkOrchestrator: AdkOrchestratorService,
     private readonly messagingService: WhatsAppMessagingService,
+    private readonly responseService: WhatsAppResponseService,
     private readonly verification: VerificationService,
     private readonly identity: IdentityService,
   ) {
@@ -33,6 +48,9 @@ export class WhatsappService {
       this.configService.get<string>('PHONE_NUMBER_ID', '');
     this.sendAgentText =
       this.configService.get<string>('ADK_SEND_AGENT_TEXT', 'false') === 'true';
+    this.waitUntilMessageMs = Number(
+      this.configService.get<string>('WAIT_UNTIL_MESSAGE', '3000'),
+    );
     this.logger.log('🤖 Orquestador ADK activado');
   }
 
@@ -176,28 +194,27 @@ export class WhatsappService {
       }
     }
 
-    // Marcar el mensaje como leído. Para texto/interactivos también mostramos indicador de escritura.
+    // Marcar el mensaje como leído apenas llega.
     await this.messagingService.markAsRead(message.id, {
       phoneNumberId,
-      showTypingIndicator:
-        message.type === 'text' || message.type === 'interactive',
+      showTypingIndicator: false,
     });
 
-    switch (message.type) {
-      case 'text':
-        if (message.text) {
-          this.logger.log(`Texto: ${message.text.body}`);
-          await this.handleTextMessage(
-            message,
-            phoneNumberId,
-            tenant,
-            role,
-            contactWaId,
-            contactName,
-          );
-        }
-        break;
+    const conversationalText = this.extractConversationText(message);
+    if (conversationalText) {
+      await this.bufferConversationMessage({
+        message,
+        messageText: conversationalText,
+        phoneNumberId,
+        tenant,
+        role,
+        canonicalSender: contactWaId ?? message.from,
+        contactName,
+      });
+      return;
+    }
 
+    switch (message.type) {
       case 'image':
         this.logger.log('Imagen recibida:', message.image);
         await this.handleMediaMessage(message, 'image', phoneNumberId);
@@ -221,21 +238,6 @@ export class WhatsappService {
       case 'location':
         this.logger.log('Ubicación recibida:', message.location);
         await this.handleLocationMessage(message, phoneNumberId);
-        break;
-
-      case 'interactive':
-        this.logger.log('Interacción recibida:', message.interactive);
-        await this.handleInteractiveMessage(
-          message,
-          phoneNumberId,
-          tenant,
-          role,
-        );
-        break;
-
-      case 'button':
-        this.logger.log('Botón presionado');
-        await this.handleButtonMessage(message, phoneNumberId, tenant, role);
         break;
 
       case 'reaction':
@@ -340,10 +342,13 @@ export class WhatsappService {
 
       this.logger.debug(`🪧 [ADK] Mensaje ${result.responseText}`);
       if (this.sendAgentText && result.responseText?.trim()) {
-        await this.messagingService.sendText(
+        await this.responseService.sendSmartText(
           canonicalSender,
           result.responseText,
-          { phoneNumberId },
+          {
+            phoneNumberId,
+            companyId: tenant.companyId,
+          },
         );
         this.logger.log(
           `🪧 [ADK] Mensaje enviado para ${canonicalSender} - Intent: ${result.intent}`,
@@ -356,10 +361,21 @@ export class WhatsappService {
     } catch (error) {
       this.logger.error(`❌ Error en ADK orchestrator:`, error);
       // Fallback a mensaje de error amigable
-      await this.messagingService.sendText(
+      await this.responseService.sendSmartText(
         canonicalSender,
         'Lo siento, tuve un problema procesando tu mensaje. Por favor intenta de nuevo.',
-        { phoneNumberId },
+        {
+          phoneNumberId,
+          companyId: tenant.companyId,
+        },
+      );
+      await this.responseService.sendStickerForEvent(
+        canonicalSender,
+        'error_or_unauthorized_action',
+        {
+          phoneNumberId,
+          companyId: tenant.companyId,
+        },
       );
     }
   }
@@ -382,7 +398,7 @@ export class WhatsappService {
     // Aquí puedes implementar lógica para descargar y procesar el medio
     // Por ejemplo: const mediaBuffer = await this.messagingService.downloadMedia(media.id);
 
-    await this.messagingService.sendText(
+    await this.responseService.sendSmartText(
       message.from,
       `Recibí tu ${mediaType === 'image' ? 'imagen' : mediaType === 'video' ? 'video' : mediaType === 'audio' ? 'audio' : 'documento'}. Para continuar necesito una instrucción en texto (ej. "Pagar 1250" o "Agendar cita").`,
       { phoneNumberId },
@@ -406,96 +422,139 @@ export class WhatsappService {
       this.logger.log(`Nombre del lugar: ${message.location.name}`);
     }
 
-    await this.messagingService.sendText(
+    await this.responseService.sendSmartText(
       message.from,
       'Ubicación recibida. Confírmame en texto cómo deseas usarla y la enrutamos al agente correspondiente.',
       { phoneNumberId },
     );
   }
 
-  /**
-   * Maneja mensajes interactivos (botones, listas)
-   */
-  private async handleInteractiveMessage(
-    message: WhatsAppIncomingMessage,
-    phoneNumberId: string,
-    tenant: TenantContext,
-    role: UserRole,
-  ): Promise<void> {
-    if (!message.interactive) return;
+  private async bufferConversationMessage(params: {
+    message: WhatsAppIncomingMessage;
+    messageText: string;
+    phoneNumberId: string;
+    tenant: TenantContext;
+    role: UserRole;
+    canonicalSender: string;
+    contactName?: string;
+  }): Promise<void> {
+    const key = this.getConversationKey(
+      params.phoneNumberId,
+      params.canonicalSender,
+    );
 
-    if (message.interactive.button_reply) {
-      this.logger.log(
-        `Botón seleccionado - ID: ${message.interactive.button_reply.id}, Título: ${message.interactive.button_reply.title}`,
-      );
-
-      const selectionText =
-        message.interactive.button_reply.id ||
-        message.interactive.button_reply.title;
-      await this.handleWithAdkOrchestrator(
-        message.from,
-        {
-          ...(message as any),
-          type: 'text',
-          text: { body: selectionText },
-        } as WhatsAppIncomingMessage,
-        phoneNumberId,
-        tenant,
-        role,
-      );
-    } else if (message.interactive.list_reply) {
-      this.logger.log(
-        `Opción de lista seleccionada - ID: ${message.interactive.list_reply.id}, Título: ${message.interactive.list_reply.title}`,
-      );
-
-      const selectionText =
-        message.interactive.list_reply.id ||
-        message.interactive.list_reply.title;
-      await this.handleWithAdkOrchestrator(
-        message.from,
-        {
-          ...(message as any),
-          type: 'text',
-          text: { body: selectionText },
-        } as WhatsAppIncomingMessage,
-        phoneNumberId,
-        tenant,
-        role,
-      );
+    const previous = this.pendingConversations.get(key);
+    if (previous) {
+      clearTimeout(previous.timeout);
     }
+
+    const fragments = previous
+      ? [...previous.fragments, params.messageText]
+      : [params.messageText];
+
+    const timeout = setTimeout(() => {
+      this.flushConversation(key).catch((error) => {
+        this.logger.error(
+          `Error procesando buffer de conversación ${key}: ${(error as Error).message}`,
+        );
+      });
+    }, this.waitUntilMessageMs);
+
+    this.pendingConversations.set(key, {
+      canonicalSender: params.canonicalSender,
+      contactName: params.contactName,
+      phoneNumberId: params.phoneNumberId,
+      tenant: params.tenant,
+      role: params.role,
+      lastMessage: params.message,
+      fragments,
+      timeout,
+    });
   }
 
-  /**
-   * Maneja mensajes de botón (tipo button)
-   */
-  private async handleButtonMessage(
-    message: WhatsAppIncomingMessage,
-    phoneNumberId: string,
-    tenant: TenantContext,
-    role: UserRole,
-  ): Promise<void> {
-    this.logger.log('Botón presionado en el mensaje');
-    // La lógica específica depende del tipo de botón
-    // Este caso es similar a interactive pero para el tipo 'button'
-    await this.messagingService.sendText(
-      message.from,
-      'Recibí tu selección. Envíame la instrucción en texto para activarla en el orquestador.',
-      { phoneNumberId },
-    );
+  private async flushConversation(key: string): Promise<void> {
+    const pending = this.pendingConversations.get(key);
+    if (!pending) {
+      return;
+    }
 
-    const buttonText = (message as any).button?.text ?? '';
+    this.pendingConversations.delete(key);
 
-    await this.handleWithAdkOrchestrator(
-      message.from,
+    const aggregatedText = pending.fragments
+      .map((fragment) => fragment.trim())
+      .filter((fragment) => fragment.length > 0)
+      .join('\n');
+
+    if (!aggregatedText) {
+      return;
+    }
+
+    await this.messagingService.markAsRead(pending.lastMessage.id, {
+      phoneNumberId: pending.phoneNumberId,
+      showTypingIndicator: true,
+    });
+
+    await this.responseService.sendStickerForEvent(
+      pending.canonicalSender,
+      'processing_ai_thinking',
       {
-        ...(message as any),
-        type: 'text',
-        text: { body: buttonText },
-      } as WhatsAppIncomingMessage,
-      phoneNumberId,
-      tenant,
-      role,
+        phoneNumberId: pending.phoneNumberId,
+        companyId: pending.tenant.companyId,
+      },
     );
+
+    const mergedMessage = {
+      ...pending.lastMessage,
+      type: 'text',
+      text: {
+        body: aggregatedText,
+      },
+    } as WhatsAppIncomingMessage;
+
+    await this.handleTextMessage(
+      mergedMessage,
+      pending.phoneNumberId,
+      pending.tenant,
+      pending.role,
+      pending.canonicalSender,
+      pending.contactName,
+    );
+  }
+
+  private extractConversationText(
+    message: WhatsAppIncomingMessage,
+  ): string | undefined {
+    if (message.type === 'text' && message.text?.body?.trim()) {
+      return message.text.body.trim();
+    }
+
+    if (message.type === 'interactive' && message.interactive) {
+      const buttonSelection =
+        message.interactive.button_reply?.id ??
+        message.interactive.button_reply?.title;
+      if (buttonSelection?.trim()) {
+        return buttonSelection.trim();
+      }
+
+      const listSelection =
+        message.interactive.list_reply?.id ?? message.interactive.list_reply?.title;
+      if (listSelection?.trim()) {
+        return listSelection.trim();
+      }
+    }
+
+    if (message.type === 'button') {
+      const buttonText = (message as { button?: { text?: string } }).button?.text;
+      if (buttonText?.trim()) {
+        return buttonText.trim();
+      }
+    }
+
+    return undefined;
+  }
+
+  private getConversationKey(phoneNumberId: string, sender: string): string {
+    return `${phoneNumberId}:${sender}`;
   }
 
   /**
