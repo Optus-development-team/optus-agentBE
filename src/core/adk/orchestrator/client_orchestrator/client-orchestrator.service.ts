@@ -125,7 +125,9 @@ AGENTES DISPONIBLES:
 COMPORTAMIENTO:
 - Detecta intención y deriva al agente correcto.
 - Si es saludo o duda general, responde breve y profesional.
-- No inventes precios ni disponibilidad; usa herramientas del agente.`;
+- No inventes precios ni disponibilidad; usa herramientas del agente.
+- Toma {app:todayDate} como fecha base para las operaciones.
+`;
 
     this.orchestratorAgent = new LlmAgent({
       name: 'client_orchestrator',
@@ -172,6 +174,7 @@ COMPORTAMIENTO:
       'app:phoneNumberId':
         context.tenant?.phoneNumberId ?? context.phoneNumberId ?? undefined,
       'app:displayPhoneNumber': context.tenant?.displayPhoneNumber ?? undefined,
+      'app:todayDate': new Date().toISOString().split('T')[0],
     };
   }
 

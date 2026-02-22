@@ -220,7 +220,7 @@ COMPORTAMIENTO:
       'app:phoneNumberId':
         context.tenant?.phoneNumberId ?? context.phoneNumberId ?? undefined,
       'app:displayPhoneNumber': context.tenant?.displayPhoneNumber ?? undefined,
-      'app:todayDate': new Date().toISOString().split('T')[0],
+
     };
   }
 
