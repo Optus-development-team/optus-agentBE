@@ -20,7 +20,8 @@ import { ReportingToolsService } from './agents/reporting/reporting.tools';
 import { SalesToolsService } from './agents/sales/sales.tools';
 import { ReestockToolsService } from './agents/reestock/reestock.tools';
 import { SupabaseSessionService } from './session/supabase-session.service';
-import { KnowledgeBaseToolsService } from './agents/knowledge/knowledge-base.tools';
+import { KnowledgeBaseToolsService } from './agents/knowledge/knowledge.tools';
+import { KnowledgeAgent } from './agents/knowledge/knowledge.agent';
 
 @Module({
   imports: [
@@ -47,6 +48,7 @@ import { KnowledgeBaseToolsService } from './agents/knowledge/knowledge-base.too
     SalesToolsService,
     ReestockToolsService,
     KnowledgeBaseToolsService,
+    KnowledgeAgent,
     SupabaseSessionService,
   ],
   exports: [AdkOrchestratorService],

@@ -12,10 +12,10 @@ import { UserRole } from '../../../../features/whatsapp/types/whatsapp.types';
 import type { OrchestrationResult } from '../orchestrator.types';
 import { SupabaseSessionService } from '../../session/supabase-session.service';
 import { OrchestratorToolsService } from '../orchestrator.tools';
-import { KnowledgeBaseToolsService } from '../../agents/knowledge/knowledge-base.tools';
 import { ReportingAgent } from '../../agents/reporting/reporting.agent';
 import { AppointmentAdminAgent } from '../../agents/appointment/admin/appointment.agent';
 import { ReestockAgent } from '../../agents/reestock/reestock.agent';
+import { KnowledgeAgent } from '../../agents/knowledge/knowledge.agent';
 
 import { OAuthService } from '../../../../features/auth/oauth.service';
 import { WhatsAppResponseService } from '../../../../features/whatsapp/services/whatsapp-response.service';
@@ -31,10 +31,10 @@ export class CompanyOrchestratorService implements OnModuleInit {
     private readonly config: ConfigService,
     private readonly sessionService: SupabaseSessionService,
     private readonly orchestratorTools: OrchestratorToolsService,
-    private readonly knowledgeBaseTools: KnowledgeBaseToolsService,
     private readonly reportingAgent: ReportingAgent,
     private readonly appointmentAdminAgent: AppointmentAdminAgent,
     private readonly reestockAgent: ReestockAgent,
+    private readonly knowledgeAgent: KnowledgeAgent,
     private readonly oauthService: OAuthService,
     private readonly whatsappResponse: WhatsAppResponseService,
   ) {}
@@ -97,17 +97,18 @@ export class CompanyOrchestratorService implements OnModuleInit {
       }
     }
 
-    const sessionId = `${this.appName}:${userId}`;
+    const tenantAppName = context.tenant.companyName.trim().toLowerCase();
+    const sessionId = `${tenantAppName}:${userId}`;
 
     let session = await this.sessionService.getSession({
-      appName: this.appName,
+      appName: tenantAppName,
       userId,
       sessionId,
     });
 
     if (!session) {
       session = await this.sessionService.createSession({
-        appName: this.appName,
+        appName: tenantAppName,
         userId,
         sessionId,
         state: this.buildInitialState(context),
@@ -143,7 +144,7 @@ export class CompanyOrchestratorService implements OnModuleInit {
         agentUsed,
         sessionState: (
           await this.sessionService.getSession({
-            appName: this.appName,
+            appName: tenantAppName,
             userId,
             sessionId,
           })
@@ -180,6 +181,7 @@ AGENTES DISPONIBLES:
 1. reporting_agent: métricas, reportes y KPIs.
 2. appointment_agent: gestión de citas internas.
 3. reestock_agent: reabastecimiento e inventario.
+4. knowledge_agent: información pública de la empresa para soporte.
 
 COMPORTAMIENTO:
 - Deriva al agente correcto según la intención.
@@ -197,11 +199,9 @@ COMPORTAMIENTO:
         this.reportingAgent.agent,
         this.appointmentAdminAgent.agent,
         this.reestockAgent.agent,
+        //this.knowledgeAgent.agent,
       ],
-      tools: [
-        this.orchestratorTools.verifyPhoneCodeTool,
-        ...this.knowledgeBaseTools.tools,
-      ],
+      tools: [this.orchestratorTools.verifyPhoneCodeTool],
     });
 
     this.runner = new Runner({
@@ -230,7 +230,7 @@ COMPORTAMIENTO:
       'app:companyName': companyName,
       'app:companyConfig': context.tenant?.companyConfig ?? {},
       'app:currency':
-        this.config.get<string>('DEFAULT_CURRENCY', 'MXN') ?? 'MXN',
+        this.config.get<string>('DEFAULT_CURRENCY', 'USD') ?? 'USD',
       'app:companyTone':
         this.config.get<string>('DEFAULT_COMPANY_TONE', 'profesional') ??
         'profesional',

@@ -12,9 +12,9 @@ import { UserRole } from '../../../../features/whatsapp/types/whatsapp.types';
 import type { OrchestrationResult } from '../orchestrator.types';
 import { SupabaseSessionService } from '../../session/supabase-session.service';
 import { OrchestratorToolsService } from '../orchestrator.tools';
-import { KnowledgeBaseToolsService } from '../../agents/knowledge/knowledge-base.tools';
 import { SalesAgent } from '../../agents/sales/sales.agent';
 import { AppointmentClientAgent } from '../../agents/appointment/client/appointment.agent';
+import { KnowledgeAgent } from '../../agents/knowledge/knowledge.agent';
 @Injectable()
 export class ClientOrchestratorService implements OnModuleInit {
   private readonly logger = new Logger(ClientOrchestratorService.name);
@@ -26,9 +26,9 @@ export class ClientOrchestratorService implements OnModuleInit {
     private readonly config: ConfigService,
     private readonly sessionService: SupabaseSessionService,
     private readonly orchestratorTools: OrchestratorToolsService,
-    private readonly knowledgeBaseTools: KnowledgeBaseToolsService,
     private readonly salesAgent: SalesAgent,
     private readonly appointmentClientAgent: AppointmentClientAgent,
+    private readonly knowledgeAgent: KnowledgeAgent,
   ) {}
 
   onModuleInit(): void {
@@ -39,17 +39,18 @@ export class ClientOrchestratorService implements OnModuleInit {
     this.ensureInitialized();
 
     const userId = this.normalizePhone(context.senderId);
-    const sessionId = `${this.appName}:${userId}`;
+    const tenantAppName = context.tenant.companyName.trim().toLowerCase();
+    const sessionId = `${tenantAppName}:${userId}`;
 
     let session = await this.sessionService.getSession({
-      appName: this.appName,
+      appName: tenantAppName,
       userId,
       sessionId,
     });
 
     if (!session) {
       session = await this.sessionService.createSession({
-        appName: this.appName,
+        appName: tenantAppName,
         userId,
         sessionId,
         state: this.buildInitialState(context),
@@ -85,7 +86,7 @@ export class ClientOrchestratorService implements OnModuleInit {
         agentUsed,
         sessionState: (
           await this.sessionService.getSession({
-            appName: this.appName,
+            appName: tenantAppName,
             userId,
             sessionId,
           })
@@ -119,7 +120,8 @@ export class ClientOrchestratorService implements OnModuleInit {
     const instruction = `Eres el orquestador de clientes de {app:companyName}. Coordina a los agentes especializados para ayudar al cliente.
 
 AGENTES DISPONIBLES:
-1. sales_agent: productos, precios, pagos y disponibilidad.
+3. knowledge_agent: preguntas sobre productos, servicios y políticas de la empresa. (Ej. horarios, materias, ubicaciones, etc).
+1. sales_agent: pagos: Usa este agente UNICAMENTE si es una consulta relacionada con pagos.
 2. appointment_agent: agenda, cancelación y reprogramación de citas.
 
 COMPORTAMIENTO:
@@ -134,11 +136,12 @@ COMPORTAMIENTO:
       model,
       instruction,
       description: 'Orquestador para clientes finales',
-      subAgents: [this.salesAgent.agent, this.appointmentClientAgent.agent],
-      tools: [
-        this.orchestratorTools.verifyPhoneCodeTool,
-        ...this.knowledgeBaseTools.tools,
+      subAgents: [
+        this.salesAgent.agent,
+        this.appointmentClientAgent.agent,
+        this.knowledgeAgent.agent,
       ],
+      tools: [this.orchestratorTools.verifyPhoneCodeTool],
     });
 
     this.runner = new Runner({
@@ -167,7 +170,7 @@ COMPORTAMIENTO:
       'app:companyName': companyName,
       'app:companyConfig': context.tenant?.companyConfig ?? {},
       'app:currency':
-        this.config.get<string>('DEFAULT_CURRENCY', 'MXN') ?? 'MXN',
+        this.config.get<string>('DEFAULT_CURRENCY', 'USD') ?? 'USD',
       'app:companyTone':
         this.config.get<string>('DEFAULT_COMPANY_TONE', 'profesional') ??
         'profesional',
@@ -175,6 +178,7 @@ COMPORTAMIENTO:
         context.tenant?.phoneNumberId ?? context.phoneNumberId ?? undefined,
       'app:displayPhoneNumber': context.tenant?.displayPhoneNumber ?? undefined,
       'app:todayDate': new Date().toISOString().split('T')[0],
+      'app:inventoryContext': '',
     };
   }
 

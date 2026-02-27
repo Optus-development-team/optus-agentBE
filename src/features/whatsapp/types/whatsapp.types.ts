@@ -49,7 +49,7 @@ export interface RouterMessageContext {
   adkSession?: AdkSessionSnapshot;
   /** Producto referenciado si el mensaje viene de un producto del catálogo */
   referredProduct?: ReferredProduct;
-  tenant?: TenantContext;
+  tenant: TenantContext;
   role?: UserRole;
 }
 
@@ -109,8 +109,8 @@ export interface PaymentOrder {
 export enum SalesToolType {
   SYNC_INVENTORY_TO_META = 'sync_inventory_to_meta',
   SYNC_INVENTORY_FROM_META = 'sync_inventory_from_meta',
-  SEARCH_PRODUCTS = 'search_products',
-  GET_PRODUCT_INFO = 'get_product_info',
+  //SEARCH_PRODUCTS = 'search_products',
+  //GET_PRODUCT_INFO = 'get_product_info',
   UPDATE_PRODUCT_AVAILABILITY = 'update_product_availability',
   LIST_ALL_PRODUCTS = 'list_all_products',
 }

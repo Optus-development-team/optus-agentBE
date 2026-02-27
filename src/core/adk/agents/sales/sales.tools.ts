@@ -7,7 +7,7 @@ import { z } from 'zod';
 export class SalesToolsService {
   private readonly logger = new Logger('SalesTools');
 
-  get searchProductsTool(): FunctionTool {
+/*   get searchProductsTool(): FunctionTool {
     return new FunctionTool({
       name: 'search_products',
       description:
@@ -41,7 +41,7 @@ export class SalesToolsService {
               id: 'PROD-001',
               name: `Producto relacionado a "${args.query}"`,
               price: 100.0,
-              currency: 'MXN',
+              currency: 'USD',
               available: true,
               stock: 10,
             },
@@ -71,7 +71,7 @@ export class SalesToolsService {
             name: 'Producto de ejemplo',
             description: 'Descripción detallada del producto',
             price: 250.0,
-            currency: 'MXN',
+            currency: 'USD',
             stock: 15,
             available: true,
             category: 'General',
@@ -79,7 +79,7 @@ export class SalesToolsService {
         };
       },
     });
-  }
+  } */
 
   get createPaymentOrderTool(): FunctionTool {
     return new FunctionTool({
@@ -117,7 +117,7 @@ export class SalesToolsService {
           success: true,
           orderId,
           amount: args.amount,
-          currency: state?.get('app:currency') || 'MXN',
+          currency: state?.get('app:currency') || 'USD',
           status: 'pending',
           companyId,
           paymentUrl: `https://pay.example.com/${orderId}`,
@@ -161,7 +161,7 @@ export class SalesToolsService {
           orderId,
           status: 'pending',
           amount: 100.0,
-          currency: 'MXN',
+          currency: 'USD',
           paidAt: null,
           message: `La orden ${orderId} está pendiente de pago.`,
         };
@@ -235,8 +235,8 @@ export class SalesToolsService {
 
   get allTools(): FunctionTool[] {
     return [
-      this.searchProductsTool,
-      this.getProductInfoTool,
+      //this.searchProductsTool,
+      //this.getProductInfoTool,
       this.createPaymentOrderTool,
       this.checkPaymentStatusTool,
       this.generatePaymentQrTool,

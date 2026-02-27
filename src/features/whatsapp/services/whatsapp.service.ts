@@ -494,14 +494,14 @@ export class WhatsappService {
       showTypingIndicator: true,
     });
 
-    await this.responseService.sendStickerForEvent(
+    /*     await this.responseService.sendStickerForEvent(
       pending.canonicalSender,
       'processing_ai_thinking',
       {
         phoneNumberId: pending.phoneNumberId,
         companyId: pending.tenant.companyId,
       },
-    );
+    ); */
 
     const mergedMessage = {
       ...pending.lastMessage,
