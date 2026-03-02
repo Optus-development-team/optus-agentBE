@@ -2,10 +2,13 @@ import { Injectable, Logger } from '@nestjs/common';
 import { FunctionTool } from '@google/adk';
 import type { ToolContext } from '@google/adk';
 import { z } from 'zod';
+import { TimeService } from '../../../../common/time/time.service';
 
 @Injectable()
 export class ReportingToolsService {
   private readonly logger = new Logger('ReportingTools');
+
+  constructor(private readonly timeService: TimeService) {}
 
   get getDailyMetricsTool(): FunctionTool {
     return new FunctionTool({
@@ -26,6 +29,7 @@ export class ReportingToolsService {
       execute: async (args, context?: ToolContext) => {
         const state = context?.state;
         const userRole = state?.get('user:role') as string | undefined;
+        const userPhone = state?.get('user:phone') as string | undefined;
 
         if (userRole !== 'ADMIN') {
           return {
@@ -39,7 +43,7 @@ export class ReportingToolsService {
 
         return {
           success: true,
-          date: args.date || new Date().toISOString().split('T')[0],
+          date: args.date || this.timeService.getTodayDate(userPhone),
           metrics: {
             totalSales: 15420.5,
             ordersCount: 23,

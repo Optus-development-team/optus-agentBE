@@ -19,6 +19,7 @@ import { KnowledgeAgent } from '../../agents/knowledge/knowledge.agent';
 
 import { OAuthService } from '../../../../features/auth/oauth.service';
 import { WhatsAppResponseService } from '../../../../features/whatsapp/services/whatsapp-response.service';
+import { TimeService } from '../../../../common/time/time.service';
 
 @Injectable()
 export class CompanyOrchestratorService implements OnModuleInit {
@@ -37,6 +38,7 @@ export class CompanyOrchestratorService implements OnModuleInit {
     private readonly knowledgeAgent: KnowledgeAgent,
     private readonly oauthService: OAuthService,
     private readonly whatsappResponse: WhatsAppResponseService,
+    private readonly timeService: TimeService,
   ) {}
 
   onModuleInit(): void {
@@ -221,9 +223,11 @@ COMPORTAMIENTO:
       context.tenant?.companyName ??
       this.config.get<string>('DEFAULT_COMPANY_NAME', 'Optus') ??
       'Optus';
+    const userPhone = context.senderId;
+    const timezone = this.timeService.getTimezone(userPhone);
 
     return {
-      'user:phone': context.senderId,
+      'user:phone': userPhone,
       'user:role': context.role ?? UserRole.ADMIN,
       'user:name': context.senderName,
       'app:companyId': companyId ?? undefined,
@@ -237,7 +241,9 @@ COMPORTAMIENTO:
       'app:phoneNumberId':
         context.tenant?.phoneNumberId ?? context.phoneNumberId ?? undefined,
       'app:displayPhoneNumber': context.tenant?.displayPhoneNumber ?? undefined,
-      'app:todayDate': new Date().toISOString().split('T')[0],
+      'app:todayDate': this.timeService.getTodayDate(userPhone),
+      'app:currentDateTime': this.timeService.getCurrentDateTime(userPhone),
+      'app:timezone': timezone,
     };
   }
 

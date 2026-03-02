@@ -15,6 +15,7 @@ import { OrchestratorToolsService } from '../orchestrator.tools';
 import { SalesAgent } from '../../agents/sales/sales.agent';
 import { AppointmentClientAgent } from '../../agents/appointment/client/appointment.agent';
 import { KnowledgeAgent } from '../../agents/knowledge/knowledge.agent';
+import { TimeService } from '../../../../common/time/time.service';
 @Injectable()
 export class ClientOrchestratorService implements OnModuleInit {
   private readonly logger = new Logger(ClientOrchestratorService.name);
@@ -29,6 +30,7 @@ export class ClientOrchestratorService implements OnModuleInit {
     private readonly salesAgent: SalesAgent,
     private readonly appointmentClientAgent: AppointmentClientAgent,
     private readonly knowledgeAgent: KnowledgeAgent,
+    private readonly timeService: TimeService,
   ) {}
 
   onModuleInit(): void {
@@ -161,9 +163,11 @@ COMPORTAMIENTO:
       context.tenant?.companyName ??
       this.config.get<string>('DEFAULT_COMPANY_NAME', 'Optus') ??
       'Optus';
+    const userPhone = context.senderId;
+    const timezone = this.timeService.getTimezone(userPhone);
 
     return {
-      'user:phone': context.senderId,
+      'user:phone': userPhone,
       'user:role': context.role ?? UserRole.CLIENT,
       'user:name': context.senderName,
       'app:companyId': companyId ?? undefined,
@@ -177,7 +181,9 @@ COMPORTAMIENTO:
       'app:phoneNumberId':
         context.tenant?.phoneNumberId ?? context.phoneNumberId ?? undefined,
       'app:displayPhoneNumber': context.tenant?.displayPhoneNumber ?? undefined,
-      'app:todayDate': new Date().toISOString().split('T')[0],
+      'app:todayDate': this.timeService.getTodayDate(userPhone),
+      'app:currentDateTime': this.timeService.getCurrentDateTime(userPhone),
+      'app:timezone': timezone,
       'app:inventoryContext': '',
     };
   }

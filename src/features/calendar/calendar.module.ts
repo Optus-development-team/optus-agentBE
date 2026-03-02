@@ -4,9 +4,10 @@ import { OAuthService } from '../auth/oauth.service';
 import { CalendarController } from './calendar.controller';
 import { SecurityModule } from '../../common/security/security.module';
 import { InfrastructureModule } from '../../common/intraestructure/infrastructure.module';
+import { TimeModule } from '../../common/time/time.module';
 
 @Module({
-  imports: [SecurityModule, InfrastructureModule],
+  imports: [SecurityModule, InfrastructureModule, TimeModule],
   controllers: [CalendarController],
   providers: [CalendarService, OAuthService],
   exports: [CalendarService, OAuthService],

@@ -22,6 +22,7 @@ import { ReestockToolsService } from './agents/reestock/reestock.tools';
 import { SupabaseSessionService } from './session/supabase-session.service';
 import { KnowledgeBaseToolsService } from './agents/knowledge/knowledge.tools';
 import { KnowledgeAgent } from './agents/knowledge/knowledge.agent';
+import { TimeModule } from '../../common/time/time.module';
 
 @Module({
   imports: [
@@ -32,6 +33,7 @@ import { KnowledgeAgent } from './agents/knowledge/knowledge.agent';
     PaymentsModule,
     CalendarModule,
     WhatsappMessagingModule,
+    TimeModule,
   ],
   providers: [
     AdkOrchestratorService,

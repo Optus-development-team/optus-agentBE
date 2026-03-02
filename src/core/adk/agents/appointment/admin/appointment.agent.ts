@@ -45,6 +45,7 @@ PERSONALIDAD:
 
 CONTEXTO:
 - Fecha actual: {app:todayDate}
+- Zona horaria base: {app:timezone}
 - Acepta lenguaje natural para fechas (mañana, próximo lunes, etc.)
 
 FORMATO DE RESPUESTA:
@@ -54,6 +55,7 @@ FORMATO DE RESPUESTA:
 
 IMPORTANTE:
 - No confirmes citas sin verificar disponibilidad primero
+- La duración es obligatoria para agendar (ej: 15 minutos, 1 hora)
 - Para cancelaciones, pregunta el motivo para mejorar el servicio
 - Si el usuario no especifica horario, sugiere opciones disponibles
 - Cuando se pregunte por otros eventos, menciónalos utilizando el calendario completo al que tienes acceso`;

@@ -3,12 +3,16 @@ import { CalendarService } from '../../../../features/calendar/calendar.service'
 import { FunctionTool } from '@google/adk';
 import type { ToolContext } from '@google/adk';
 import { z } from 'zod';
+import { TimeService } from '../../../../common/time/time.service';
 
 @Injectable()
 export class AppointmentToolsService {
   private readonly logger = new Logger('AppointmentTools');
 
-  constructor(private readonly calendarService: CalendarService) {}
+  constructor(
+    private readonly calendarService: CalendarService,
+    private readonly timeService: TimeService,
+  ) {}
 
   get checkAvailabilityTool(): FunctionTool {
     return new FunctionTool({
@@ -36,33 +40,40 @@ export class AppointmentToolsService {
 
         const state = context?.state;
         const companyId = state?.get('app:companyId') as string;
+        const userPhone = state?.get('user:phone') as string | undefined;
 
         try {
+          const resolvedDate = this.timeService.resolveDateBounds(
+            args.date,
+            userPhone,
+          );
           const events = await this.calendarService.checkAvailability(
             companyId,
-            args.date,
+            resolvedDate.date,
+            userPhone,
           );
           // Here you would process events to find free slots. For now returning raw events or a summary.
           // Simplified logic: Just returning the events found for now.
           return {
             success: true,
-            date: args.date,
+            date: resolvedDate.date,
             events: events.map((e: any) => ({
               start: e.start.dateTime || e.start.date,
               end: e.end.dateTime || e.end.date,
               summary: e.summary,
             })),
             message:
-              `Encontré estos eventos para ${args.date}: ` +
+              `Encontré estos eventos para ${resolvedDate.date}: ` +
               events.map((e: any) => e.summary).join(', '),
           };
         } catch (error) {
-          this.logger.error(`Error checking availability: ${error.message}`);
+          const err = error as Error;
+          this.logger.error(`Error checking availability: ${err.message}`);
           return {
             success: false,
             message:
               'No pude consultar la disponibilidad. Verifica que el calendario esté conectado.',
-            error: error.message,
+            error: err.message,
           };
         }
       },
@@ -74,15 +85,18 @@ export class AppointmentToolsService {
       name: 'create_appointment',
       description:
         'Agenda una nueva cita en el horario especificado. ' +
-        'Requiere fecha, hora y opcionalmente el tipo de servicio.',
+        'Requiere fecha, hora y duración; opcionalmente el tipo de servicio.',
       parameters: z.object({
         date: z.string().describe('Fecha de la cita'),
         time: z.string().describe('Hora de la cita (formato 24h, ej: "14:00")'),
+        duration: z
+          .string()
+          .describe('Duración obligatoria de la cita (ej: "1 hora", "15 minutos")'),
         serviceType: z.string().optional().describe('Tipo de servicio'),
         notes: z.string().optional().describe('Notas adicionales'),
       }),
       execute: async (args, context?: ToolContext) => {
-        this.logger.debug(`Creando cita: ${args.date} ${args.time}`);
+        this.logger.debug(`Creando cita: ${args.date} ${args.time} (${args.duration})`);
 
         const state = context?.state;
         const userPhone = state?.get('user:phone');
@@ -90,35 +104,41 @@ export class AppointmentToolsService {
         const companyId = state?.get('app:companyId') as string;
 
         try {
-          // Combine date and time to ISO strings
-          const startDateTime = `${args.date}T${args.time}:00-04:00`; // Assuming local time zone or need to handle TZ
-          // Default 1 hour duration
-          const endDateTimeDateTime = new Date(
-            new Date(startDateTime).getTime() + 60 * 60 * 1000,
-          ).toISOString();
+          const durationMinutes = this.timeService.parseDurationToMinutes(
+            args.duration,
+          );
+          const appointmentStart = this.timeService.buildAppointmentStart(
+            args.date,
+            args.time,
+            userPhone as string | undefined,
+          );
 
           const event = await this.calendarService.createAppointment(
             companyId,
             {
               summary: `Cita con ${userName || userPhone} - ${args.serviceType || 'General'}`,
               description: args.notes || '',
-              start: new Date(startDateTime).toISOString(),
-              end: endDateTimeDateTime,
+              start: appointmentStart.startIso,
+              durationMinutes,
             },
+            userPhone as string | undefined,
           );
 
           return {
             success: true,
             appointmentId: event.id,
-            link: event.htmlLink,
+            link: event.calendarAppLink || event.htmlLink,
+            durationMinutes,
+            timezone: appointmentStart.timezone,
             message: `Cita agendada correctamente.`,
           };
         } catch (error) {
-          this.logger.error(`Error creating appointment: ${error.message}`);
+          const err = error as Error;
+          this.logger.error(`Error creating appointment: ${err.message}`);
           return {
             success: false,
             message: 'No pude agendar la cita. Inténtalo más tarde.',
-            error: error.message,
+            error: err.message,
           };
         }
       },
