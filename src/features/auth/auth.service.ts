@@ -46,7 +46,7 @@ export class AuthService {
       return { exists: false, salt: null };
     }
 
-    return { exists: true, salt: existing.user_salt };
+    return { exists: true, salt: null };
   }
 
   async login(
@@ -56,7 +56,6 @@ export class AuthService {
     accessToken: string;
     user: {
       id: string;
-      suiAddress: string;
       phoneVerified: boolean;
       status: string;
     };
@@ -73,26 +72,22 @@ export class AuthService {
     const existing = await this.findUser({ provider, sub, aud });
 
     if (existing) {
-      if (existing.user_salt !== body.salt) {
-        throw new BadRequestException(
-          'Salt no coincide con el usuario existente',
-        );
-      }
-
       await this.supabase.query(
-        `update company_users set last_login_at = timezone('utc', now()), alias = coalesce($1, alias), sui_address = $2 where id = $3`,
-        [body.alias ?? null, body.suiAddress, existing.id],
+        `update company_users
+            set last_login_at = timezone('utc', now()),
+                alias = coalesce($1, alias),
+                email = coalesce(email, $2)
+          where id = $3`,
+        [body.alias ?? null, claims.email ?? null, existing.id],
       );
 
       const accessToken = this.tokens.issueToken({
         userId: existing.id,
-        suiAddress: existing.sui_address,
       });
       return {
         accessToken,
         user: {
           id: existing.id,
-          suiAddress: existing.sui_address,
           phoneVerified: Boolean(existing.is_phone_verified),
           status: existing.is_phone_verified ? 'ACTIVE' : 'PENDING_PHONE',
         },
@@ -103,21 +98,17 @@ export class AuthService {
       provider,
       sub,
       aud,
-      salt: body.salt,
-      suiAddress: body.suiAddress,
       email: claims.email,
       alias: body.alias ?? claims.name ?? undefined,
     });
 
     const accessToken = this.tokens.issueToken({
       userId: created.id,
-      suiAddress: created.sui_address,
     });
     return {
       accessToken,
       user: {
         id: created.id,
-        suiAddress: created.sui_address,
         phoneVerified: false,
         status: 'PENDING_PHONE',
       },
@@ -147,19 +138,19 @@ export class AuthService {
     aud: string;
   }): Promise<{
     id: string;
-    user_salt: string;
-    sui_address: string;
     is_phone_verified: boolean;
   } | null> {
     const rows = await this.supabase.query<{
       id: string;
-      user_salt: string;
-      sui_address: string;
       is_phone_verified: boolean;
     }>(
-      `select id, user_salt, sui_address, is_phone_verified
-       from company_users
-       where auth_provider = $1 and oauth_sub = $2 and oauth_aud = $3
+      `select cu.id, cu.is_phone_verified
+         from users_integrations ui
+         inner join company_users cu on cu.id = ui.user_id
+        where ui.provider = $1
+          and coalesce(ui.metadata->>'oauth_sub', '') = $2
+          and coalesce(ui.metadata->>'oauth_aud', '') = $3
+          and ui.is_active = true
        limit 1`,
       [params.provider, params.sub, params.aud],
     );
@@ -171,13 +162,10 @@ export class AuthService {
     provider: AuthProvider;
     sub: string;
     aud: string;
-    salt: string;
-    suiAddress: string;
     email?: string;
     alias?: string;
   }): Promise<{
     id: string;
-    sui_address: string;
   }> {
     const companyId = this.configService.get<string>('DEFAULT_COMPANY_ID');
     if (!companyId) {
@@ -188,31 +176,42 @@ export class AuthService {
 
     const rows = await this.supabase.query<{
       id: string;
-      sui_address: string;
     }>(
       `insert into company_users (
-         company_id, user_salt, auth_provider, oauth_sub, oauth_aud, sui_address, email, alias, created_at, last_login_at, is_phone_verified, role
+         company_id, email, alias, created_at, last_login_at, is_phone_verified, role
        )
-       values ($1, $2, $3, $4, $5, $6, $7, $8, timezone('utc', now()), timezone('utc', now()), false, 'CLIENT')
-       returning id, sui_address`,
+       values ($1, $2, $3, timezone('utc', now()), timezone('utc', now()), false, 'CLIENT')
+       returning id`,
       [
         companyId,
-        params.salt,
-        params.provider,
-        params.sub,
-        params.aud,
-        params.suiAddress,
         params.email ?? null,
         params.alias ?? null,
       ],
     );
 
-    const row = rows[0];
-    if (!row) {
+    const created = rows[0];
+    if (!created) {
       throw new UnauthorizedException('No se pudo crear el usuario');
     }
 
-    return row;
+    await this.supabase.query(
+      `insert into users_integrations (
+         user_id, provider, encrypted_credentials, metadata, is_active, created_at, updated_at
+       )
+       values ($1, $2, '{}'::jsonb, $3::jsonb, true, timezone('utc', now()), timezone('utc', now()))
+       on conflict (user_id, provider)
+       do update set metadata = excluded.metadata, is_active = true, updated_at = timezone('utc', now())`,
+      [
+        created.id,
+        params.provider,
+        {
+          oauth_sub: params.sub,
+          oauth_aud: params.aud,
+        },
+      ],
+    );
+
+    return created;
   }
 
   private decodeJwt(jwt: string): JwtClaims {

@@ -80,7 +80,6 @@ export class AuthController {
     accessToken: string;
     user: {
       id: string;
-      suiAddress: string;
       phoneVerified: boolean;
       status: string;
     };

@@ -4,7 +4,6 @@ import { ConfigService } from '@nestjs/config';
 
 export interface AccessTokenPayload {
   userId: string;
-  suiAddress: string;
   issuedAt: number;
   expiresAt: number;
 }
@@ -71,12 +70,7 @@ export class TokenService {
     try {
       const raw = Buffer.from(encodedPayload, 'base64url').toString('utf8');
       const parsed = JSON.parse(raw) as AccessTokenPayload;
-      if (
-        !parsed.userId ||
-        !parsed.suiAddress ||
-        !parsed.issuedAt ||
-        !parsed.expiresAt
-      ) {
+      if (!parsed.userId || !parsed.issuedAt || !parsed.expiresAt) {
         throw new Error('payload incompleto');
       }
       return parsed;

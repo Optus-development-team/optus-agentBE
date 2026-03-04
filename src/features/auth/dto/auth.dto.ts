@@ -7,16 +7,6 @@ export class LoginRequestDto {
   @IsNotEmpty()
   jwt!: string;
 
-  @ApiProperty({ description: 'Dirección Sui derivada en el FE' })
-  @IsString()
-  @IsNotEmpty()
-  suiAddress!: string;
-
-  @ApiProperty({ description: 'Salt generado en el frontend' })
-  @IsString()
-  @IsNotEmpty()
-  salt!: string;
-
   @ApiProperty({
     required: false,
     description: 'Alias opcional para mostrar en grupo',

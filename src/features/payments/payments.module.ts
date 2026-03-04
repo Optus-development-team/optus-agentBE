@@ -6,7 +6,6 @@ import { PaymentWorkflowService } from './payment-workflow.service';
 import { InfrastructureModule } from '../../common/intraestructure/infrastructure.module';
 import { SecurityModule } from '../../common/security/security.module';
 import { WhatsappMessagingModule } from '../whatsapp/whatsapp-messaging.module';
-import { PaybeSignerService } from './paybe-signer.service';
 
 @Module({
   imports: [
@@ -19,7 +18,6 @@ import { PaybeSignerService } from './paybe-signer.service';
   providers: [
     PaymentIntegrationService,
     PaymentWorkflowService,
-    PaybeSignerService,
   ],
   exports: [PaymentWorkflowService],
 })

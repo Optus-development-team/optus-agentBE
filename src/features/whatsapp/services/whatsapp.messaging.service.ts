@@ -77,11 +77,7 @@ export class WhatsAppMessagingService {
   async sendText(
     to: string,
     text: string,
-    options?: {
-      phoneNumberId?: string;
-      previewUrl?: boolean;
-      replyToMessageId?: string;
-    },
+    options?: MessageContextOptions & { previewUrl?: boolean },
   ): Promise<WhatsAppMessageResponse> {
     const payload: Record<string, unknown> = {
       messaging_product: 'whatsapp',

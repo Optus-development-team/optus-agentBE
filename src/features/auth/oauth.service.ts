@@ -73,21 +73,25 @@ export class OAuthService {
 
     await this.supabase.query(
       `UPDATE company_users
-          SET auth_provider = 'GOOGLE',
-              oauth_sub = $2,
-              oauth_aud = $3,
-              email = COALESCE(email, $1),
+          SET email = COALESCE(email, $1),
               last_login_at = timezone('utc', now())
-        WHERE id = $4`,
-      [
-        email,
-        data.id ?? null,
-        this.extractAudienceFromIdToken(tokens.id_token) ??
+        WHERE id = $2`,
+      [email, user.userId],
+    );
+
+    await this.upsertUserIntegration({
+      userId: user.userId,
+      provider: 'GOOGLE',
+      tokens,
+      metadata: {
+        oauth_sub: data.id ?? null,
+        oauth_aud:
+          this.extractAudienceFromIdToken(tokens.id_token) ??
           this.configService.get<string>('GOOGLE_OAUTH_CLIENT_ID') ??
           null,
-        user.userId,
-      ],
-    );
+        email,
+      },
+    });
 
     await this.supabase.query(
       `UPDATE companies SET updated_at = timezone('utc', now()) WHERE id = $1`,
@@ -184,6 +188,30 @@ export class OAuthService {
         [companyId, credentialsJson],
       );
     }
+  }
+
+  private async upsertUserIntegration(params: {
+    userId: string;
+    provider: string;
+    tokens: Auth.OAuth2Client['credentials'];
+    metadata: Record<string, unknown>;
+  }): Promise<void> {
+    const encrypted = await this.encryptionService.encrypt(
+      JSON.stringify(params.tokens),
+    );
+
+    await this.supabase.query(
+      `INSERT INTO users_integrations (
+         user_id, provider, encrypted_credentials, metadata, is_active, created_at, updated_at
+       )
+       VALUES ($1, $2, $3::jsonb, $4::jsonb, true, timezone('utc', now()), timezone('utc', now()))
+       ON CONFLICT (user_id, provider)
+       DO UPDATE SET encrypted_credentials = EXCLUDED.encrypted_credentials,
+                     metadata = EXCLUDED.metadata,
+                     is_active = true,
+                     updated_at = timezone('utc', now())`,
+      [params.userId, params.provider, { token: encrypted }, params.metadata],
+    );
   }
 
   private async findCompanyUserByEmail(email: string): Promise<{
