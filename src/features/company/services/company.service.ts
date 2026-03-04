@@ -3,6 +3,8 @@ import { ConfigService } from '@nestjs/config';
 import { SupabaseService } from '../../../common/intraestructure/supabase/supabase.service';
 import type { CompanySummary, CompanyUser } from '../types/company.types';
 
+type CompanyVertical = 'general' | 'academy' | 'salon';
+
 @Injectable()
 export class CompanyService {
   private readonly logger = new Logger(CompanyService.name);
@@ -18,9 +20,10 @@ export class CompanyService {
     const rows = await this.supabase.query<{
       id: string;
       name: string;
+      vertical: string;
       currency: string | null;
     }>(
-      `select c.id, c.name, c.currency
+      `select c.id, c.name, c.vertical, c.currency
          from companies c
          inner join company_users cu on cu.company_id = c.id
         where cu.id = $1
@@ -31,6 +34,7 @@ export class CompanyService {
     return rows.map((row) => ({
       id: row.id,
       name: row.name,
+      vertical: this.normalizeVertical(row.vertical),
       currency: row.currency,
     }));
   }
@@ -38,17 +42,19 @@ export class CompanyService {
   async createCompany(params: {
     name: string;
     currency?: string;
+    vertical?: string;
     creatorUserId: string;
   }): Promise<CompanySummary> {
     this.ensureSupabaseReady();
 
     const currency = params.currency?.trim() || this.defaultCurrency();
+    const vertical = this.normalizeVertical(params.vertical);
 
     const rows = await this.supabase.query<CompanySummary>(
-      `insert into companies (name, currency)
-       values ($1, $2)
-       returning id, name, currency`,
-      [params.name, currency],
+      `insert into companies (name, currency, vertical)
+       values ($1, $2, $3)
+       returning id, name, vertical, currency`,
+      [params.name, currency, vertical],
     );
 
     const company = rows[0];
@@ -137,5 +143,15 @@ export class CompanyService {
 
   private defaultCurrency(): string {
     return this.config.get<string>('DEFAULT_CURRENCY', 'USD');
+  }
+
+  private normalizeVertical(value: string | undefined): CompanyVertical {
+    const normalized = value?.trim().toLowerCase();
+
+    if (normalized === 'academy' || normalized === 'salon') {
+      return normalized;
+    }
+
+    return 'general';
   }
 }

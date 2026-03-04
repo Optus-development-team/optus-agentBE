@@ -8,20 +8,28 @@ import { CalendarModule } from '../../features/calendar/calendar.module';
 import { WhatsappMessagingModule } from '../../features/whatsapp/whatsapp-messaging.module';
 import { AdkOrchestratorService } from './orchestrator/adk-orchestrator.service';
 import { OrchestratorToolsService } from './orchestrator/orchestrator.tools';
-import { ClientOrchestratorService } from './orchestrator/client_orchestrator/client-orchestrator.service';
-import { CompanyOrchestratorService } from './orchestrator/company_orchestrator/company-orchestrator.service';
-import { AppointmentAdminAgent } from './agents/appointment/admin/appointment.agent';
-import { AppointmentClientAgent } from './agents/appointment/client/appointment.agent';
-import { ReportingAgent } from './agents/reporting/reporting.agent';
-import { SalesAgent } from './agents/sales/sales.agent';
-import { ReestockAgent } from './agents/reestock/reestock.agent';
-import { AppointmentToolsService } from './agents/appointment/appointment.tools';
-import { ReportingToolsService } from './agents/reporting/reporting.tools';
-import { SalesToolsService } from './agents/sales/sales.tools';
-import { ReestockToolsService } from './agents/reestock/reestock.tools';
+import { GeneralClientOrchestratorService } from './orchestrator/verticals/general/general-client.orchestrator';
+import { GeneralAdminOrchestratorService } from './orchestrator/verticals/general/general-admin.orchestrator';
+import { AcademyClientOrchestratorService } from './orchestrator/verticals/academy/academy-client.orchestrator';
+import { AcademyAdminOrchestratorService } from './orchestrator/verticals/academy/academy-admin.orchestrator';
+import { SalonClientOrchestratorService } from './orchestrator/verticals/salon/salon-client.orchestrator';
+import { SalonAdminOrchestratorService } from './orchestrator/verticals/salon/salon-admin.orchestrator';
+import { AppointmentAdminAgent } from './agents/general/appointment/admin/appointment.agent';
+import { AppointmentClientAgent } from './agents/general/appointment/client/appointment.agent';
+import { ReportingAgent } from './agents/general/reporting/reporting.agent';
+import { SalesAgent } from './agents/general/sales/sales.agent';
+import { ReestockAgent } from './agents/general/reestock/reestock.agent';
+import { AppointmentToolsService } from './agents/general/appointment/appointment.tools';
+import { ReportingToolsService } from './agents/general/reporting/reporting.tools';
+import { SalesToolsService } from './agents/general/sales/sales.tools';
+import { ReestockToolsService } from './agents/general/reestock/reestock.tools';
 import { SupabaseSessionService } from './session/supabase-session.service';
-import { KnowledgeBaseToolsService } from './agents/knowledge/knowledge.tools';
-import { KnowledgeAgent } from './agents/knowledge/knowledge.agent';
+import { KnowledgeBaseToolsService } from './agents/general/knowledge/knowledge.tools';
+import { KnowledgeAgent } from './agents/general/knowledge/knowledge.agent';
+import { AcademyAgent } from './agents/verticals/academy/academy.agent';
+import { AcademyToolsService } from './agents/verticals/academy/academy.tools';
+import { SalonStylistAgent } from './agents/verticals/salon/salon.agent';
+import { SalonToolsService } from './agents/verticals/salon/salon.tools';
 import { TimeModule } from '../../common/time/time.module';
 
 @Module({
@@ -37,8 +45,12 @@ import { TimeModule } from '../../common/time/time.module';
   ],
   providers: [
     AdkOrchestratorService,
-    ClientOrchestratorService,
-    CompanyOrchestratorService,
+    GeneralClientOrchestratorService,
+    GeneralAdminOrchestratorService,
+    AcademyClientOrchestratorService,
+    AcademyAdminOrchestratorService,
+    SalonClientOrchestratorService,
+    SalonAdminOrchestratorService,
     OrchestratorToolsService,
     AppointmentAdminAgent,
     AppointmentClientAgent,
@@ -51,6 +63,10 @@ import { TimeModule } from '../../common/time/time.module';
     ReestockToolsService,
     KnowledgeBaseToolsService,
     KnowledgeAgent,
+    AcademyToolsService,
+    AcademyAgent,
+    SalonToolsService,
+    SalonStylistAgent,
     SupabaseSessionService,
   ],
   exports: [AdkOrchestratorService],

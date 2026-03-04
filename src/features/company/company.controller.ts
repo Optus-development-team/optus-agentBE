@@ -52,6 +52,7 @@ export class CompanyController {
     return this.companyService.createCompany({
       name: body.name,
       currency: body.currency,
+      vertical: body.vertical,
       creatorUserId: userId,
     });
   }

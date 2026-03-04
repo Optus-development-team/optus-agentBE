@@ -1,9 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { CalendarService } from '../../../../features/calendar/calendar.service';
+import { CalendarService } from '../../../../../features/calendar/calendar.service';
 import { FunctionTool } from '@google/adk';
 import type { ToolContext } from '@google/adk';
 import { z } from 'zod';
-import { TimeService } from '../../../../common/time/time.service';
+import { TimeService } from '../../../../../common/time/time.service';
 
 @Injectable()
 export class AppointmentToolsService {

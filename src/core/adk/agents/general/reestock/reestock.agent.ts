@@ -1,9 +1,9 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Scope } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Gemini, LlmAgent } from '@google/adk';
 import { ReestockToolsService } from './reestock.tools';
 
-@Injectable()
+@Injectable({ scope: Scope.TRANSIENT })
 export class ReestockAgent {
   private readonly logger = new Logger(ReestockAgent.name);
   readonly agent: LlmAgent;

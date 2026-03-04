@@ -1,9 +1,9 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Scope } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Gemini, LlmAgent } from '@google/adk';
 import { KnowledgeBaseToolsService } from './knowledge.tools';
 
-@Injectable()
+@Injectable({ scope: Scope.TRANSIENT })
 export class KnowledgeAgent {
   private readonly logger = new Logger(KnowledgeAgent.name);
   readonly agent: LlmAgent;

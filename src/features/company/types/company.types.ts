@@ -1,6 +1,7 @@
 export interface CompanySummary {
   id: string;
   name: string;
+  vertical: string;
   currency: string | null;
 }
 

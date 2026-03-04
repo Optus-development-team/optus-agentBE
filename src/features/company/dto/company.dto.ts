@@ -15,6 +15,15 @@ export class CreateCompanyDto {
   @IsOptional()
   @IsString()
   currency?: string;
+
+  @ApiProperty({
+    description: 'Vertical de negocio de la empresa',
+    example: 'academy',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  vertical?: string;
 }
 
 export class AddCompanyUserDto {

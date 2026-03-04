@@ -10,9 +10,12 @@ export enum UserRole {
   CLIENT = 'CLIENT',
 }
 
+export type CompanyVertical = 'general' | 'academy' | 'salon';
+
 export interface TenantContext {
   companyId: string;
   companyName: string;
+  vertical: CompanyVertical;
   companyConfig: Record<string, unknown>;
   phoneNumberId: string;
   adminPhoneIds: string[];

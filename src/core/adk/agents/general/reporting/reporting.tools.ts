@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { FunctionTool } from '@google/adk';
 import type { ToolContext } from '@google/adk';
 import { z } from 'zod';
-import { TimeService } from '../../../../common/time/time.service';
+import { TimeService } from '../../../../../common/time/time.service';
 
 @Injectable()
 export class ReportingToolsService {

@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Scope } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Gemini, LlmAgent } from '@google/adk';
 import { AppointmentToolsService } from '../appointment.tools';
@@ -6,9 +6,9 @@ import { AppointmentToolsService } from '../appointment.tools';
 /**
  * Agente de citas: gestiona reservas, cancelaciones y cambios de horario.
  */
-@Injectable()
-export class AppointmentClientAgent {
-  private readonly logger = new Logger(AppointmentClientAgent.name);
+@Injectable({ scope: Scope.TRANSIENT })
+export class AppointmentAdminAgent {
+  private readonly logger = new Logger(AppointmentAdminAgent.name);
   readonly agent: LlmAgent;
 
   constructor(
@@ -22,7 +22,7 @@ export class AppointmentClientAgent {
     );
 
     if (!apiKey) {
-      throw new Error('Google AI no configurado para AppointmentClientAgent');
+      throw new Error('Google AI no configurado para AppointmentAdminAgent');
     }
 
     const model = new Gemini({ apiKey, model: modelName });
@@ -34,7 +34,8 @@ FUNCIONES PRINCIPALES:
 2. **Agendar citas**: Usa create_appointment para crear nuevas reservas.
 3. **Cancelar citas**: Usa cancel_appointment para cancelar reservas existentes.
 4. **Reprogramar**: Usa reschedule_appointment para cambiar fecha/hora.
-5. **Restricción de calendario**: Solo puedes compartir qué horarios están ocupados o libres, no el detalle de otros eventos.
+5. **Listar citas**: Usa list_user_appointments para ver las citas del usuario.
+6. **Mencionar eventos del calendario**: Aprovecha el acceso a todos los calendarios para responder preguntas sobre eventos y disponibilidad general.
 
 PERSONALIDAD:
 - Tono: {app:companyTone}
@@ -57,17 +58,17 @@ IMPORTANTE:
 - La duración es obligatoria para agendar (ej: 15 minutos, 1 hora)
 - Para cancelaciones, pregunta el motivo para mejorar el servicio
 - Si el usuario no especifica horario, sugiere opciones disponibles
-- Evita mencionar o listar eventos de otros calendarios; limita tus comentarios a la disponibilidad actual`;
+- Cuando se pregunte por otros eventos, menciónalos utilizando el calendario completo al que tienes acceso`;
 
     this.agent = new LlmAgent({
-      name: 'appointment_client_agent',
+      name: 'appointment_admin_agent',
       model,
       instruction,
       description:
         'Agente especializado en gestión de citas, reservas y calendario',
-      tools: this.tools.clientTools,
+      tools: this.tools.adminTools,
     });
 
-    this.logger.log('Appointment Client Agent inicializado');
+    this.logger.log('Appointment Admin Agent inicializado');
   }
 }

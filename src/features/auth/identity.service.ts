@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { SupabaseService } from '../../common/intraestructure/supabase/supabase.service';
 import type { TenantContext } from '../whatsapp/types/whatsapp.types';
+import type { CompanyVertical } from '../whatsapp/types/whatsapp.types';
 import { UserRole } from '../whatsapp/types/whatsapp.types';
 
 type NullableString = string | null | undefined;
@@ -9,6 +10,7 @@ type NullableString = string | null | undefined;
 interface CompanyRow {
   id: string;
   name: string;
+  vertical: string | null;
   config: unknown;
   whatsapp_admin_phone_ids?: string[] | null;
   whatsapp_display_phone_number?: NullableString;
@@ -26,6 +28,7 @@ export class IdentityService {
   private readonly adminPhone: string;
   private readonly fallbackCompanyId: string;
   private readonly fallbackCompanyName: string;
+  private readonly fallbackCompanyVertical: CompanyVertical;
   private readonly fallbackCompanyConfig: Record<string, unknown>;
   private readonly fallbackPhoneNumberId: string;
 
@@ -41,6 +44,9 @@ export class IdentityService {
     this.fallbackCompanyName =
       this.configService.get<string>('DEFAULT_COMPANY_NAME', 'Optus') ??
       'Optus';
+    this.fallbackCompanyVertical = this.normalizeVertical(
+      this.configService.get<string>('DEFAULT_COMPANY_VERTICAL', 'general'),
+    );
     this.fallbackCompanyConfig = this.parseConfig(
       this.configService.get<string>('DEFAULT_COMPANY_CONFIG'),
     );
@@ -63,7 +69,7 @@ export class IdentityService {
     }
 
     const rows = await this.supabaseService.query<CompanyRow>(
-      `SELECT id, name, config, whatsapp_admin_phone_ids, whatsapp_display_phone_number, whatsapp_phone_id
+      `SELECT id, name, vertical, config, whatsapp_admin_phone_ids, whatsapp_display_phone_number, whatsapp_phone_id
        FROM public.companies
        WHERE whatsapp_phone_id = $1
        LIMIT 1`,
@@ -105,7 +111,7 @@ export class IdentityService {
     }
 
     const rows = await this.supabaseService.query<CompanyRow>(
-      `SELECT id, name, config, whatsapp_admin_phone_ids, whatsapp_display_phone_number, whatsapp_phone_id
+      `SELECT id, name, vertical, config, whatsapp_admin_phone_ids, whatsapp_display_phone_number, whatsapp_phone_id
        FROM public.companies
        WHERE id = $1
        LIMIT 1`,
@@ -276,6 +282,7 @@ export class IdentityService {
     return {
       companyId: this.fallbackCompanyId,
       companyName: this.fallbackCompanyName,
+      vertical: this.fallbackCompanyVertical,
       companyConfig: this.fallbackCompanyConfig,
       phoneNumberId,
       adminPhoneIds: this.getFallbackAdminPhones(),
@@ -311,6 +318,7 @@ export class IdentityService {
     return {
       companyId: row.id,
       companyName: row.name,
+      vertical: this.normalizeVertical(row.vertical),
       companyConfig,
       phoneNumberId,
       adminPhoneIds,
@@ -376,6 +384,16 @@ export class IdentityService {
 
     const adminSet = new Set(adminPhones);
     return candidates.some((candidate) => adminSet.has(candidate));
+  }
+
+  private normalizeVertical(value: string | null | undefined): CompanyVertical {
+    const normalized = (value ?? 'general').toLowerCase();
+
+    if (normalized === 'academy' || normalized === 'salon') {
+      return normalized;
+    }
+
+    return 'general';
   }
 
   private buildIdentityCandidates(

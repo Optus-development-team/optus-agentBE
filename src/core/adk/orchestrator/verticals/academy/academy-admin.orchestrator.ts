@@ -7,18 +7,23 @@ import {
   isFinalResponse,
   stringifyContent,
 } from '@google/adk';
-import type { RouterMessageContext } from '../../../../features/whatsapp/types/whatsapp.types';
-import { UserRole } from '../../../../features/whatsapp/types/whatsapp.types';
-import type { OrchestrationResult } from '../orchestrator.types';
-import { SupabaseSessionService } from '../../session/supabase-session.service';
-import { OrchestratorToolsService } from '../orchestrator.tools';
-import { SalesAgent } from '../../agents/sales/sales.agent';
-import { AppointmentClientAgent } from '../../agents/appointment/client/appointment.agent';
-import { KnowledgeAgent } from '../../agents/knowledge/knowledge.agent';
-import { TimeService } from '../../../../common/time/time.service';
+import type { RouterMessageContext } from '../../../../../features/whatsapp/types/whatsapp.types';
+import { UserRole } from '../../../../../features/whatsapp/types/whatsapp.types';
+import type { OrchestrationResult } from '../../orchestrator.types';
+import { SupabaseSessionService } from '../../../session/supabase-session.service';
+import { OrchestratorToolsService } from '../../orchestrator.tools';
+import { ReportingAgent } from '../../../agents/general/reporting/reporting.agent';
+import { AppointmentAdminAgent } from '../../../agents/general/appointment/admin/appointment.agent';
+import { ReestockAgent } from '../../../agents/general/reestock/reestock.agent';
+import { KnowledgeAgent } from '../../../agents/general/knowledge/knowledge.agent';
+import { AcademyAgent } from '../../../agents/verticals/academy/academy.agent';
+import { OAuthService } from '../../../../../features/auth/oauth.service';
+import { WhatsAppResponseService } from '../../../../../features/whatsapp/services/whatsapp-response.service';
+import { TimeService } from '../../../../../common/time/time.service';
+
 @Injectable()
-export class ClientOrchestratorService implements OnModuleInit {
-  private readonly logger = new Logger(ClientOrchestratorService.name);
+export class AcademyAdminOrchestratorService implements OnModuleInit {
+  private readonly logger = new Logger(AcademyAdminOrchestratorService.name);
   private readonly appName = 'optus';
   private runner?: Runner;
   private orchestratorAgent?: LlmAgent;
@@ -27,9 +32,13 @@ export class ClientOrchestratorService implements OnModuleInit {
     private readonly config: ConfigService,
     private readonly sessionService: SupabaseSessionService,
     private readonly orchestratorTools: OrchestratorToolsService,
-    private readonly salesAgent: SalesAgent,
-    private readonly appointmentClientAgent: AppointmentClientAgent,
+    private readonly reportingAgent: ReportingAgent,
+    private readonly appointmentAdminAgent: AppointmentAdminAgent,
+    private readonly reestockAgent: ReestockAgent,
     private readonly knowledgeAgent: KnowledgeAgent,
+    private readonly academyAgent: AcademyAgent,
+    private readonly oauthService: OAuthService,
+    private readonly whatsappResponse: WhatsAppResponseService,
     private readonly timeService: TimeService,
   ) {}
 
@@ -41,6 +50,55 @@ export class ClientOrchestratorService implements OnModuleInit {
     this.ensureInitialized();
 
     const userId = this.normalizePhone(context.senderId);
+
+    if (context.role === UserRole.ADMIN && context.tenant?.companyId) {
+      const companyId = context.tenant.companyId;
+      const hasCreds = await this.oauthService.checkCredentials(companyId);
+
+      if (!hasCreds) {
+        this.logger.log(
+          `Admin ${userId} needs to connect Google Calendar for company ${companyId}`,
+        );
+        try {
+          const authUrl = await this.oauthService.getAuthUrl(companyId);
+          await this.whatsappResponse.sendCtaLink(
+            userId,
+            {
+              bodyText:
+                '⚠️ *Configuración necesaria*\n\nPara gestionar tu empresa, es necesario conectar con tu cuenta de Google.',
+              buttonDisplayText: 'Conectar Google',
+              buttonUrl: authUrl,
+              footerText: 'Cuando termines, vuelve al chat y continúa.',
+            },
+            {
+              phoneNumberId:
+                context.phoneNumberId ?? context.tenant?.phoneNumberId,
+              companyId,
+            },
+          );
+          await this.whatsappResponse.sendStickerForEvent(
+            userId,
+            'error_or_unauthorized_action',
+            {
+              phoneNumberId:
+                context.phoneNumberId ?? context.tenant?.phoneNumberId,
+              companyId,
+            },
+          );
+        } catch (error) {
+          this.logger.error(
+            `Error sending auth URL: ${(error as Error).message}`,
+          );
+        }
+        return {
+          intent: 'UNKNOWN',
+          responseText:
+            'Necesitas completar la conexión con Google Calendar para continuar.',
+          agentUsed: 'academy_admin_orchestrator',
+        };
+      }
+    }
+
     const tenantAppName = context.tenant.companyName.trim().toLowerCase();
     const sessionId = `${tenantAppName}:${userId}`;
 
@@ -66,7 +124,7 @@ export class ClientOrchestratorService implements OnModuleInit {
       };
 
       let responseText = '';
-      let agentUsed = 'client_orchestrator';
+      let agentUsed = 'academy_admin_orchestrator';
 
       for await (const event of this.runner!.runAsync({
         userId,
@@ -96,12 +154,14 @@ export class ClientOrchestratorService implements OnModuleInit {
       };
     } catch (error) {
       const err = error as Error;
-      this.logger.error(`Error en orquestación de cliente: ${err.message}`);
+      this.logger.error(
+        `Error en orquestación interna academia: ${err.message}`,
+      );
       return {
         intent: 'UNKNOWN',
         responseText:
-          'Ocurrió un error procesando tu mensaje. Intenta nuevamente en unos momentos.',
-        agentUsed: 'client_orchestrator',
+          'Hubo un problema procesando tu solicitud interna. Intenta de nuevo en unos momentos.',
+        agentUsed: 'academy_admin_orchestrator',
       };
     }
   }
@@ -114,34 +174,39 @@ export class ClientOrchestratorService implements OnModuleInit {
     );
 
     if (!apiKey) {
-      throw new Error('Google AI no configurado para ClientOrchestrator');
+      throw new Error(
+        'Google AI no configurado para AcademyAdminOrchestratorService',
+      );
     }
 
     const model = new Gemini({ apiKey, model: modelName });
 
-    const instruction = `Eres el orquestador de clientes de {app:companyName}. Coordina a los agentes especializados para ayudar al cliente.
+    const instruction = `Eres el orquestador administrativo de una academia ({app:companyName}).
 
 AGENTES DISPONIBLES:
-3. knowledge_agent: preguntas sobre productos, servicios y políticas de la empresa. (Ej. horarios, materias, ubicaciones, etc).
-1. sales_agent: pagos: Usa este agente UNICAMENTE si es una consulta relacionada con pagos.
-2. appointment_agent: agenda, cancelación y reprogramación de citas.
+1. reporting_agent: métricas, reportes y KPI académicos.
+2. appointment_admin_agent: coordinación de citas/tutorías internas.
+3. reestock_agent: gestión operativa de inventario interno.
+4. knowledge_agent: información institucional pública.
+5. academy_agent: operaciones académicas especializadas (notas e inscripciones).
 
 COMPORTAMIENTO:
-- Detecta intención y deriva al agente correcto.
-- Si es saludo o duda general, responde breve y profesional.
-- No inventes precios ni disponibilidad; usa herramientas del agente.
-- Toma {app:todayDate} como fecha base para las operaciones.
-`;
+- Prioriza trazabilidad y exactitud en procesos académicos.
+- Usa academy_agent para consultas de notas e inscripciones.
+- Si faltan datos, solicita precisión antes de actuar.
+- Toma {app:todayDate} como fecha base para las operaciones.`;
 
     this.orchestratorAgent = new LlmAgent({
-      name: 'client_orchestrator',
+      name: 'academy_admin_orchestrator',
       model,
       instruction,
-      description: 'Orquestador para clientes finales',
+      description: 'Orquestador interno para vertical academia',
       subAgents: [
-        this.salesAgent.agent,
-        this.appointmentClientAgent.agent,
+        this.reportingAgent.agent,
+        this.appointmentAdminAgent.agent,
+        this.reestockAgent.agent,
         this.knowledgeAgent.agent,
+        this.academyAgent.agent,
       ],
       tools: [this.orchestratorTools.verifyPhoneCodeTool],
     });
@@ -168,7 +233,7 @@ COMPORTAMIENTO:
 
     return {
       'user:phone': userPhone,
-      'user:role': context.role ?? UserRole.CLIENT,
+      'user:role': context.role ?? UserRole.ADMIN,
       'user:name': context.senderName,
       'app:companyId': companyId ?? undefined,
       'app:companyName': companyName,
@@ -184,7 +249,6 @@ COMPORTAMIENTO:
       'app:todayDate': this.timeService.getTodayDate(userPhone),
       'app:currentDateTime': this.timeService.getCurrentDateTime(userPhone),
       'app:timezone': timezone,
-      'app:inventoryContext': '',
     };
   }
 
@@ -194,6 +258,7 @@ COMPORTAMIENTO:
 
     const contextParts: string[] = [];
     contextParts.push(`[Teléfono del usuario: ${context.senderId}]`);
+    contextParts.push(`[Vertical: ${context.tenant.vertical}]`);
 
     if (context.role) {
       contextParts.push(`[Rol detectado: ${context.role}]`);

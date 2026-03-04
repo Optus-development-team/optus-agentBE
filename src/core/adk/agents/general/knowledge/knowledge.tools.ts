@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { FunctionTool } from '@google/adk';
 import type { ToolContext } from '@google/adk';
 import { z } from 'zod';
-import { SupabaseService } from '../../../../common/intraestructure/supabase/supabase.service';
+import { SupabaseService } from '../../../../../common/intraestructure/supabase/supabase.service';
 
 interface SearchPublicKnowledgeRow {
   entity_name: string;
