@@ -1,11 +1,23 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { FunctionTool } from '@google/adk';
 import type { ToolContext } from '@google/adk';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { z } from 'zod';
+import { SupabaseService } from '../../../../../common/intraestructure/supabase/supabase.service';
+import {
+  SYSTEM_EVENT_CHANNEL,
+  SystemEventType,
+  type SystemNotificationEvent,
+} from '../../../../../common/events/system-events.types';
 
 @Injectable()
 export class SalesToolsService {
   private readonly logger = new Logger('SalesTools');
+
+  constructor(
+    private readonly supabase: SupabaseService,
+    private readonly eventEmitter: EventEmitter2,
+  ) {}
 
 /*   get searchProductsTool(): FunctionTool {
     return new FunctionTool({
@@ -108,10 +120,43 @@ export class SalesToolsService {
 
         const state = context?.state;
         const companyId = state?.get('app:companyId') as string | undefined;
+        const senderPhone = state?.get('user:phone') as string | undefined;
+
+        this.emitToolTriggered(companyId, 'create_payment_order');
 
         const orderId = `ORD-${Date.now()}-${Math.random()
           .toString(36)
           .substring(2, 8)}`;
+
+        if (companyId && this.supabase.isEnabled()) {
+          const created = await this.supabase.query<{ id: string }>(
+            `insert into orders (company_id, user_id, total_amount, status, details, metadata)
+             values ($1, $2, $3, $4, $5, $6::jsonb)
+             returning id`,
+            [
+              companyId,
+              senderPhone ?? null,
+              args.amount,
+              'PENDING_PAYMENT',
+              args.description ?? 'Orden creada por sales tool',
+              {
+                source: 'sales_tool',
+                products: args.products ?? [],
+              },
+            ],
+          );
+
+          const insertedOrderId = created[0]?.id;
+          if (insertedOrderId) {
+            this.emitCompanyEvent(companyId, {
+              type: SystemEventType.SALES_ORDER_REGISTERED,
+              payload: {
+                orderId: insertedOrderId,
+                amount: args.amount,
+              },
+            });
+          }
+        }
 
         return {
           success: true,
@@ -145,6 +190,9 @@ export class SalesToolsService {
         const state = context?.state;
         const orderId =
           args.orderId || (state?.get('temp:lastOrderId') as string);
+        const companyId = state?.get('app:companyId') as string | undefined;
+
+        this.emitToolTriggered(companyId, 'check_payment_status');
 
         if (!orderId) {
           return {
@@ -183,6 +231,11 @@ export class SalesToolsService {
           .describe('Forzar regeneración del QR'),
       }),
       execute: async (args, _context?: ToolContext) => {
+        const companyId = _context?.state?.get('app:companyId') as
+          | string
+          | undefined;
+        this.emitToolTriggered(companyId, 'generate_payment_qr');
+
         this.logger.debug(`Generando QR para orden: ${args.orderId}`);
 
         return {
@@ -211,6 +264,9 @@ export class SalesToolsService {
       execute: async (args, context?: ToolContext) => {
         const state = context?.state;
         const userRole = state?.get('user:role') as string | undefined;
+        const companyId = state?.get('app:companyId') as string | undefined;
+
+        this.emitToolTriggered(companyId, 'sync_inventory');
 
         if (userRole !== 'ADMIN') {
           return {
@@ -242,5 +298,36 @@ export class SalesToolsService {
       this.generatePaymentQrTool,
       this.syncInventoryTool,
     ];
+  }
+
+  private emitToolTriggered(
+    companyId: string | undefined,
+    toolName: string,
+  ): void {
+    if (!companyId) {
+      return;
+    }
+
+    this.emitCompanyEvent(companyId, {
+      type: SystemEventType.TOOL_ACTION_TRIGGERED,
+      payload: { toolName },
+    });
+  }
+
+  private emitCompanyEvent(
+    companyId: string,
+    params: {
+      type: SystemEventType;
+      payload: Record<string, unknown>;
+    },
+  ): void {
+    const event: SystemNotificationEvent = {
+      companyId,
+      type: params.type,
+      timestamp: new Date().toISOString(),
+      payload: params.payload,
+    };
+
+    this.eventEmitter.emit(SYSTEM_EVENT_CHANNEL, event);
   }
 }

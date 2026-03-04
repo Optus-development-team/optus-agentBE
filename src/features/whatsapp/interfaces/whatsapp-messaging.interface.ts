@@ -71,6 +71,7 @@ export interface WhatsAppLocation {
 export interface MessageContextOptions {
   phoneNumberId?: string;
   replyToMessageId?: string;
+  companyId?: string;
 }
 
 /**

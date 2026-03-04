@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import {
   WhatsAppMessage,
   WhatsAppIncomingMessage,
@@ -12,6 +13,11 @@ import { WhatsAppResponseService } from './whatsapp-response.service';
 import { VerificationService } from '../../login/verification.service';
 import { IdentityService } from '../../auth/identity.service';
 import { TenantContext, UserRole } from '../types/whatsapp.types';
+import {
+  SYSTEM_EVENT_CHANNEL,
+  SystemEventType,
+  type SystemNotificationEvent,
+} from '../../../common/events/system-events.types';
 
 interface PendingConversation {
   canonicalSender: string;
@@ -42,6 +48,7 @@ export class WhatsappService {
     private readonly responseService: WhatsAppResponseService,
     private readonly verification: VerificationService,
     private readonly identity: IdentityService,
+    private readonly eventEmitter: EventEmitter2,
   ) {
     this.defaultPhoneNumberId =
       this.configService.get<string>('WHATSAPP_PHONE_NUMBER_ID', '') ||
@@ -121,6 +128,16 @@ export class WhatsappService {
                 contactWaId,
               );
 
+              this.emitCompanyEvent(tenant.companyId, {
+                type: SystemEventType.WHATSAPP_WEBHOOK_RECEIVED,
+                payload: {
+                  whatsappMessageId: message.id,
+                  from: message.from,
+                  phoneNumberId,
+                  messageType: message.type,
+                },
+              });
+
               await this.handleMessage(
                 message,
                 phoneNumberId,
@@ -198,6 +215,7 @@ export class WhatsappService {
     await this.messagingService.markAsRead(message.id, {
       phoneNumberId,
       showTypingIndicator: false,
+      companyId: tenant.companyId,
     });
 
     const conversationalText = this.extractConversationText(message);
@@ -492,6 +510,7 @@ export class WhatsappService {
     await this.messagingService.markAsRead(pending.lastMessage.id, {
       phoneNumberId: pending.phoneNumberId,
       showTypingIndicator: true,
+      companyId: pending.tenant.companyId,
     });
 
     /*     await this.responseService.sendStickerForEvent(
@@ -555,6 +574,27 @@ export class WhatsappService {
 
   private getConversationKey(phoneNumberId: string, sender: string): string {
     return `${phoneNumberId}:${sender}`;
+  }
+
+  private emitCompanyEvent(
+    companyId: string | undefined,
+    params: {
+      type: SystemEventType;
+      payload: Record<string, unknown>;
+    },
+  ): void {
+    if (!companyId) {
+      return;
+    }
+
+    const event: SystemNotificationEvent = {
+      companyId,
+      type: params.type,
+      timestamp: new Date().toISOString(),
+      payload: params.payload,
+    };
+
+    this.eventEmitter.emit(SYSTEM_EVENT_CHANNEL, event);
   }
 
   /**

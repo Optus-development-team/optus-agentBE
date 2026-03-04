@@ -60,7 +60,7 @@ export class GeneralAdminOrchestratorService implements OnModuleInit {
           `Admin ${userId} needs to connect Google Calendar for company ${companyId}`,
         );
         try {
-          const authUrl = await this.oauthService.getAuthUrl(companyId);
+          const authUrl = this.oauthService.getAuthUrl(companyId);
           await this.whatsappResponse.sendCtaLink(
             userId,
             {

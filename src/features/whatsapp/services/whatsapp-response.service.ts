@@ -46,11 +46,13 @@ export class WhatsAppResponseService {
       await this.messaging.sendInteractiveButtons(to, normalizedText, buttons, {
         phoneNumberId: options.phoneNumberId,
         replyToMessageId: options.replyToMessageId,
+        companyId: options.companyId,
       });
     } else {
       await this.messaging.sendText(to, normalizedText, {
         phoneNumberId: options.phoneNumberId,
         replyToMessageId: options.replyToMessageId,
+        companyId: options.companyId,
       });
     }
 
@@ -81,6 +83,7 @@ export class WhatsAppResponseService {
       {
         phoneNumberId: options.phoneNumberId,
         replyToMessageId: options.replyToMessageId,
+        companyId: options.companyId,
       },
     );
   }
@@ -100,6 +103,7 @@ export class WhatsAppResponseService {
         {
           phoneNumberId: options.phoneNumberId,
           replyToMessageId: options.replyToMessageId,
+          companyId: options.companyId,
         },
       );
     } catch (error) {

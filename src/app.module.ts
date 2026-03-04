@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { InfrastructureModule } from './common/intraestructure/infrastructure.module';
@@ -11,12 +12,14 @@ import { PaymentsModule } from './features/payments/payments.module';
 import { WhatsappModule } from './features/whatsapp/whatsapp.module';
 import { WebhooksModule } from './features/webhooks/webhooks.module';
 import { AdkModule } from './core/adk/adk.module';
+import { NotificationsModule } from './features/notifications/notifications.module';
 
 import { CalendarModule } from './features/calendar/calendar.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+    EventEmitterModule.forRoot(),
     InfrastructureModule,
     SecurityModule,
     LoginModule,
@@ -27,6 +30,7 @@ import { CalendarModule } from './features/calendar/calendar.module';
     WhatsappModule,
     WebhooksModule,
     CalendarModule,
+    NotificationsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -1,6 +1,12 @@
 import { Body, Controller, Logger, Post } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { SupabaseService } from '../../common/intraestructure/supabase/supabase.service';
+import {
+  SYSTEM_EVENT_CHANNEL,
+  SystemEventType,
+  type SystemNotificationEvent,
+} from '../../common/events/system-events.types';
 
 interface WebhookPayload {
   type: string;
@@ -13,7 +19,10 @@ interface WebhookPayload {
 export class ExternalWebhooksController {
   private readonly logger = new Logger(ExternalWebhooksController.name);
 
-  constructor(private readonly supabase: SupabaseService) {}
+  constructor(
+    private readonly supabase: SupabaseService,
+    private readonly eventEmitter: EventEmitter2,
+  ) {}
 
   @Post('bank-provider')
   @ApiOperation({ summary: 'Webhook de proveedor bancario (mock)' })
@@ -35,6 +44,22 @@ export class ExternalWebhooksController {
       return { status: 'ignored' };
     }
 
+    const companyId = await this.resolveCompanyIdByOrderId(body.order_id);
+    if (!companyId) {
+      this.logger.warn(
+        `No se pudo resolver company_id para order_id ${body.order_id}`,
+      );
+      return { status: 'ignored' };
+    }
+
+    this.emitCompanyEvent(companyId, {
+      type: SystemEventType.BANK_WEBHOOK_ACCEPTED,
+      payload: {
+        webhookType: body.type,
+        orderId: body.order_id,
+      },
+    });
+
     const qrImageLink = this.extractQrLink(body.data);
     try {
       const updated = await this.supabase.query(
@@ -54,6 +79,34 @@ export class ExternalWebhooksController {
     }
 
     return { status: 'accepted' };
+  }
+
+  private async resolveCompanyIdByOrderId(
+    orderId: string,
+  ): Promise<string | null> {
+    const rows = await this.supabase.query<{ company_id: string }>(
+      `SELECT company_id FROM orders WHERE id = $1 LIMIT 1`,
+      [orderId],
+    );
+
+    return rows[0]?.company_id ?? null;
+  }
+
+  private emitCompanyEvent(
+    companyId: string,
+    params: {
+      type: SystemEventType;
+      payload: Record<string, unknown>;
+    },
+  ): void {
+    const event: SystemNotificationEvent = {
+      companyId,
+      type: params.type,
+      timestamp: new Date().toISOString(),
+      payload: params.payload,
+    };
+
+    this.eventEmitter.emit(SYSTEM_EVENT_CHANNEL, event);
   }
 
   private extractQrLink(data: Record<string, unknown>): string | null {

@@ -2,8 +2,14 @@ import { Injectable, Logger } from '@nestjs/common';
 import { CalendarService } from '../../../../../features/calendar/calendar.service';
 import { FunctionTool } from '@google/adk';
 import type { ToolContext } from '@google/adk';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { z } from 'zod';
 import { TimeService } from '../../../../../common/time/time.service';
+import {
+  SYSTEM_EVENT_CHANNEL,
+  SystemEventType,
+  type SystemNotificationEvent,
+} from '../../../../../common/events/system-events.types';
 
 @Injectable()
 export class AppointmentToolsService {
@@ -12,6 +18,7 @@ export class AppointmentToolsService {
   constructor(
     private readonly calendarService: CalendarService,
     private readonly timeService: TimeService,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   get checkAvailabilityTool(): FunctionTool {
@@ -41,6 +48,8 @@ export class AppointmentToolsService {
         const state = context?.state;
         const companyId = state?.get('app:companyId') as string;
         const userPhone = state?.get('user:phone') as string | undefined;
+
+        this.emitToolTriggered(companyId, 'check_availability');
 
         try {
           const resolvedDate = this.timeService.resolveDateBounds(
@@ -103,6 +112,8 @@ export class AppointmentToolsService {
         const userName = state?.get('user:name');
         const companyId = state?.get('app:companyId') as string;
 
+        this.emitToolTriggered(companyId, 'create_appointment');
+
         try {
           const durationMinutes = this.timeService.parseDurationToMinutes(
             args.duration,
@@ -123,6 +134,16 @@ export class AppointmentToolsService {
             },
             userPhone as string | undefined,
           );
+
+          this.emitCompanyEvent(companyId, {
+            type: SystemEventType.APPOINTMENT_CREATED,
+            payload: {
+              appointmentId: event.id,
+              date: args.date,
+              time: args.time,
+              durationMinutes,
+            },
+          });
 
           return {
             success: true,
@@ -154,6 +175,11 @@ export class AppointmentToolsService {
         reason: z.string().optional().describe('Motivo de la cancelación'),
       }),
       execute: (args, _context?: ToolContext) => {
+        const companyId = _context?.state?.get('app:companyId') as
+          | string
+          | undefined;
+        this.emitToolTriggered(companyId, 'cancel_appointment');
+
         this.logger.debug(`Cancelando cita: ${args.appointmentId}`);
 
         return {
@@ -177,6 +203,11 @@ export class AppointmentToolsService {
         newTime: z.string().describe('Nueva hora'),
       }),
       execute: (args, _context?: ToolContext) => {
+        const companyId = _context?.state?.get('app:companyId') as
+          | string
+          | undefined;
+        this.emitToolTriggered(companyId, 'reschedule_appointment');
+
         this.logger.debug(
           `Reprogramando cita ${args.appointmentId} a ${args.newDate} ${args.newTime}`,
         );
@@ -212,6 +243,9 @@ export class AppointmentToolsService {
       execute: (args, context?: ToolContext) => {
         const state = context?.state;
         const userPhone = state?.get('user:phone') as string | undefined;
+        const companyId = state?.get('app:companyId') as string | undefined;
+
+        this.emitToolTriggered(companyId, 'list_user_appointments');
 
         this.logger.debug(`Listando citas para usuario: ${userPhone}`);
 
@@ -261,5 +295,36 @@ export class AppointmentToolsService {
 
   get allTools(): FunctionTool[] {
     return this.adminTools;
+  }
+
+  private emitToolTriggered(
+    companyId: string | undefined,
+    toolName: string,
+  ): void {
+    if (!companyId) {
+      return;
+    }
+
+    this.emitCompanyEvent(companyId, {
+      type: SystemEventType.TOOL_ACTION_TRIGGERED,
+      payload: { toolName },
+    });
+  }
+
+  private emitCompanyEvent(
+    companyId: string,
+    params: {
+      type: SystemEventType;
+      payload: Record<string, unknown>;
+    },
+  ): void {
+    const event: SystemNotificationEvent = {
+      companyId,
+      type: params.type,
+      timestamp: new Date().toISOString(),
+      payload: params.payload,
+    };
+
+    this.eventEmitter.emit(SYSTEM_EVENT_CHANNEL, event);
   }
 }

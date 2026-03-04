@@ -5,6 +5,8 @@ import { AuthService } from './auth.service';
 import { ProvingService } from './proving.service';
 import { IdentityService } from './identity.service';
 import { OAuthService } from './oauth.service';
+import { AuthTokenService } from './auth-token.service';
+import { CookieJwtAuthGuard } from './cookie-jwt-auth.guard';
 import { InfrastructureModule } from '../../common/intraestructure/infrastructure.module';
 import { SecurityModule } from '../../common/security/security.module';
 import { LoginModule } from '../login/login.module';
@@ -12,7 +14,14 @@ import { LoginModule } from '../login/login.module';
 @Module({
   imports: [InfrastructureModule, SecurityModule, LoginModule, HttpModule],
   controllers: [AuthController],
-  providers: [AuthService, ProvingService, IdentityService, OAuthService],
-  exports: [IdentityService],
+  providers: [
+    AuthService,
+    ProvingService,
+    IdentityService,
+    OAuthService,
+    AuthTokenService,
+    CookieJwtAuthGuard,
+  ],
+  exports: [IdentityService, AuthTokenService, CookieJwtAuthGuard],
 })
 export class AuthModule {}

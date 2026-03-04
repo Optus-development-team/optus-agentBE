@@ -8,6 +8,7 @@ import {
   UnauthorizedException,
   Res,
   HttpStatus,
+  Logger,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
@@ -22,6 +23,8 @@ import { AuthService } from './auth.service';
 import { ProvingService } from './proving.service';
 import { TokenService } from '../../common/security/token.service';
 import { VerificationService } from '../login/verification.service';
+import { AuthTokenService } from './auth-token.service';
+import { ConfigService } from '@nestjs/config';
 import { ZkProofRequestDto } from './dto/proving.dto';
 import {
   LoginRequestDto,
@@ -36,13 +39,24 @@ import type {
 @ApiTags('auth')
 @Controller('auth')
 export class AuthController {
+  private readonly logger = new Logger(AuthController.name);
+
   constructor(
     private readonly auth: AuthService,
     private readonly tokens: TokenService,
     private readonly verification: VerificationService,
     private readonly proving: ProvingService,
     private readonly oauthService: OAuthService,
+    private readonly authTokenService: AuthTokenService,
+    private readonly configService: ConfigService,
   ) {}
+
+  @Get('google/login')
+  @ApiOperation({ summary: 'Inicia autenticación OAuth con Google' })
+  googleLogin(@Res() res: Response): void {
+    const authUrl = this.oauthService.getLoginAuthUrl();
+    res.redirect(authUrl);
+  }
 
   @Get('salt')
   @ApiOperation({ summary: 'Obtiene salt de un usuario existente' })
@@ -131,35 +145,47 @@ export class AuthController {
   @Get('google/callback')
   async googleCallback(
     @Query('code') code: string,
-    @Query('state') state: string,
+    @Query('state') state: string | undefined,
     @Res() res: Response,
-  ) {
-    if (!code || !state) {
-      return res.status(HttpStatus.BAD_REQUEST).send('Missing code or state');
+  ): Promise<void> {
+    if (!code) {
+      res.status(HttpStatus.BAD_REQUEST).send('Missing authorization code');
+      return;
     }
 
     try {
-      const companyId = state;
-      // Exchange code for tokens and save them
-      await this.oauthService.handleCallback(code, companyId);
+      const session = await this.oauthService.handleGoogleLoginCallback(
+        code,
+        state,
+      );
 
-      // Redirect to a success page or close the window
-      // Ideally redirect to a frontend page or a "success" static page
-      return res.send(`
-        <html>
-          <body>
-            <h1>Conexión Exitosa</h1>
-            <p>Google Calendar se ha conectado correctamente a tu empresa.</p>
-            <script>window.close()</script>
-          </body>
-        </html>
-      `);
+      const token = this.authTokenService.issueToken(session);
+      res.cookie('optus_auth', token, {
+        httpOnly: true,
+        secure: true,
+        sameSite: 'strict',
+        path: '/',
+        maxAge: this.authTokenService.getTtlMs(),
+      });
+
+      res.redirect(this.getFrontendDashboardUrl());
     } catch (error) {
-      console.error('Error in Google Callback:', error);
-      return res
+      this.logger.error(
+        `Error in Google Callback: ${(error as Error).message}`,
+      );
+      res
         .status(HttpStatus.INTERNAL_SERVER_ERROR)
-        .send('Error connecting to Google Calendar');
+        .send('Error authenticating with Google');
     }
+  }
+
+  private getFrontendDashboardUrl(): string {
+    const configuredUrl =
+      this.configService.get<string>('FRONTEND_DASHBOARD_URL') ||
+      this.configService.get<string>('MAIN_PAGE_URL') ||
+      'http://localhost:5173/dashboard';
+
+    return configuredUrl;
   }
 
   private extractBearer(header?: string): string {

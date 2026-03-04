@@ -1,8 +1,14 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { HttpService } from '@nestjs/axios';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { firstValueFrom } from 'rxjs';
 import FormData from 'form-data';
+import {
+  SYSTEM_EVENT_CHANNEL,
+  SystemEventType,
+  type SystemNotificationEvent,
+} from '../../../common/events/system-events.types';
 import {
   WhatsAppMessageResponse,
   WhatsAppTemplateComponent,
@@ -33,6 +39,7 @@ export class WhatsAppMessagingService {
   constructor(
     private readonly config: ConfigService,
     private readonly http: HttpService,
+    private readonly eventEmitter: EventEmitter2,
   ) {
     this.apiVersion = this.config.get<string>('WHATSAPP_API_VERSION', 'v21.0');
     this.apiToken = this.config.get<string>('META_API_TOKEN', '');
@@ -91,7 +98,7 @@ export class WhatsAppMessagingService {
       payload.context = { message_id: options.replyToMessageId };
     }
 
-    return this.sendMessage(payload, options?.phoneNumberId);
+    return this.sendMessage(payload, options?.phoneNumberId, options?.companyId);
   }
 
   // =========================================================================
@@ -118,7 +125,7 @@ export class WhatsAppMessagingService {
       payload.context = { message_id: options.replyToMessageId };
     }
 
-    return this.sendMessage(payload, options?.phoneNumberId);
+    return this.sendMessage(payload, options?.phoneNumberId, options?.companyId);
   }
 
   async sendVideo(
@@ -142,7 +149,7 @@ export class WhatsAppMessagingService {
       payload.context = { message_id: options.replyToMessageId };
     }
 
-    return this.sendMessage(payload, options?.phoneNumberId);
+    return this.sendMessage(payload, options?.phoneNumberId, options?.companyId);
   }
 
   async sendDocument(
@@ -167,7 +174,7 @@ export class WhatsAppMessagingService {
       payload.context = { message_id: options.replyToMessageId };
     }
 
-    return this.sendMessage(payload, options?.phoneNumberId);
+    return this.sendMessage(payload, options?.phoneNumberId, options?.companyId);
   }
 
   // =========================================================================
@@ -197,7 +204,7 @@ export class WhatsAppMessagingService {
       payload.context = { message_id: options.replyToMessageId };
     }
 
-    return this.sendMessage(payload, options?.phoneNumberId);
+    return this.sendMessage(payload, options?.phoneNumberId, options?.companyId);
   }
 
   // =========================================================================
@@ -226,7 +233,7 @@ export class WhatsAppMessagingService {
       payload.context = { message_id: options.replyToMessageId };
     }
 
-    return this.sendMessage(payload, options?.phoneNumberId);
+    return this.sendMessage(payload, options?.phoneNumberId, options?.companyId);
   }
 
   // =========================================================================
@@ -281,7 +288,7 @@ export class WhatsAppMessagingService {
       payload.context = { message_id: options.replyToMessageId };
     }
 
-    return this.sendMessage(payload, options?.phoneNumberId);
+    return this.sendMessage(payload, options?.phoneNumberId, options?.companyId);
   }
 
   async sendInteractiveButtons(
@@ -319,7 +326,7 @@ export class WhatsAppMessagingService {
       payload.context = { message_id: options.replyToMessageId };
     }
 
-    return this.sendMessage(payload, options?.phoneNumberId);
+    return this.sendMessage(payload, options?.phoneNumberId, options?.companyId);
   }
 
   async sendInteractiveList(
@@ -361,7 +368,7 @@ export class WhatsAppMessagingService {
       payload.context = { message_id: options.replyToMessageId };
     }
 
-    return this.sendMessage(payload, options?.phoneNumberId);
+    return this.sendMessage(payload, options?.phoneNumberId, options?.companyId);
   }
 
   async sendLocation(
@@ -381,7 +388,7 @@ export class WhatsAppMessagingService {
       payload.context = { message_id: options.replyToMessageId };
     }
 
-    return this.sendMessage(payload, options?.phoneNumberId);
+    return this.sendMessage(payload, options?.phoneNumberId, options?.companyId);
   }
 
   async sendReaction(
@@ -401,7 +408,7 @@ export class WhatsAppMessagingService {
       },
     };
 
-    return this.sendMessage(payload, options?.phoneNumberId);
+    return this.sendMessage(payload, options?.phoneNumberId, options?.companyId);
   }
 
   async sendPaymentRequest(
@@ -454,6 +461,7 @@ export class WhatsAppMessagingService {
     options?: {
       phoneNumberId?: string;
       showTypingIndicator?: boolean;
+      companyId?: string;
     },
   ): Promise<void> {
     const payload: Record<string, unknown> = {
@@ -473,6 +481,24 @@ export class WhatsAppMessagingService {
         }),
       );
       this.logger.debug(`Mensaje ${messageId} marcado como leído`);
+
+      this.emitCompanyEvent(options?.companyId, {
+        type: SystemEventType.WHATSAPP_MESSAGE_MARKED_AS_READ,
+        payload: {
+          messageId,
+          phoneNumberId: options?.phoneNumberId,
+        },
+      });
+
+      if (options?.showTypingIndicator) {
+        this.emitCompanyEvent(options.companyId, {
+          type: SystemEventType.WHATSAPP_TYPING_INDICATOR,
+          payload: {
+            messageId,
+            phoneNumberId: options.phoneNumberId,
+          },
+        });
+      }
     } catch (error) {
       this.logger.warn(
         `No se pudo marcar mensaje como leído: ${(error as Error).message}`,
@@ -569,6 +595,7 @@ export class WhatsAppMessagingService {
   private async sendMessage(
     payload: Record<string, unknown>,
     phoneNumberId?: string,
+    companyId?: string,
   ): Promise<WhatsAppMessageResponse> {
     try {
       const response = await firstValueFrom(
@@ -582,6 +609,16 @@ export class WhatsAppMessagingService {
       const recipient =
         typeof payload.to === 'string' ? payload.to : 'desconocido';
       this.logger.debug(`Mensaje enviado exitosamente a ${recipient}`);
+
+      this.emitCompanyEvent(companyId, {
+        type: SystemEventType.WHATSAPP_RESPONSE_SENT,
+        payload: {
+          recipient,
+          phoneNumberId,
+          whatsappMessageId: response.data.messages?.[0]?.id,
+        },
+      });
+
       return response.data;
     } catch (error) {
       const axiosError = error as {
@@ -594,5 +631,26 @@ export class WhatsAppMessagingService {
       );
       throw error;
     }
+  }
+
+  private emitCompanyEvent(
+    companyId: string | undefined,
+    params: {
+      type: SystemEventType;
+      payload: Record<string, unknown>;
+    },
+  ): void {
+    if (!companyId) {
+      return;
+    }
+
+    const event: SystemNotificationEvent = {
+      companyId,
+      type: params.type,
+      timestamp: new Date().toISOString(),
+      payload: params.payload,
+    };
+
+    this.eventEmitter.emit(SYSTEM_EVENT_CHANNEL, event);
   }
 }
