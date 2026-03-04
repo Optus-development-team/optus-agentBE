@@ -1,7 +1,12 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { SupabaseService } from '../../../common/intraestructure/supabase/supabase.service';
-import type { CompanySummary, CompanyUser } from '../types/company.types';
+import type {
+  CompanyOrderRecord,
+  CompanyProductRecord,
+  CompanySummary,
+  CompanyUser,
+} from '../types/company.types';
 
 type CompanyVertical = 'general' | 'academy' | 'salon';
 
@@ -119,6 +124,36 @@ export class CompanyService {
       email: row.email,
       phone: row.phone,
     }));
+  }
+
+  async listCompanyProducts(companyId: string): Promise<CompanyProductRecord[]> {
+    this.ensureSupabaseReady();
+    await this.ensureCompanyExists(companyId);
+
+    const rows = await this.supabase.query<{ product: CompanyProductRecord }>(
+      `select to_jsonb(p) as product
+         from products p
+        where p.company_id = $1
+        order by p.created_at desc`,
+      [companyId],
+    );
+
+    return rows.map((row) => row.product);
+  }
+
+  async listCompanyOrders(companyId: string): Promise<CompanyOrderRecord[]> {
+    this.ensureSupabaseReady();
+    await this.ensureCompanyExists(companyId);
+
+    const rows = await this.supabase.query<{ order: CompanyOrderRecord }>(
+      `select to_jsonb(o) as order
+         from orders o
+        where o.company_id = $1
+        order by o.created_at desc`,
+      [companyId],
+    );
+
+    return rows.map((row) => row.order);
   }
 
   private async ensureCompanyExists(companyId: string): Promise<void> {

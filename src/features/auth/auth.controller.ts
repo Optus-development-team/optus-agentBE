@@ -25,16 +25,12 @@ import { TokenService } from '../../common/security/token.service';
 import { VerificationService } from '../login/verification.service';
 import { AuthTokenService } from './auth-token.service';
 import { ConfigService } from '@nestjs/config';
-import { ZkProofRequestDto } from './dto/proving.dto';
 import {
   LoginRequestDto,
   PhoneOtpRequestDto,
   PhoneStatusQueryDto,
 } from './dto/auth.dto';
-import type {
-  ProvingPingResponse,
-  ProvingProofResponse,
-} from './types/proving.types';
+import type { AuthJwtPayload } from './types/auth-jwt.types';
 
 @ApiTags('auth')
 @Controller('auth')
@@ -51,14 +47,14 @@ export class AuthController {
     private readonly configService: ConfigService,
   ) {}
 
-  @Get('google/login')
+  @Get('google')
   @ApiOperation({ summary: 'Inicia autenticación OAuth con Google' })
   googleLogin(@Res() res: Response): void {
     const authUrl = this.oauthService.getLoginAuthUrl();
     res.redirect(authUrl);
   }
 
-  @Get('salt')
+  /*   @Get('salt')
   @ApiOperation({ summary: 'Obtiene salt de un usuario existente' })
   @ApiHeader({ name: 'x-oauth-token', required: true })
   @ApiHeader({ name: 'x-auth-provider', required: false })
@@ -67,7 +63,7 @@ export class AuthController {
     @Headers('x-auth-provider') provider?: string,
   ): Promise<{ exists: boolean; salt: string | null }> {
     return this.auth.getSalt({ jwt, provider });
-  }
+  } */
 
   @Post('login')
   @ApiOperation({ summary: 'Inicia sesion y devuelve access token' })
@@ -87,7 +83,7 @@ export class AuthController {
     return this.auth.login(body, provider);
   }
 
-  @Post('zkp')
+  /*   @Post('zkp')
   @ApiOperation({ summary: 'Solicita una prueba zk al Proving Service' })
   @ApiOkResponse({
     description: 'Respuesta del Proving Service con la prueba zk',
@@ -103,19 +99,19 @@ export class AuthController {
   @ApiOkResponse({ description: 'Estado del Proving Service' })
   async pingProver(): Promise<ProvingPingResponse> {
     return this.proving.ping();
-  }
+  } */
 
   @Post('phone/otp')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Solicita OTP para vincular telefono' })
   async requestOtp(
-    @Headers('authorization') authorization: string,
+    @Headers('authorization') authorization: string | undefined,
+    @Headers('cookie') cookieHeader: string | undefined,
     @Body() body: PhoneOtpRequestDto,
   ): Promise<{ code: string; instruction: string }> {
-    const token = this.extractBearer(authorization);
-    const payload = this.tokens.verifyToken(token);
+    const auth = this.resolvePhoneVerificationAuth(authorization, cookieHeader);
 
-    await this.auth.setUserPhonePending(payload.userId, body.phone);
+    await this.auth.setUserPhonePending(auth.userId, body.phone);
     const { code } = await this.verification.issueCode(body.phone);
 
     return {
@@ -128,13 +124,37 @@ export class AuthController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Consulta estado de verificacion de telefono' })
   async status(
-    @Headers('authorization') authorization: string,
+    @Headers('authorization') authorization: string | undefined,
+    @Headers('cookie') cookieHeader: string | undefined,
     @Query() query: PhoneStatusQueryDto,
+    @Res({ passthrough: true }) res: Response,
   ): Promise<{ verified: boolean; linkedAt: string | null }> {
-    const token = this.extractBearer(authorization);
-    this.tokens.verifyToken(token);
+    const auth = this.resolvePhoneVerificationAuth(authorization, cookieHeader);
 
     const status = await this.verification.getStatus(query.phone);
+    if (
+      auth.authTokenPayload &&
+      auth.authTokenPayload.authState === 'PENDING_WHATSAPP' &&
+      status.verified
+    ) {
+      const upgraded = this.authTokenService.issueToken({
+        userId: auth.userId,
+        companyId: auth.authTokenPayload.companyId,
+        role: auth.authTokenPayload.role,
+        email: auth.authTokenPayload.email,
+        authState: 'FULL',
+        phoneVerified: true,
+      });
+
+      res.cookie('optus_auth', upgraded, {
+        httpOnly: true,
+        secure: true,
+        sameSite: 'strict',
+        path: '/',
+        maxAge: this.authTokenService.getTtlMs(),
+      });
+    }
+
     return {
       verified: status.verified,
       linkedAt: status.linkedAt ? status.linkedAt.toISOString() : null,
@@ -185,6 +205,56 @@ export class AuthController {
       'http://localhost:5173/dashboard';
 
     return configuredUrl;
+  }
+
+  private resolvePhoneVerificationAuth(
+    authorization?: string,
+    cookieHeader?: string,
+  ): {
+    userId: string;
+    authTokenPayload?: AuthJwtPayload;
+  } {
+    if (authorization?.startsWith('Bearer ')) {
+      const token = this.extractBearer(authorization);
+      const payload = this.tokens.verifyToken(token);
+      return { userId: payload.userId };
+    }
+
+    const cookieToken = this.extractCookieToken(cookieHeader);
+    if (!cookieToken) {
+      throw new UnauthorizedException('No se encontró una sesión válida');
+    }
+
+    const payload = this.authTokenService.verifyToken(cookieToken);
+    if (
+      payload.authState !== 'FULL' &&
+      payload.authState !== 'PENDING_WHATSAPP'
+    ) {
+      throw new UnauthorizedException(
+        'Esta sesión no tiene permisos para verificar teléfono',
+      );
+    }
+
+    return {
+      userId: payload.userId,
+      authTokenPayload: payload,
+    };
+  }
+
+  private extractCookieToken(cookieHeader?: string): string | null {
+    if (!cookieHeader) {
+      return null;
+    }
+
+    const cookies = cookieHeader.split(';');
+    for (const cookie of cookies) {
+      const [name, ...rest] = cookie.trim().split('=');
+      if (name === 'optus_auth') {
+        return decodeURIComponent(rest.join('='));
+      }
+    }
+
+    return null;
   }
 
   private extractBearer(header?: string): string {

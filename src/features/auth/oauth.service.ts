@@ -5,15 +5,22 @@ import { EncryptionService } from '../../common/security/encryption.service';
 import { google, type Auth } from 'googleapis';
 import type { AuthenticatedCompanyUser } from './types/auth-jwt.types';
 
+const TEST_REGISTRATION_COMPANY_ID = 'e40203b8-d8e8-4951-8ac0-840f81596047';
+
 @Injectable()
 export class OAuthService {
   private readonly logger = new Logger(OAuthService.name);
+  private readonly registrationCompanyId: string;
 
   constructor(
     private readonly configService: ConfigService,
     private readonly supabase: SupabaseService,
     private readonly encryptionService: EncryptionService,
-  ) {}
+  ) {
+    this.registrationCompanyId =
+      this.configService.get<string>('GOOGLE_REGISTRATION_COMPANY_ID') ??
+      TEST_REGISTRATION_COMPANY_ID;
+  }
 
   getLoginAuthUrl(): string {
     const auth = this.createOAuthClient();
@@ -60,27 +67,24 @@ export class OAuthService {
     }
 
     const user = await this.findCompanyUserByEmail(email);
-    if (!user) {
+    const expectedCompanyId = this.extractCalendarCompanyId(state);
+
+    if (expectedCompanyId && !this.isFullAccessUser(user)) {
       throw new Error(
-        `No existe un usuario/empresa asociada para el correo ${email}`,
+        'La cuenta requiere verificación de teléfono antes de conectar Google Calendar',
       );
     }
 
-    const expectedCompanyId = this.extractCalendarCompanyId(state);
-    if (expectedCompanyId && expectedCompanyId !== user.companyId) {
+    const session = this.isFullAccessUser(user)
+      ? await this.buildFullSession(user, email)
+      : await this.buildPendingRegistrationSession(email, data.name ?? null);
+
+    if (expectedCompanyId && expectedCompanyId !== session.companyId) {
       throw new Error('La empresa autenticada no coincide con el estado OAuth');
     }
 
-    await this.supabase.query(
-      `UPDATE company_users
-          SET email = COALESCE(email, $1),
-              last_login_at = timezone('utc', now())
-        WHERE id = $2`,
-      [email, user.userId],
-    );
-
     await this.upsertUserIntegration({
-      userId: user.userId,
+      userId: session.userId,
       provider: 'GOOGLE',
       tokens,
       metadata: {
@@ -95,18 +99,20 @@ export class OAuthService {
 
     await this.supabase.query(
       `UPDATE companies SET updated_at = timezone('utc', now()) WHERE id = $1`,
-      [user.companyId],
+      [session.companyId],
     );
 
     if (expectedCompanyId) {
-      await this.saveCredentialsSafe(user.companyId, tokens);
+      await this.saveCredentialsSafe(session.companyId, tokens);
     }
 
     return {
-      userId: user.userId,
-      companyId: user.companyId,
-      role: user.role,
+      userId: session.userId,
+      companyId: session.companyId,
+      role: session.role,
       email,
+      authState: session.authState,
+      phoneVerified: session.phoneVerified,
     };
   }
 
@@ -216,22 +222,25 @@ export class OAuthService {
 
   private async findCompanyUserByEmail(email: string): Promise<{
     userId: string;
-    companyId: string;
-    role: string;
+    companyId: string | null;
+    role: string | null;
+    isPhoneVerified: boolean;
   } | null> {
     const rows = await this.supabase.query<{
       user_id: string;
-      company_id: string;
+      company_id: string | null;
       role: string | null;
+      is_phone_verified: boolean | null;
     }>(
       `SELECT cu.id AS user_id,
               cu.company_id,
-              cu.role
+              cu.role,
+              cu.is_phone_verified
          FROM company_users cu
-         INNER JOIN companies c ON c.id = cu.company_id
         WHERE LOWER(cu.email) = LOWER($1)
-        ORDER BY CASE
-          WHEN UPPER(COALESCE(cu.role, '')) IN ('OWNER', 'ADMIN', 'ROLE_ADMIN') THEN 0
+        ORDER BY COALESCE(cu.is_phone_verified, false) DESC,
+        CASE
+          WHEN UPPER(COALESCE(NULLIF(TRIM(cu.role), ''), '')) IN ('OWNER', 'ADMIN', 'ROLE_ADMIN') THEN 0
           ELSE 1
         END,
         cu.updated_at DESC NULLS LAST
@@ -247,8 +256,140 @@ export class OAuthService {
     return {
       userId: row.user_id,
       companyId: row.company_id,
-      role: row.role ?? 'CLIENT',
+      role: row.role,
+      isPhoneVerified: Boolean(row.is_phone_verified),
     };
+  }
+
+  private async buildFullSession(
+    user: { userId: string; companyId: string | null; role: string | null },
+    email: string,
+  ): Promise<{
+    userId: string;
+    companyId: string;
+    role: string;
+    authState: 'FULL';
+    phoneVerified: true;
+  }> {
+    if (!user.companyId) {
+      throw new Error('Usuario sin empresa asociada para login completo');
+    }
+
+    await this.supabase.query(
+      `UPDATE company_users
+          SET email = COALESCE(email, $1),
+              last_login_at = timezone('utc', now())
+        WHERE id = $2`,
+      [email, user.userId],
+    );
+
+    return {
+      userId: user.userId,
+      companyId: user.companyId,
+      role: this.normalizeRole(user.role, 'CLIENT'),
+      authState: 'FULL',
+      phoneVerified: true,
+    };
+  }
+
+  private async buildPendingRegistrationSession(
+    email: string,
+    alias: string | null,
+  ): Promise<{
+    userId: string;
+    companyId: string;
+    role: string;
+    authState: 'PENDING_WHATSAPP';
+    phoneVerified: false;
+  }> {
+    const existing = await this.findCompanyUserByEmail(email);
+
+    if (existing?.userId) {
+      const rows = await this.supabase.query<{ id: string }>(
+        `UPDATE company_users
+            SET company_id = COALESCE(company_id, $1),
+                role = CASE
+                  WHEN TRIM(COALESCE(role::text, '')) = '' THEN 'ADMIN'::user_role
+                  ELSE role
+                END,
+                email = COALESCE(email, $2),
+                alias = COALESCE($3, alias),
+                is_phone_verified = false,
+                last_login_at = timezone('utc', now())
+          WHERE id = $4
+          RETURNING id`,
+        [this.registrationCompanyId, email, alias, existing.userId],
+      );
+
+      const userId = rows[0]?.id;
+      if (!userId) {
+        throw new Error('No se pudo actualizar el usuario de registro');
+      }
+
+      return {
+        userId,
+        companyId: existing.companyId ?? this.registrationCompanyId,
+        role: this.normalizeRole(existing.role, 'ADMIN'),
+        authState: 'PENDING_WHATSAPP',
+        phoneVerified: false,
+      };
+    }
+
+    const created = await this.supabase.query<{
+      id: string;
+      company_id: string;
+      role: string | null;
+    }>(
+      `INSERT INTO company_users (
+         company_id, email, alias, role, is_phone_verified, created_at, last_login_at
+       )
+       VALUES ($1, $2, $3, 'ADMIN'::user_role, false, timezone('utc', now()), timezone('utc', now()))
+       RETURNING id, company_id, role`,
+      [this.registrationCompanyId, email, alias],
+    );
+
+    const user = created[0];
+    if (!user) {
+      throw new Error('No se pudo crear el usuario en registro');
+    }
+
+    return {
+      userId: user.id,
+      companyId: user.company_id,
+      role: this.normalizeRole(user.role, 'ADMIN'),
+      authState: 'PENDING_WHATSAPP',
+      phoneVerified: false,
+    };
+  }
+
+  private isFullAccessUser(
+    user: {
+      userId: string;
+      companyId: string | null;
+      role: string | null;
+      isPhoneVerified: boolean;
+    } | null,
+  ): user is {
+    userId: string;
+    companyId: string;
+    role: string | null;
+    isPhoneVerified: true;
+  } {
+    return Boolean(user?.companyId && user.isPhoneVerified);
+  }
+
+  private normalizeRole(
+    role: string | null | undefined,
+    fallback: string,
+  ): string {
+    const normalized = role?.trim().toUpperCase();
+    if (!normalized) {
+      return fallback;
+    }
+    if (normalized === 'ROLE_ADMIN') {
+      return 'ADMIN';
+    }
+    return normalized;
   }
 
   private extractCalendarCompanyId(state?: string): string | undefined {

@@ -6,7 +6,9 @@ import {
   Headers,
   Param,
   Post,
+  Req,
   UnauthorizedException,
+  UseGuards,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
@@ -17,7 +19,14 @@ import {
 import { TokenService } from '../../common/security/token.service';
 import { CompanyService } from './services/company.service';
 import { AddCompanyUserDto, CreateCompanyDto } from './dto/company.dto';
-import type { CompanySummary, CompanyUser } from './types/company.types';
+import type {
+  CompanyOrderRecord,
+  CompanyProductRecord,
+  CompanySummary,
+  CompanyUser,
+} from './types/company.types';
+import { FullCookieJwtAuthGuard } from '../auth/full-cookie-jwt-auth.guard';
+import type { FullAuthenticatedRequest } from '../auth/full-cookie-jwt-auth.guard';
 
 @ApiTags('company')
 @ApiBearerAuth()
@@ -86,6 +95,34 @@ export class CompanyController {
       throw new BadRequestException('companyId es requerido');
     }
     return this.companyService.listCompanyUsers(companyId);
+  }
+
+  @Get('products')
+  @UseGuards(FullCookieJwtAuthGuard)
+  @ApiOperation({ summary: 'Lista los productos de la empresa autenticada' })
+  async listProducts(
+    @Req() req: FullAuthenticatedRequest,
+  ): Promise<CompanyProductRecord[]> {
+    const companyId = req.auth?.companyId;
+    if (!companyId) {
+      throw new UnauthorizedException('Empresa no autenticada');
+    }
+
+    return this.companyService.listCompanyProducts(companyId);
+  }
+
+  @Get('orders')
+  @UseGuards(FullCookieJwtAuthGuard)
+  @ApiOperation({ summary: 'Lista las órdenes de la empresa autenticada' })
+  async listOrders(
+    @Req() req: FullAuthenticatedRequest,
+  ): Promise<CompanyOrderRecord[]> {
+    const companyId = req.auth?.companyId;
+    if (!companyId) {
+      throw new UnauthorizedException('Empresa no autenticada');
+    }
+
+    return this.companyService.listCompanyOrders(companyId);
   }
 
   private resolveUser(authorization?: string): { userId: string } {

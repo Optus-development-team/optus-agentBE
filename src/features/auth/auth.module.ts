@@ -7,6 +7,7 @@ import { IdentityService } from './identity.service';
 import { OAuthService } from './oauth.service';
 import { AuthTokenService } from './auth-token.service';
 import { CookieJwtAuthGuard } from './cookie-jwt-auth.guard';
+import { FullCookieJwtAuthGuard } from './full-cookie-jwt-auth.guard';
 import { InfrastructureModule } from '../../common/intraestructure/infrastructure.module';
 import { SecurityModule } from '../../common/security/security.module';
 import { LoginModule } from '../login/login.module';
@@ -21,7 +22,13 @@ import { LoginModule } from '../login/login.module';
     OAuthService,
     AuthTokenService,
     CookieJwtAuthGuard,
+    FullCookieJwtAuthGuard,
   ],
-  exports: [IdentityService, AuthTokenService, CookieJwtAuthGuard],
+  exports: [
+    IdentityService,
+    AuthTokenService,
+    CookieJwtAuthGuard,
+    FullCookieJwtAuthGuard,
+  ],
 })
 export class AuthModule {}

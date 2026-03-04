@@ -12,3 +12,7 @@ export interface CompanyUser {
   email: string | null;
   phone: string | null;
 }
+
+export type CompanyProductRecord = Record<string, unknown>;
+
+export type CompanyOrderRecord = Record<string, unknown>;

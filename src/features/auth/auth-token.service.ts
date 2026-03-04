@@ -2,6 +2,7 @@ import { createHmac, randomBytes } from 'node:crypto';
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type {
+  AuthSessionState,
   AuthJwtPayload,
   AuthenticatedCompanyUser,
 } from './types/auth-jwt.types';
@@ -31,6 +32,8 @@ export class AuthTokenService {
       companyId: user.companyId,
       role: user.role,
       email: user.email,
+      authState: this.resolveAuthState(user.authState),
+      phoneVerified: user.phoneVerified ?? user.authState !== 'PENDING_WHATSAPP',
       issuedAt,
       expiresAt,
     };
@@ -89,11 +92,25 @@ export class AuthTokenService {
         throw new Error('payload incompleto');
       }
 
-      return parsed;
+      const authState =
+        parsed.authState === 'PENDING_WHATSAPP' ? 'PENDING_WHATSAPP' : 'FULL';
+
+      return {
+        ...parsed,
+        authState,
+        phoneVerified:
+          typeof parsed.phoneVerified === 'boolean'
+            ? parsed.phoneVerified
+            : authState === 'FULL',
+      };
     } catch (error) {
       throw new UnauthorizedException(
         `Token inválido: ${(error as Error).message}`,
       );
     }
+  }
+
+  private resolveAuthState(state?: AuthSessionState): AuthSessionState {
+    return state === 'PENDING_WHATSAPP' ? 'PENDING_WHATSAPP' : 'FULL';
   }
 }
