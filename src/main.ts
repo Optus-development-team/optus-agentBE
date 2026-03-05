@@ -5,7 +5,7 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  app.setGlobalPrefix('v1');
+  app.setGlobalPrefix('v1', { exclude: ['docs', 'docs-json'] });
   app.enableCors({
     origin: [
       'http://localhost:3000',
@@ -13,6 +13,10 @@ async function bootstrap() {
       'https://optus.bamp.lat',
       'http://192.168.0.16:3001',
       'http://192.168.0.16:3000',
+      'https://api.rnd.honeyguide.optus.lat',
+      'https://rnd.optus.lat',
+      'https://api.honeyguide.optus.lat',
+      'https://www.optus.lat',
     ],
   });
   app.useGlobalPipes(
