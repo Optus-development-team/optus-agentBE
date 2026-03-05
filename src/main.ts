@@ -31,10 +31,10 @@ async function bootstrap() {
     .setVersion('1.0')
     .addServer('http://localhost:3001', 'local')
     .addServer('http://localhost:3000', 'Local')
-    .addServer('api.rnd.honeyguide.optus.lat', 'Development')
-    .addServer('rnd.optus.lat', 'Development')
-    .addServer('api.honeyguide.optus.lat', 'Production')
-    .addServer('www.optus.lat', 'Production')
+    .addServer('https://api.rnd.honeyguide.optus.lat', 'Development')
+    .addServer('https://rnd.optus.lat', 'Development')
+    .addServer('https://api.honeyguide.optus.lat', 'Production')
+    .addServer('https://www.optus.lat', 'Production')
     .addBearerAuth({
       type: 'http',
       scheme: 'bearer',
