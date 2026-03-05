@@ -240,7 +240,7 @@ export class OAuthService {
         WHERE LOWER(cu.email) = LOWER($1)
         ORDER BY COALESCE(cu.is_phone_verified, false) DESC,
         CASE
-          WHEN UPPER(COALESCE(NULLIF(TRIM(cu.role), ''), '')) IN ('OWNER', 'ADMIN', 'ROLE_ADMIN') THEN 0
+          WHEN UPPER(COALESCE(NULLIF(TRIM(cu.role::text), ''), '')) IN ('OWNER', 'ADMIN', 'ROLE_ADMIN') THEN 0
           ELSE 1
         END,
         cu.updated_at DESC NULLS LAST
@@ -341,9 +341,9 @@ export class OAuthService {
       role: string | null;
     }>(
       `INSERT INTO company_users (
-         company_id, email, alias, role, is_phone_verified, created_at, last_login_at
+         company_id, email, alias, phone, role, is_phone_verified, created_at, last_login_at
        )
-       VALUES ($1, $2, $3, 'ADMIN'::user_role, false, timezone('utc', now()), timezone('utc', now()))
+       VALUES ($1, $2, $3, '', 'ADMIN'::user_role, false, timezone('utc', now()), timezone('utc', now()))
        RETURNING id, company_id, role`,
       [this.registrationCompanyId, email, alias],
     );

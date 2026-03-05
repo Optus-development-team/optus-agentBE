@@ -178,9 +178,9 @@ export class AuthService {
       id: string;
     }>(
       `insert into company_users (
-         company_id, email, alias, created_at, last_login_at, is_phone_verified, role
+         company_id, phone, email, alias, created_at, last_login_at, is_phone_verified, role
        )
-       values ($1, $2, $3, timezone('utc', now()), timezone('utc', now()), false, 'CLIENT')
+       values ($1, '', $2, $3, timezone('utc', now()), timezone('utc', now()), false, 'CLIENT')
        returning id`,
       [
         companyId,
