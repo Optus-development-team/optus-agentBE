@@ -207,7 +207,7 @@ export class OAuthService {
     );
 
     await this.supabase.query(
-      `INSERT INTO users_integrations (
+      `INSERT INTO user_integrations (
          user_id, provider, encrypted_credentials, metadata, is_active, created_at, updated_at
        )
        VALUES ($1, $2, $3::jsonb, $4::jsonb, true, timezone('utc', now()), timezone('utc', now()))

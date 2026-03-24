@@ -145,7 +145,7 @@ export class AuthService {
       is_phone_verified: boolean;
     }>(
       `select cu.id, cu.is_phone_verified
-         from users_integrations ui
+        from user_integrations ui
          inner join company_users cu on cu.id = ui.user_id
         where ui.provider = $1
           and coalesce(ui.metadata->>'oauth_sub', '') = $2
@@ -195,7 +195,7 @@ export class AuthService {
     }
 
     await this.supabase.query(
-      `insert into users_integrations (
+      `insert into user_integrations (
          user_id, provider, encrypted_credentials, metadata, is_active, created_at, updated_at
        )
        values ($1, $2, '{}'::jsonb, $3::jsonb, true, timezone('utc', now()), timezone('utc', now()))

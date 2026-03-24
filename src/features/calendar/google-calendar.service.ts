@@ -75,7 +75,7 @@ export class GoogleCalendarService {
       `
       INSERT INTO company_integrations (company_id, provider, encrypted_credentials, is_active)
       VALUES ($1, 'GOOGLE_CALENDAR', $2, true)
-      ON CONFLICT (company_id) WHERE provider = 'GOOGLE_CALENDAR' DO UPDATE
+      ON CONFLICT (company_id, provider) DO UPDATE
       SET encrypted_credentials = $2, is_active = true, updated_at = NOW()
       `,
       [context.companyId, JSON.stringify({ data: encryptedCredentials })],

@@ -131,10 +131,12 @@ export class CompanyService {
     await this.ensureCompanyExists(companyId);
 
     const rows = await this.supabase.query<{ product: CompanyProductRecord }>(
-      `select to_jsonb(p) as product
-         from products p
-        where p.company_id = $1
-        order by p.created_at desc`,
+      `select to_jsonb(ci) as product
+         from catalog_items ci
+        where ci.company_id = $1
+          and ci.item_type = 'product'
+          and ci.is_active = true
+        order by ci.created_at desc`,
       [companyId],
     );
 
