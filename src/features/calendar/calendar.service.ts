@@ -70,6 +70,7 @@ export class CalendarService {
         },
       },
     });
+    console.log('Evento creado en Google Calendar:', res.data);
 
     return {
       ...res.data,

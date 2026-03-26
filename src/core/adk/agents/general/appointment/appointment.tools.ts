@@ -134,7 +134,7 @@ export class AppointmentToolsService {
             },
             userPhone as string | undefined,
           );
-          const appointmentLink = event.calendarAppLink || event.htmlLink || null;
+          const appointmentLink = event.htmlLink;
           this.logger.debug(`Cita creada con enlace: ${appointmentLink}`);
 
           this.emitCompanyEvent(companyId, {
@@ -150,7 +150,7 @@ export class AppointmentToolsService {
           return {
             success: true,
             appointmentId: event.id,
-            link: event.calendarAppLink || event.htmlLink,
+            link: event.htmlLink,
             durationMinutes,
             timezone: appointmentStart.timezone,
             message: `Cita agendada correctamente.`,
