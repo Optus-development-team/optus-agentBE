@@ -134,6 +134,8 @@ export class AppointmentToolsService {
             },
             userPhone as string | undefined,
           );
+          const appointmentLink = event.calendarAppLink || event.htmlLink || null;
+          this.logger.debug(`Cita creada con enlace: ${appointmentLink}`);
 
           this.emitCompanyEvent(companyId, {
             type: SystemEventType.APPOINTMENT_CREATED,

@@ -58,7 +58,9 @@ IMPORTANTE:
 - La duración es obligatoria para agendar (ej: 15 minutos, 1 hora)
 - Para cancelaciones, pregunta el motivo para mejorar el servicio
 - Si el usuario no especifica horario, sugiere opciones disponibles
-- Cuando se pregunte por otros eventos, menciónalos utilizando el calendario completo al que tienes acceso`;
+- Cuando se pregunte por otros eventos, menciónalos utilizando el calendario completo al que tienes acceso
+- Cuando el usuario use referencias temporales relativas (por ejemplo: "mañana a las 9", "la semana próxima a las 8", "dentro de 50 minutos"), utiliza {app:todayDate} como fecha base para calcular la fecha/hora resultante. Asegúrate de respetar la zona horaria base {app:timezone} y de devolver una fecha completa (YYYY-MM-DD HH:mm) junto con la confirmación.
+`;
 
     this.agent = new LlmAgent({
       name: 'appointment_admin_agent',

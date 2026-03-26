@@ -12,11 +12,11 @@ export class SupabaseService implements OnModuleDestroy {
   private warnedAboutPool = false;
 
   constructor(private readonly configService: ConfigService) {
-    const resolved = this.resolveConnectionString();
+    const connectionUrl = this.resolveConnectionString();
 
-    if (!resolved) {
+    if (!connectionUrl) {
       this.logger.warn(
-        'No se encontró ninguna variable de conexión (SUPABASE_DB_URL, POSTGRES_PRISMA_URL, POSTGRES_URL o POSTGRES_URL_NON_POOLING). Operaciones multi-tenant deshabilitadas.',
+        'No se encontró SUPABASE_DB_URL. Operaciones multi-tenant deshabilitadas.',
       );
       return;
     }
@@ -25,7 +25,7 @@ export class SupabaseService implements OnModuleDestroy {
       this.configService.get<string>('SUPABASE_DB_POOL_SIZE', '5'),
     );
 
-    const connectionString = this.enforceConnectionParams(resolved.value);
+    const connectionString = this.enforceConnectionParams(connectionUrl);
 
     this.pool = new Pool({
       connectionString,
@@ -46,7 +46,7 @@ export class SupabaseService implements OnModuleDestroy {
     if (!this.pool) {
       if (!this.warnedAboutPool) {
         this.logger.warn(
-          'Pool de Supabase no inicializado, consultas serán omitidas hasta configurar alguna variable de conexión (SUPABASE_DB_URL o POSTGRES_*).',
+          'Pool de Supabase no inicializado, consultas serán omitidas hasta configurar SUPABASE_DB_URL.',
         );
         this.warnedAboutPool = true;
       }
@@ -69,29 +69,9 @@ export class SupabaseService implements OnModuleDestroy {
     await this.pool?.end();
   }
 
-  private resolveConnectionString():
-    | { value: string; key: string }
-    | undefined {
-    const candidates = [
-      'SUPABASE_DB_URL',
-      'POSTGRES_PRISMA_URL',
-      'POSTGRES_URL',
-      'POSTGRES_URL_NON_POOLING',
-    ];
-
-    for (const key of candidates) {
-      const value = this.configService.get<string>(key);
-      if (value) {
-        if (key === 'POSTGRES_URL_NON_POOLING') {
-          this.logger.warn(
-            'Usando POSTGRES_URL_NON_POOLING (puerto 5432). Considera cambiar a POSTGRES_PRISMA_URL/POSTGRES_URL para aprovechar el pool en 6543.',
-          );
-        }
-        return { value, key };
-      }
-    }
-
-    return undefined;
+  private resolveConnectionString(): string | undefined {
+    const value = this.configService.get<string>('SUPABASE_DB_URL');
+    return value?.trim() || undefined;
   }
 
   private enforceConnectionParams(rawUrl: string): string {
@@ -102,16 +82,6 @@ export class SupabaseService implements OnModuleDestroy {
         url.searchParams.delete('sslmode');
         this.logger.debug(
           'Eliminando sslmode de la cadena de conexión para evitar que pg sobrescriba la configuración TLS personalizada.',
-        );
-      }
-
-      if (!url.searchParams.has('pgbouncer')) {
-        url.searchParams.append('pgbouncer', 'true');
-      }
-
-      if (url.port === '5432') {
-        this.logger.warn(
-          'Conexión detectada en el puerto 5432 sin Supavisor. Cambia a 6543 para evitar agotar conexiones.',
         );
       }
 

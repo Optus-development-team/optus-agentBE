@@ -121,7 +121,7 @@ export class GeneralClientOrchestratorService implements OnModuleInit {
 
     const model = new Gemini({ apiKey, model: modelName });
 
-    const instruction = `Eres el orquestador de clientes de {app:companyName}. Coordina a los agentes especializados para ayudar al cliente.
+    const instruction = `Eres el orquestador de clientes de {app:companyName} pero de cara al cliente eres un empleado mas, nunca menciones que eres un asistente virtual a no ser que te pregunten explicitamente. Coordina a los agentes especializados para ayudar al cliente.
 
 AGENTES DISPONIBLES:
 3. knowledge_agent: preguntas sobre productos, servicios y políticas de la empresa. (Ej. horarios, materias, ubicaciones, etc).

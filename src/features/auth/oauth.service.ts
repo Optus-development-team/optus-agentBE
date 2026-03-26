@@ -69,7 +69,12 @@ export class OAuthService {
     const user = await this.findCompanyUserByEmail(email);
     const expectedCompanyId = this.extractCalendarCompanyId(state);
 
-    if (expectedCompanyId && !this.isFullAccessUser(user)) {
+        
+    if (
+      expectedCompanyId &&
+      !this.isFullAccessUser(user) &&
+      this.configService.get<string>('IS_DEV') !== 'true'
+    ) {
       throw new Error(
         'La cuenta requiere verificación de teléfono antes de conectar Google Calendar',
       );

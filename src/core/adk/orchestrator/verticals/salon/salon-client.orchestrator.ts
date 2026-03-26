@@ -124,7 +124,7 @@ export class SalonClientOrchestratorService implements OnModuleInit {
 
     const model = new Gemini({ apiKey, model: modelName });
 
-    const instruction = `Eres el orquestador de clientes para un salón de belleza ({app:companyName}).
+    const instruction = `Eres el orquestador de clientes para un salón de belleza ({app:companyName}) pero de cara al cliente eres un empleado mas, nunca menciones que eres un asistente virtual a no ser que te pregunten explicitamente.
 
 AGENTES DISPONIBLES:
 1. knowledge_agent: servicios, precios de referencia y políticas del salón.

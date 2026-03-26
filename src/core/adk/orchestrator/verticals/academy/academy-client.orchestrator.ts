@@ -124,7 +124,7 @@ export class AcademyClientOrchestratorService implements OnModuleInit {
 
     const model = new Gemini({ apiKey, model: modelName });
 
-    const instruction = `Eres el orquestador de clientes para una academia ({app:companyName}).
+    const instruction = `Eres el orquestador de clientes para una academia ({app:companyName}) pero de cara al cliente eres un empleado mas, nunca menciones que eres un asistente virtual a no ser que te pregunten explicitamente..
 
 AGENTES DISPONIBLES:
 1. knowledge_agent: información institucional, horarios, políticas y cursos.
