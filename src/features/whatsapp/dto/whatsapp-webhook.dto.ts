@@ -10,6 +10,174 @@ import {
   ValidateNested,
 } from 'class-validator';
 
+export class WhatsAppWebhook {
+  object: string;
+  entry: WhatsAppEntry;
+}
+
+export class WhatsAppEntry {
+  id: string;
+  changes: WhatsAppChange;
+}
+
+export class WhatsAppChange {
+  value: WhatsAppValue;
+  field: string;
+}
+
+export class WhatsAppValue {
+  messaging_product: string;
+  metadata: WhatsAppMetadata;
+  contacts?: WhatsAppContact;
+  messages?: WhatsAppIncomingMessage;
+  statuses?: WhatsAppStatus;
+}
+
+export class WhatsAppMetadata {
+  display_phone_number: string;
+  phone_number_id: string;
+}
+
+export class WhatsAppContact {
+  profile: {
+    name: string;
+  };
+  wa_id: string;
+  identity_key_hash?: string; // Solo si la verificación de cambio de identidad está habilitada
+}
+
+export class WhatsAppIncomingMessage {
+  from: string;
+  id: string;
+  timestamp: string;
+  group?: {
+    id: string;
+    subject?: string;
+  };
+  type:
+    | 'text'
+    | 'image'
+    | 'video'
+    | 'audio'
+    | 'document'
+    | 'location'
+    | 'contacts'
+    | 'interactive'
+    | 'button'
+    | 'sticker'
+    | 'reaction'
+    | 'order'
+    | 'system'
+    | 'unsupported';
+  text?: {
+    body: string;
+  };
+  image?: {
+    caption?: string;
+    mime_type: string;
+    sha256: string;
+    id: string;
+  };
+  video?: {
+    caption?: string;
+    mime_type: string;
+    sha256: string;
+    id: string;
+  };
+  audio?: {
+    mime_type: string;
+    sha256: string;
+    id: string;
+    voice: boolean;
+  };
+  document?: {
+    caption?: string;
+    filename: string;
+    mime_type: string;
+    sha256: string;
+    id: string;
+  };
+  location?: {
+    latitude: number;
+    longitude: number;
+    name?: string;
+    address?: string;
+  };
+  interactive?: {
+    type: string;
+    button_reply?: {
+      id: string;
+      title: string;
+    };
+    list_reply?: {
+      id: string;
+      title: string;
+      description?: string;
+    };
+  };
+  // Context - Solo presente si el mensaje se originó desde un botón "Message business"
+  // o si es una respuesta/reenvío
+  context?: {
+    from: string;
+    id: string;
+    referred_product?: {
+      catalog_id: string;
+      product_retailer_id: string;
+    };
+  };
+  // Referral - Solo presente si el mensaje proviene de un anuncio de clic a WhatsApp
+  referral?: {
+    source_url: string;
+    source_id: string;
+    source_type: 'ad' | 'post';
+    headline: string;
+    body: string;
+    media_type: 'image' | 'video';
+    image_url?: string;
+    video_url?: string;
+    thumbnail_url?: string;
+    ctwa_clid?: string; // Se omite para anuncios en el estado de WhatsApp
+    welcome_message?: {
+      text: string;
+    };
+  };
+  // Errors - Solo presente en mensajes de tipo "unsupported"
+  errors?: Array<{
+    code: number;
+    title: string;
+    message?: string;
+    error_data?: {
+      details: string;
+    };
+  }>;
+}
+
+export class WhatsAppStatus {
+  id: string;
+  status: 'sent' | 'delivered' | 'read' | 'failed';
+  timestamp: string;
+  recipient_id: string;
+  conversation?: {
+    id: string;
+    origin: {
+      type: string;
+    };
+  };
+  pricing?: {
+    billable: boolean;
+    pricing_model: string;
+    category: string;
+  };
+}
+
+
+
+
+
+
+
+
+
 export class WhatsAppMetadataDto {
   @ApiProperty({ example: '5215551234567' })
   @IsString()
@@ -200,7 +368,7 @@ export class WhatsAppReferralDto {
   @ApiProperty({ example: 'ad', enum: ['ad', 'post'] })
   @IsString()
   @IsIn(['ad', 'post'])
-  source_type!: string;
+  source_type!: 'ad' | 'post';
 
   @ApiProperty({ example: 'Summer Succulents are here!' })
   @IsString()
@@ -213,7 +381,7 @@ export class WhatsAppReferralDto {
   @ApiProperty({ example: 'image', enum: ['image', 'video'] })
   @IsString()
   @IsIn(['image', 'video'])
-  media_type!: string;
+  media_type!: 'image' | 'video';
 
   @ApiProperty({
     required: false,
@@ -260,7 +428,7 @@ export class WhatsAppErrorDataDto {
   details!: string;
 }
 
-export class WhatsAppMessageErrorDto {
+export class WhatsAppWebhookErrorDto {
   @ApiProperty({ example: 131051 })
   @IsNumber()
   code!: number;
@@ -330,7 +498,21 @@ export class WhatsAppIncomingMessageDto {
     'system',
     'unsupported',
   ])
-  type!: string;
+  type!:
+    | 'text'
+    | 'image'
+    | 'video'
+    | 'audio'
+    | 'document'
+    | 'location'
+    | 'contacts'
+    | 'interactive'
+    | 'button'
+    | 'sticker'
+    | 'reaction'
+    | 'order'
+    | 'system'
+    | 'unsupported';
 
   @ApiProperty({ required: false, type: WhatsAppTextDto })
   @IsOptional()
@@ -398,14 +580,14 @@ export class WhatsAppIncomingMessageDto {
 
   @ApiProperty({
     required: false,
-    type: [WhatsAppMessageErrorDto],
+    type: [WhatsAppWebhookErrorDto],
     description: 'Solo presente en mensajes de tipo "unsupported"',
   })
   @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })
-  @Type(() => WhatsAppMessageErrorDto)
-  errors?: WhatsAppMessageErrorDto[];
+  @Type(() => WhatsAppWebhookErrorDto)
+  errors?: WhatsAppWebhookErrorDto[];
 }
 
 export class WhatsAppStatusConversationOriginDto {
@@ -446,7 +628,7 @@ export class WhatsAppStatusDto {
 
   @ApiProperty({ example: 'delivered' })
   @IsString()
-  status!: string;
+  status!: 'sent' | 'delivered' | 'read' | 'failed';
 
   @ApiProperty({ example: '1691234567' })
   @IsString()
@@ -552,6 +734,6 @@ export const WhatsAppWebhookModels = [
   WhatsAppReferredProductDto,
   WhatsAppReferralDto,
   WhatsAppReferralWelcomeMessageDto,
-  WhatsAppMessageErrorDto,
+  WhatsAppWebhookErrorDto,
   WhatsAppErrorDataDto,
 ];

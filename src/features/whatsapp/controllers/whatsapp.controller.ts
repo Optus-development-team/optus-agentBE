@@ -17,7 +17,6 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { WhatsappService } from '../services/whatsapp.service';
-import type { WhatsAppMessage } from '../interfaces/whatsapp.interface';
 
 // eslint-disable-next-line @typescript-eslint/no-unsafe-call
 @ApiTags('WhatsApp Webhook')
@@ -62,8 +61,8 @@ export class WhatsappController {
   }
 
   /**
-   * POST /webhook - Recepción de mensajes de WhatsApp
-   * Este endpoint es llamado por WhatsApp cuando llega un mensaje
+   * POST /webhook - Recepción de webhooks de WhatsApp
+   * Este endpoint es llamado por WhatsApp para notificar de eventos entrantes (mensajes, cambios de estado, etc.)
    */
   @Post()
   @HttpCode(HttpStatus.OK)
@@ -76,10 +75,12 @@ export class WhatsappController {
     @Body() body: Record<string, unknown>,
   ): Promise<{ status: string }> {
     this.logger.log('Webhook recibido');
+    this.logger.log(body);
+
 
     try {
-      const normalizedBody = this.normalizeWebhookPayload(body);
-      await this.whatsappService.processIncomingMessage(normalizedBody);
+      await this.whatsappService.processIncomingWebhook(body);
+      
       return { status: 'success' };
     } catch (error) {
       const safeError = error as Error & { stack?: string };
@@ -91,7 +92,7 @@ export class WhatsappController {
     }
   }
 
-  private normalizeWebhookPayload(
+/*   private normalizeWebhookPayload(
     body: Record<string, unknown>,
   ): WhatsAppMessage {
     if ('object' in body && 'entry' in body) {
@@ -130,5 +131,5 @@ export class WhatsappController {
 
     this.logger.error('Formato de payload no reconocido');
     throw new BadRequestException('Formato de payload no válido');
-  }
+  } */
 }

@@ -1,4 +1,4 @@
-import type { WhatsAppIncomingMessage } from '../interfaces/whatsapp.interface';
+import type { WhatsAppIncomingMessage } from '../dto/whatsapp-webhook.dto';
 import type {
   AdkSessionSnapshot,
   Intent,

@@ -2,11 +2,11 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import {
-  WhatsAppMessage,
-  WhatsAppIncomingMessage,
-  WhatsAppStatus,
-  WhatsAppContact,
-} from '../interfaces/whatsapp.interface';
+  WhatsAppWebhookDto,
+  WhatsAppIncomingMessageDto,
+  WhatsAppStatusDto,
+  WhatsAppContactDto,
+} from '../dto/whatsapp-webhook.dto';
 import { AdkOrchestratorService } from '../../../core/adk/orchestrator/adk-orchestrator.service';
 import { WhatsAppMessagingService } from './whatsapp.messaging.service';
 import { WhatsAppResponseService } from './whatsapp-response.service';
@@ -18,6 +18,11 @@ import {
   SystemEventType,
   type SystemNotificationEvent,
 } from '../../../common/events/system-events.types';
+
+type WhatsAppWebhook = WhatsAppWebhookDto;
+type WhatsAppIncomingMessage = WhatsAppIncomingMessageDto;
+type WhatsAppStatus = WhatsAppStatusDto;
+type WhatsAppContact = WhatsAppContactDto;
 
 interface PendingConversation {
   canonicalSender: string;
@@ -82,87 +87,78 @@ export class WhatsappService {
   /**
    * Procesa los mensajes entrantes de WhatsApp
    */
-  async processIncomingMessage(body: WhatsAppMessage): Promise<void> {
+  async processIncomingWebhook(body: Record<string, unknown>): Promise<void> {
+    this.logger.log('Procesando webhook');
     try {
-      // Log del payload completo para debugging
-      //this.logger.debug('Payload recibido:', JSON.stringify(body, null, 2));
+      if (!('object' in body && 'entry' in body)) {
+        throw new Error('Formato de payload no válido');
+      }
+      const webhookData: WhatsAppWebhook = body as unknown as WhatsAppWebhook;
+      this.logger.debug('Webhook data:', JSON.stringify(webhookData, null, 2));
+      const entry = webhookData.entry[0];
+      const change = entry?.changes[0];
+      const value = change?.value;
+      const message = value?.messages?.[0];
 
-      // Verificar que el objeto sea de WhatsApp
-      if (body.object !== 'whatsapp_business_account') {
-        this.logger.warn('Objeto no es de WhatsApp Business Account');
+      if (message && value?.metadata?.phone_number_id) {
+        this.logger.log('Webhook de mensaje recibido');
+        const contactName = this.resolveContactName(value.contacts, message.from);
+        await this.processIncomingMessage(
+          message,
+          value.metadata.phone_number_id,
+          contactName,
+        );
+      }
+    } catch (error) {
+      this.logger.error('Error procesando webhook:', error);
+    }
+  }
+
+  
+  async processIncomingMessage(
+    message: WhatsAppIncomingMessage, 
+    phoneNumberId: string, 
+    contactName?: string): Promise<void> {
+    try {
+      const contactWaId = message.from;
+      const resolvedContactName = contactName ?? message.from;
+      const tenant: TenantContext | null = (await this.identity.resolveTenantByPhoneId(phoneNumberId)) ?? null;
+
+      if (!tenant) {
+        this.logger.warn(
+                `Tenant no resuelto para phone_number_id=${phoneNumberId}. Mensaje omitido.`,
+              );
         return;
       }
-
-      // Procesar cada entrada
-      for (const entry of body.entry) {
-        for (const change of entry.changes) {
-          const value = change.value;
-          const phoneNumberId =
-            value.metadata?.phone_number_id ?? this.defaultPhoneNumberId;
-
-          // Procesar mensajes
-          if (value.messages && value.messages.length > 0) {
-            for (const message of value.messages) {
-              const contactWaId = this.resolveContactWaId(
-                value.contacts,
-                message.from,
-              );
-              const contactName = this.resolveContactName(
-                value.contacts,
-                message.from,
-              );
-              const tenant =
-                (await this.identity.resolveTenantByPhoneId(phoneNumberId)) ??
-                null;
-
-              if (!tenant) {
-                this.logger.warn(
-                  `Tenant no resuelto para phone_number_id=${phoneNumberId}. Mensaje omitido.`,
-                );
-                continue;
-              }
-
-              const role = await this.identity.resolveRole(
-                tenant,
-                message.from,
-                contactWaId,
-              );
-
-              this.emitCompanyEvent(tenant.companyId, {
-                type: SystemEventType.WHATSAPP_WEBHOOK_RECEIVED,
-                payload: {
-                  whatsappMessageId: message.id,
-                  from: message.from,
-                  phoneNumberId,
-                  messageType: message.type,
-                },
-              });
-
-              await this.handleMessage(
-                message,
+      const role = await this.identity.resolveRole(
+              tenant,
+              message.from,
+              contactWaId,
+            );
+      /*this.emitCompanyEvent(tenant.companyId, {
+              type: SystemEventType.WHATSAPP_WEBHOOK_RECEIVED,
+              payload: {
+                whatsappMessageId: message.id,
+                from: message.from,
                 phoneNumberId,
-                tenant,
-                role,
-                contactWaId,
-                contactName,
-              );
-            }
-          }
-
-          // Procesar estados de mensajes (enviado, entregado, leído, etc.)
-          if (value.statuses && value.statuses.length > 0) {
-            for (const status of value.statuses) {
-              this.handleMessageStatus(status);
-            }
-          }
-        }
-      }
+                messageType: message.type,
+              },
+            }); */
+      await this.handleMessage(
+        message,
+        phoneNumberId,
+        tenant,
+        role,
+        contactWaId,
+        resolvedContactName,
+      );
+      //this.handleMessageStatus(status);
     } catch (error) {
       const safeError = error as Error & { response?: { data?: unknown } };
       const details = safeError.response?.data ?? safeError.message;
       this.logger.error('Error procesando mensaje entrante:', details);
       this.logger.error('Stack trace:', safeError.stack);
-      this.logger.error('Payload completo:', JSON.stringify(body, null, 2));
+      this.logger.error('Payload completo:', JSON.stringify(message, null, 2));
       throw safeError;
     }
   }
@@ -178,12 +174,12 @@ export class WhatsappService {
     contactWaId?: string,
     contactName?: string,
   ): Promise<void> {
-    if (this.isDuplicateMessage(message.id)) {
+/*     if (this.isDuplicateMessage(message.id)) {
       this.logger.warn(
         `Mensaje duplicado detectado (id=${message.id}). Se omite para evitar reprocesamiento.`,
       );
       return;
-    }
+    } */
 
     this.logger.log(`Mensaje recibido de: ${message.from}`);
     this.logger.log(`Tipo de mensaje: ${message.type}`);
