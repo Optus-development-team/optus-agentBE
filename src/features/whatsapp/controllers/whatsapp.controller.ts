@@ -18,7 +18,6 @@ import {
 } from '@nestjs/swagger';
 import { WhatsappService } from '../services/whatsapp.service';
 
-// eslint-disable-next-line @typescript-eslint/no-unsafe-call
 @ApiTags('WhatsApp Webhook')
 @Controller('webhooks/whatsapp')
 export class WhatsappController {
@@ -77,10 +76,9 @@ export class WhatsappController {
     this.logger.log('Webhook recibido');
     this.logger.log(body);
 
-
     try {
       await this.whatsappService.processIncomingWebhook(body);
-      
+
       return { status: 'success' };
     } catch (error) {
       const safeError = error as Error & { stack?: string };
@@ -92,7 +90,7 @@ export class WhatsappController {
     }
   }
 
-/*   private normalizeWebhookPayload(
+  /*   private normalizeWebhookPayload(
     body: Record<string, unknown>,
   ): WhatsAppMessage {
     if ('object' in body && 'entry' in body) {

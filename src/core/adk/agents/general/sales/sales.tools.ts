@@ -19,7 +19,7 @@ export class SalesToolsService {
     private readonly eventEmitter: EventEmitter2,
   ) {}
 
-/*   get searchProductsTool(): FunctionTool {
+  /*   get searchProductsTool(): FunctionTool {
     return new FunctionTool({
       name: 'search_products',
       description:
@@ -119,8 +119,8 @@ export class SalesToolsService {
         this.logger.debug(`Creando orden de pago: $${args.amount}`);
 
         const state = context?.state;
-        const companyId = state?.get('app:companyId') as string | undefined;
-        const senderPhone = state?.get('user:phone') as string | undefined;
+        const companyId = state?.get('app:companyId');
+        const senderPhone = state?.get('user:phone');
 
         this.emitToolTriggered(companyId, 'create_payment_order');
 
@@ -190,7 +190,7 @@ export class SalesToolsService {
         const state = context?.state;
         const orderId =
           args.orderId || (state?.get('temp:lastOrderId') as string);
-        const companyId = state?.get('app:companyId') as string | undefined;
+        const companyId = state?.get('app:companyId');
 
         this.emitToolTriggered(companyId, 'check_payment_status');
 
@@ -231,9 +231,7 @@ export class SalesToolsService {
           .describe('Forzar regeneración del QR'),
       }),
       execute: async (args, _context?: ToolContext) => {
-        const companyId = _context?.state?.get('app:companyId') as
-          | string
-          | undefined;
+        const companyId = _context?.state?.get('app:companyId');
         this.emitToolTriggered(companyId, 'generate_payment_qr');
 
         this.logger.debug(`Generando QR para orden: ${args.orderId}`);
@@ -263,8 +261,8 @@ export class SalesToolsService {
       }),
       execute: async (args, context?: ToolContext) => {
         const state = context?.state;
-        const userRole = state?.get('user:role') as string | undefined;
-        const companyId = state?.get('app:companyId') as string | undefined;
+        const userRole = state?.get('user:role');
+        const companyId = state?.get('app:companyId');
 
         this.emitToolTriggered(companyId, 'sync_inventory');
 

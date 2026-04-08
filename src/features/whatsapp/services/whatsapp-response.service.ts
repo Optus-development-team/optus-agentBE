@@ -94,7 +94,10 @@ export class WhatsAppResponseService {
     options: ResponseOptions = {},
   ): Promise<void> {
     try {
-      const stickerUrl = await this.stickers.getStickerUrl(options.companyId, event);
+      const stickerUrl = await this.stickers.getStickerUrl(
+        options.companyId,
+        event,
+      );
       await this.messaging.sendSticker(
         to,
         {
@@ -140,7 +143,10 @@ export class WhatsAppResponseService {
   private inferEventFromText(text: string): StickerEventKey | undefined {
     const normalized = text.toLowerCase();
 
-    if (/google|autenticaci[oó]n|login/.test(normalized) && /exitosa|completad|correct/.test(normalized)) {
+    if (
+      /google|autenticaci[oó]n|login/.test(normalized) &&
+      /exitosa|completad|correct/.test(normalized)
+    ) {
       return 'google_login_success';
     }
     if (/cita/.test(normalized) && /agendad/.test(normalized)) {
@@ -173,7 +179,10 @@ export class WhatsAppResponseService {
     if (/pago/.test(normalized) && /fallid|rechazad/.test(normalized)) {
       return 'payment_failed_or_rejected';
     }
-    if (/pago/.test(normalized) && /recibid|confirmad|acreditad/.test(normalized)) {
+    if (
+      /pago/.test(normalized) &&
+      /recibid|confirmad|acreditad/.test(normalized)
+    ) {
       return 'client_payment_received';
     }
     if (/reporte/.test(normalized) && /ia|generad/.test(normalized)) {

@@ -15,10 +15,7 @@ import { WhatsappMessagingModule } from '../whatsapp/whatsapp-messaging.module';
     WhatsappMessagingModule,
   ],
   controllers: [TransactionsController],
-  providers: [
-    PaymentIntegrationService,
-    PaymentWorkflowService,
-  ],
+  providers: [PaymentIntegrationService, PaymentWorkflowService],
   exports: [PaymentWorkflowService],
 })
 export class PaymentsModule {}

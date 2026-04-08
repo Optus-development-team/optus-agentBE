@@ -54,7 +54,6 @@ export const STICKER_EVENT_ENV_MAP: Record<StickerEventKey, string> = {
   ai_report_generated: 'WHATSAPP_STICKER_AI_REPORT_GENERATED',
   catalog_new_product_added: 'WHATSAPP_STICKER_CATALOG_NEW_PRODUCT_ADDED',
   user_action_cancelled: 'WHATSAPP_STICKER_USER_ACTION_CANCELLED',
-  error_or_unauthorized_action:
-    'WHATSAPP_STICKER_ERROR_OR_UNAUTHORIZED_ACTION',
+  error_or_unauthorized_action: 'WHATSAPP_STICKER_ERROR_OR_UNAUTHORIZED_ACTION',
   processing_ai_thinking: 'WHATSAPP_STICKER_PROCESSING_AI_THINKING',
 };

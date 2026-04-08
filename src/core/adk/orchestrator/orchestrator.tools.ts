@@ -31,9 +31,7 @@ export class OrchestratorToolsService {
           .describe('Nombre de WhatsApp si está disponible'),
       }),
       execute: async (args, context?: ToolContext) => {
-        const companyId = context?.state?.get('app:companyId') as
-          | string
-          | undefined;
+        const companyId = context?.state?.get('app:companyId');
 
         if (companyId) {
           const event: SystemNotificationEvent = {

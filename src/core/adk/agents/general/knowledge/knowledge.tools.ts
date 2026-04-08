@@ -14,7 +14,9 @@ const searchCompanyInformationSchema = z.object({
     .string()
     .trim()
     .min(1)
-    .describe('Consulta breve con palabras clave para buscar información pública de la empresa.'),
+    .describe(
+      'Consulta breve con palabras clave para buscar información pública de la empresa.',
+    ),
 });
 
 type SearchCompanyInformationArgs = z.infer<
@@ -34,29 +36,37 @@ export class KnowledgeBaseToolsService {
         'Busca información pública de la empresa (horarios, servicios y políticas) usando palabras clave concisas.',
       parameters: searchCompanyInformationSchema,
       execute: async (args, context?: ToolContext) => {
-        const parsedArgs = searchCompanyInformationSchema.parse(
-          args,
-        ) as SearchCompanyInformationArgs;
+        const parsedArgs = searchCompanyInformationSchema.parse(args);
 
         const companyId = context?.state?.get('app:companyId');
 
         if (!companyId || typeof companyId !== 'string') {
-          this.logger.warn('No se encontró app:companyId en el estado de sesión');
+          this.logger.warn(
+            'No se encontró app:companyId en el estado de sesión',
+          );
           return {
             success: false,
             message:
               'No fue posible identificar la empresa para consultar la base de conocimiento.',
-            results: [] as Array<{ entityName: string; data: Record<string, unknown> }>,
+            results: [] as Array<{
+              entityName: string;
+              data: Record<string, unknown>;
+            }>,
           };
         }
 
         if (!this.supabase.isEnabled()) {
-          this.logger.error('Supabase no está configurado para buscar conocimiento');
+          this.logger.error(
+            'Supabase no está configurado para buscar conocimiento',
+          );
           return {
             success: false,
             message:
               'La base de conocimiento no está disponible temporalmente. Intenta nuevamente más tarde.',
-            results: [] as Array<{ entityName: string; data: Record<string, unknown> }>,
+            results: [] as Array<{
+              entityName: string;
+              data: Record<string, unknown>;
+            }>,
           };
         }
 
@@ -72,7 +82,10 @@ export class KnowledgeBaseToolsService {
               success: true,
               message:
                 'No se encontró información pública relacionada en la base de datos.',
-              results: [] as Array<{ entityName: string; data: Record<string, unknown> }>,
+              results: [] as Array<{
+                entityName: string;
+                data: Record<string, unknown>;
+              }>,
             };
           }
 
@@ -95,7 +108,10 @@ export class KnowledgeBaseToolsService {
             success: false,
             message:
               'Falló la búsqueda de información pública de la empresa. Intenta nuevamente en unos momentos.',
-            results: [] as Array<{ entityName: string; data: Record<string, unknown> }>,
+            results: [] as Array<{
+              entityName: string;
+              data: Record<string, unknown>;
+            }>,
           };
         }
       },

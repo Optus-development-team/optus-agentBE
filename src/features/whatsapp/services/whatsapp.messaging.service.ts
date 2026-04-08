@@ -94,7 +94,11 @@ export class WhatsAppMessagingService {
       payload.context = { message_id: options.replyToMessageId };
     }
 
-    return this.sendMessage(payload, options?.phoneNumberId, options?.companyId);
+    return this.sendMessage(
+      payload,
+      options?.phoneNumberId,
+      options?.companyId,
+    );
   }
 
   // =========================================================================
@@ -121,7 +125,11 @@ export class WhatsAppMessagingService {
       payload.context = { message_id: options.replyToMessageId };
     }
 
-    return this.sendMessage(payload, options?.phoneNumberId, options?.companyId);
+    return this.sendMessage(
+      payload,
+      options?.phoneNumberId,
+      options?.companyId,
+    );
   }
 
   async sendVideo(
@@ -145,7 +153,11 @@ export class WhatsAppMessagingService {
       payload.context = { message_id: options.replyToMessageId };
     }
 
-    return this.sendMessage(payload, options?.phoneNumberId, options?.companyId);
+    return this.sendMessage(
+      payload,
+      options?.phoneNumberId,
+      options?.companyId,
+    );
   }
 
   async sendDocument(
@@ -170,7 +182,11 @@ export class WhatsAppMessagingService {
       payload.context = { message_id: options.replyToMessageId };
     }
 
-    return this.sendMessage(payload, options?.phoneNumberId, options?.companyId);
+    return this.sendMessage(
+      payload,
+      options?.phoneNumberId,
+      options?.companyId,
+    );
   }
 
   // =========================================================================
@@ -200,7 +216,11 @@ export class WhatsAppMessagingService {
       payload.context = { message_id: options.replyToMessageId };
     }
 
-    return this.sendMessage(payload, options?.phoneNumberId, options?.companyId);
+    return this.sendMessage(
+      payload,
+      options?.phoneNumberId,
+      options?.companyId,
+    );
   }
 
   // =========================================================================
@@ -229,7 +249,11 @@ export class WhatsAppMessagingService {
       payload.context = { message_id: options.replyToMessageId };
     }
 
-    return this.sendMessage(payload, options?.phoneNumberId, options?.companyId);
+    return this.sendMessage(
+      payload,
+      options?.phoneNumberId,
+      options?.companyId,
+    );
   }
 
   // =========================================================================
@@ -284,7 +308,11 @@ export class WhatsAppMessagingService {
       payload.context = { message_id: options.replyToMessageId };
     }
 
-    return this.sendMessage(payload, options?.phoneNumberId, options?.companyId);
+    return this.sendMessage(
+      payload,
+      options?.phoneNumberId,
+      options?.companyId,
+    );
   }
 
   async sendInteractiveButtons(
@@ -322,7 +350,11 @@ export class WhatsAppMessagingService {
       payload.context = { message_id: options.replyToMessageId };
     }
 
-    return this.sendMessage(payload, options?.phoneNumberId, options?.companyId);
+    return this.sendMessage(
+      payload,
+      options?.phoneNumberId,
+      options?.companyId,
+    );
   }
 
   async sendInteractiveList(
@@ -364,7 +396,11 @@ export class WhatsAppMessagingService {
       payload.context = { message_id: options.replyToMessageId };
     }
 
-    return this.sendMessage(payload, options?.phoneNumberId, options?.companyId);
+    return this.sendMessage(
+      payload,
+      options?.phoneNumberId,
+      options?.companyId,
+    );
   }
 
   async sendLocation(
@@ -384,7 +420,11 @@ export class WhatsAppMessagingService {
       payload.context = { message_id: options.replyToMessageId };
     }
 
-    return this.sendMessage(payload, options?.phoneNumberId, options?.companyId);
+    return this.sendMessage(
+      payload,
+      options?.phoneNumberId,
+      options?.companyId,
+    );
   }
 
   async sendReaction(
@@ -404,7 +444,11 @@ export class WhatsAppMessagingService {
       },
     };
 
-    return this.sendMessage(payload, options?.phoneNumberId, options?.companyId);
+    return this.sendMessage(
+      payload,
+      options?.phoneNumberId,
+      options?.companyId,
+    );
   }
 
   async sendPaymentRequest(

@@ -1,5 +1,3 @@
-
-
 export interface SendMessageDto {
   to: string;
   type: 'text' | 'template' | 'image' | 'video' | 'audio' | 'document';

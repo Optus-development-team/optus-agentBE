@@ -7,7 +7,7 @@ import {
   Post,
   UnauthorizedException,
 } from '@nestjs/common';
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+
 import {
   ApiBearerAuth,
   ApiOkResponse,
@@ -30,7 +30,9 @@ export class TransactionsController {
   ) {}
 
   @Post('notify-success')
-  @ApiOperation({ summary: 'Marca transaccion confirmada con referencia externa' })
+  @ApiOperation({
+    summary: 'Marca transaccion confirmada con referencia externa',
+  })
   @ApiOkResponse({ description: 'Registro actualizado o creado' })
   async notifySuccess(
     @Headers('authorization') authorization: string,

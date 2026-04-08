@@ -36,7 +36,10 @@ export class TimeService {
     return dayjs().tz(timezoneName);
   }
 
-  resolveDateBounds(dateInput: string, phoneNumber?: string): {
+  resolveDateBounds(
+    dateInput: string,
+    phoneNumber?: string,
+  ): {
     timezone: string;
     date: string;
     timeMinIso: string;
@@ -53,7 +56,11 @@ export class TimeService {
     };
   }
 
-  buildAppointmentStart(date: string, time: string, phoneNumber?: string): {
+  buildAppointmentStart(
+    date: string,
+    time: string,
+    phoneNumber?: string,
+  ): {
     timezone: string;
     startIso: string;
   } {

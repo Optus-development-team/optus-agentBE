@@ -28,8 +28,8 @@ export class ReportingToolsService {
       }),
       execute: async (args, context?: ToolContext) => {
         const state = context?.state;
-        const userRole = state?.get('user:role') as string | undefined;
-        const userPhone = state?.get('user:phone') as string | undefined;
+        const userRole = state?.get('user:role');
+        const userPhone = state?.get('user:phone');
 
         if (userRole !== 'ADMIN') {
           return {
@@ -90,7 +90,7 @@ export class ReportingToolsService {
       }),
       execute: async (args, context?: ToolContext) => {
         const state = context?.state;
-        const userRole = state?.get('user:role') as string | undefined;
+        const userRole = state?.get('user:role');
 
         if (userRole !== 'ADMIN') {
           return {
@@ -141,7 +141,7 @@ export class ReportingToolsService {
       }),
       execute: async (args, context?: ToolContext) => {
         const state = context?.state;
-        const userRole = state?.get('user:role') as string | undefined;
+        const userRole = state?.get('user:role');
 
         if (userRole !== 'ADMIN') {
           return {
@@ -202,7 +202,7 @@ export class ReportingToolsService {
       }),
       execute: async (args, context?: ToolContext) => {
         const state = context?.state;
-        const userRole = state?.get('user:role') as string | undefined;
+        const userRole = state?.get('user:role');
 
         if (userRole !== 'ADMIN') {
           return {
@@ -244,7 +244,7 @@ export class ReportingToolsService {
       }),
       execute: async (args, context?: ToolContext) => {
         const state = context?.state;
-        const userRole = state?.get('user:role') as string | undefined;
+        const userRole = state?.get('user:role');
 
         if (userRole !== 'ADMIN') {
           return {

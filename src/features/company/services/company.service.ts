@@ -126,7 +126,9 @@ export class CompanyService {
     }));
   }
 
-  async listCompanyProducts(companyId: string): Promise<CompanyProductRecord[]> {
+  async listCompanyProducts(
+    companyId: string,
+  ): Promise<CompanyProductRecord[]> {
     this.ensureSupabaseReady();
     await this.ensureCompanyExists(companyId);
 

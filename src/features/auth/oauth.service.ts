@@ -69,7 +69,6 @@ export class OAuthService {
     const user = await this.findCompanyUserByEmail(email);
     const expectedCompanyId = this.extractCalendarCompanyId(state);
 
-        
     if (
       expectedCompanyId &&
       !this.isFullAccessUser(user) &&

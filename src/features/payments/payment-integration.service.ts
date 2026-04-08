@@ -56,7 +56,7 @@ export class PaymentIntegrationService {
         }),
       );
 
-      const data = response.data as any;
+      const data = response.data;
       const jobId = data?.jobId ?? data?.job_id ?? data?.jobID;
       const accepts = data?.accepts ?? data?.payments ?? [];
       const qrBase64 =
@@ -122,7 +122,7 @@ export class PaymentIntegrationService {
         }),
       );
 
-      const data = response.data as any;
+      const data = response.data;
       const success =
         response.status === 200 &&
         Boolean(data?.success ?? data?.verified ?? true);
@@ -157,7 +157,7 @@ export class PaymentIntegrationService {
         }),
       );
 
-      const data = response.data as any;
+      const data = response.data;
       const success = response.status === 200 && Boolean(data?.success ?? true);
       const txHash = data?.tx_hash ?? data?.transaction;
       return { success, txHash, raw: data };

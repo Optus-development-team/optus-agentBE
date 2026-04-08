@@ -40,7 +40,10 @@ export class WhatsappService {
   // Cache in-memory para evitar reprocesar mensajes cuando Meta reintenta el webhook.
   private readonly processedMessageCache = new Map<string, number>();
   private readonly processedMessageTtlMs = 10 * 60 * 1000; // 10 minutos
-  private readonly pendingConversations = new Map<string, PendingConversation>();
+  private readonly pendingConversations = new Map<
+    string,
+    PendingConversation
+  >();
 
   constructor(
     private readonly configService: ConfigService,
@@ -94,43 +97,43 @@ export class WhatsappService {
       //this.logger.log('Messages:', JSON.stringify(webhookData.entry.changes.value.messages ?? null, null, 2));
       if (webhookData.entry[0].changes[0].value.messages) {
         this.logger.log('Webhook de mensaje recibido');
-        this.processIncomingMessage(
-          webhookData.entry[0].changes[0].value.messages[0], 
+        await this.processIncomingMessage(
+          webhookData.entry[0].changes[0].value.messages[0],
           webhookData.entry[0].changes[0].value.metadata.phone_number_id,
-          webhookData.entry[0].changes[0].value.messages[0].from
-          );
-      } 
+          webhookData.entry[0].changes[0].value.messages[0].from,
+        );
+      }
     } catch (error) {
       this.logger.error('Error procesando webhook:', error);
     }
   }
 
-  
   async processIncomingMessage(
-    message: WhatsAppIncomingMessage, 
-    phoneNumberId: string, 
-    contactName: string): Promise<void> {
+    message: WhatsAppIncomingMessage,
+    phoneNumberId: string,
+    contactName: string,
+  ): Promise<void> {
     try {
-
       // Log del payload completo para debugging
       //this.logger.debug('Payload recibido:', JSON.stringify(message, null, 2));
 
       // Extraer datos
       const contactWaId: string = message.from;
       const contactName: string = message.from;
-      const tenant: TenantContext | null = (await this.identity.resolveTenantByPhoneId(phoneNumberId)) ?? null;
+      const tenant: TenantContext | null =
+        (await this.identity.resolveTenantByPhoneId(phoneNumberId)) ?? null;
 
       if (!tenant) {
         this.logger.warn(
-                `Tenant no resuelto para phone_number_id=${phoneNumberId}. Mensaje omitido.`,
-              );
+          `Tenant no resuelto para phone_number_id=${phoneNumberId}. Mensaje omitido.`,
+        );
         return;
       }
       const role = await this.identity.resolveRole(
-              tenant,
-              message.from,
-              contactWaId,
-            );
+        tenant,
+        message.from,
+        contactWaId,
+      );
       /*this.emitCompanyEvent(tenant.companyId, {
               type: SystemEventType.WHATSAPP_WEBHOOK_RECEIVED,
               payload: {
@@ -170,7 +173,7 @@ export class WhatsappService {
     contactWaId?: string,
     contactName?: string,
   ): Promise<void> {
-/*     if (this.isDuplicateMessage(message.id)) {
+    /*     if (this.isDuplicateMessage(message.id)) {
       this.logger.warn(
         `Mensaje duplicado detectado (id=${message.id}). Se omite para evitar reprocesamiento.`,
       );
@@ -548,14 +551,16 @@ export class WhatsappService {
       }
 
       const listSelection =
-        message.interactive.list_reply?.id ?? message.interactive.list_reply?.title;
+        message.interactive.list_reply?.id ??
+        message.interactive.list_reply?.title;
       if (listSelection?.trim()) {
         return listSelection.trim();
       }
     }
 
     if (message.type === 'button') {
-      const buttonText = (message as { button?: { text?: string } }).button?.text;
+      const buttonText = (message as { button?: { text?: string } }).button
+        ?.text;
       if (buttonText?.trim()) {
         return buttonText.trim();
       }

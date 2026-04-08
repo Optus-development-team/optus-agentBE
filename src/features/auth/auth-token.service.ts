@@ -33,7 +33,8 @@ export class AuthTokenService {
       role: user.role,
       email: user.email,
       authState: this.resolveAuthState(user.authState),
-      phoneVerified: user.phoneVerified ?? user.authState !== 'PENDING_WHATSAPP',
+      phoneVerified:
+        user.phoneVerified ?? user.authState !== 'PENDING_WHATSAPP',
       issuedAt,
       expiresAt,
     };

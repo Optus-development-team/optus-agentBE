@@ -182,11 +182,7 @@ export class AuthService {
        )
        values ($1, '', $2, $3, timezone('utc', now()), timezone('utc', now()), false, 'CLIENT')
        returning id`,
-      [
-        companyId,
-        params.email ?? null,
-        params.alias ?? null,
-      ],
+      [companyId, params.email ?? null, params.alias ?? null],
     );
 
     const created = rows[0];

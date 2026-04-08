@@ -8,7 +8,15 @@ import { WhatsAppResponseService } from './services/whatsapp-response.service';
 
 @Module({
   imports: [ConfigModule, HttpModule, InfrastructureModule],
-  providers: [WhatsAppMessagingService, CompanyStickerService, WhatsAppResponseService],
-  exports: [WhatsAppMessagingService, CompanyStickerService, WhatsAppResponseService],
+  providers: [
+    WhatsAppMessagingService,
+    CompanyStickerService,
+    WhatsAppResponseService,
+  ],
+  exports: [
+    WhatsAppMessagingService,
+    CompanyStickerService,
+    WhatsAppResponseService,
+  ],
 })
 export class WhatsappMessagingModule {}
