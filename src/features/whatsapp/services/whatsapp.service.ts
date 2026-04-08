@@ -2,10 +2,10 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import {
-  WhatsAppWebhookDto,
-  WhatsAppIncomingMessageDto,
-  WhatsAppStatusDto,
-  WhatsAppContactDto,
+  WhatsAppWebhook,
+  WhatsAppIncomingMessage,
+  WhatsAppStatus,
+  WhatsAppContact,
 } from '../dto/whatsapp-webhook.dto';
 import { AdkOrchestratorService } from '../../../core/adk/orchestrator/adk-orchestrator.service';
 import { WhatsAppMessagingService } from './whatsapp.messaging.service';
@@ -18,11 +18,7 @@ import {
   SystemEventType,
   type SystemNotificationEvent,
 } from '../../../common/events/system-events.types';
-
-type WhatsAppWebhook = WhatsAppWebhookDto;
-type WhatsAppIncomingMessage = WhatsAppIncomingMessageDto;
-type WhatsAppStatus = WhatsAppStatusDto;
-type WhatsAppContact = WhatsAppContactDto;
+import { error } from 'console';
 
 interface PendingConversation {
   canonicalSender: string;
@@ -95,20 +91,15 @@ export class WhatsappService {
       }
       const webhookData: WhatsAppWebhook = body as unknown as WhatsAppWebhook;
       this.logger.debug('Webhook data:', JSON.stringify(webhookData, null, 2));
-      const entry = webhookData.entry[0];
-      const change = entry?.changes[0];
-      const value = change?.value;
-      const message = value?.messages?.[0];
-
-      if (message && value?.metadata?.phone_number_id) {
+      //this.logger.log('Messages:', JSON.stringify(webhookData.entry.changes.value.messages ?? null, null, 2));
+      if (webhookData.entry[0].changes[0].value.messages) {
         this.logger.log('Webhook de mensaje recibido');
-        const contactName = this.resolveContactName(value.contacts, message.from);
-        await this.processIncomingMessage(
-          message,
-          value.metadata.phone_number_id,
-          contactName,
-        );
-      }
+        this.processIncomingMessage(
+          webhookData.entry[0].changes[0].value.messages[0], 
+          webhookData.entry[0].changes[0].value.metadata.phone_number_id,
+          webhookData.entry[0].changes[0].value.messages[0].from
+          );
+      } 
     } catch (error) {
       this.logger.error('Error procesando webhook:', error);
     }
@@ -118,10 +109,15 @@ export class WhatsappService {
   async processIncomingMessage(
     message: WhatsAppIncomingMessage, 
     phoneNumberId: string, 
-    contactName?: string): Promise<void> {
+    contactName: string): Promise<void> {
     try {
-      const contactWaId = message.from;
-      const resolvedContactName = contactName ?? message.from;
+
+      // Log del payload completo para debugging
+      //this.logger.debug('Payload recibido:', JSON.stringify(message, null, 2));
+
+      // Extraer datos
+      const contactWaId: string = message.from;
+      const contactName: string = message.from;
       const tenant: TenantContext | null = (await this.identity.resolveTenantByPhoneId(phoneNumberId)) ?? null;
 
       if (!tenant) {
@@ -150,7 +146,7 @@ export class WhatsappService {
         tenant,
         role,
         contactWaId,
-        resolvedContactName,
+        contactName,
       );
       //this.handleMessageStatus(status);
     } catch (error) {
