@@ -16,7 +16,7 @@ export class WhatsAppChange {
 export class WhatsAppValue {
   messaging_product: string;
   metadata: WhatsAppMetadata;
-  contacts?: WhatsAppContact[];
+  contacts: WhatsAppContact[];
   messages?: WhatsAppIncomingMessage[];
   statuses?: WhatsAppStatus[];
 }

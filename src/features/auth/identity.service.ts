@@ -7,21 +7,6 @@ import { UserRole } from '../whatsapp/types/whatsapp.types';
 
 type NullableString = string | null | undefined;
 
-interface CompanyRow {
-  id: string;
-  name: string;
-  vertical: string | null;
-  config: unknown;
-  whatsapp_admin_phone_ids?: string[] | null;
-  whatsapp_display_phone_number?: NullableString;
-  whatsapp_phone_id?: NullableString;
-}
-
-interface CompanyUserRow {
-  role?: NullableString;
-  phone: string;
-}
-
 @Injectable()
 export class IdentityService {
   private readonly logger = new Logger(IdentityService.name);

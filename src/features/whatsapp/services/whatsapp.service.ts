@@ -100,7 +100,7 @@ export class WhatsappService {
         await this.processIncomingMessage(
           webhookData.entry[0].changes[0].value.messages[0],
           webhookData.entry[0].changes[0].value.metadata.phone_number_id,
-          webhookData.entry[0].changes[0].value.messages[0].from,
+          webhookData.entry[0].changes[0].value.contacts[0].profile.name,
         );
       }
     } catch (error) {
@@ -111,7 +111,7 @@ export class WhatsappService {
   async processIncomingMessage(
     message: WhatsAppIncomingMessage,
     phoneNumberId: string,
-    contactName: string,
+    contactProfileName: string,
   ): Promise<void> {
     try {
       // Log del payload completo para debugging
@@ -119,7 +119,7 @@ export class WhatsappService {
 
       // Extraer datos
       const contactWaId: string = message.from;
-      const contactName: string = message.from;
+      const contactName: string = contactProfileName;
       const tenant: TenantContext | null =
         (await this.identity.resolveTenantByPhoneId(phoneNumberId)) ?? null;
 
