@@ -1,8 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import type { RouterMessageContext } from '../../../features/whatsapp/types/whatsapp.types';
-import type { CompanyVertical } from '../../../features/whatsapp/types/whatsapp.types';
-import { UserRole } from '../../../features/whatsapp/types/whatsapp.types';
+import type { RouterMessageContext } from '../../../features/messaging/features/whatsapp/types/whatsapp.types';
+import type { CompanyVertical } from '../../../features/messaging/features/whatsapp/types/whatsapp.types';
+import { UserRole } from '../../../features/messaging/features/whatsapp/types/whatsapp.types';
 import type { OrchestrationResult } from './orchestrator.types';
 import { GeneralClientOrchestratorService } from './verticals/general/general-client.orchestrator';
 import { GeneralAdminOrchestratorService } from './verticals/general/general-admin.orchestrator';

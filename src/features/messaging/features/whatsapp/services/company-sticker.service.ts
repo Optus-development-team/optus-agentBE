@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { SupabaseService } from '../../../common/intraestructure/supabase/supabase.service';
+import { SupabaseService } from '../../../../../common/intraestructure/supabase/supabase.service';
 import {
   StickerEventKey,
   STICKER_EVENT_ENV_MAP,

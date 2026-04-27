@@ -7,17 +7,17 @@ import {
   WhatsAppStatus,
   WhatsAppContact,
 } from '../dto/whatsapp-webhook.dto';
-import { AdkOrchestratorService } from '../../../core/adk/orchestrator/adk-orchestrator.service';
+import { AdkOrchestratorService } from '../../../../../core/adk/orchestrator/adk-orchestrator.service';
 import { WhatsAppMessagingService } from './whatsapp.messaging.service';
 import { WhatsAppResponseService } from './whatsapp-response.service';
-import { VerificationService } from '../../login/verification.service';
-import { IdentityService } from '../../auth/identity.service';
+import { VerificationService } from '../../../../login/verification.service';
+import { IdentityService } from '../../../../auth/identity.service';
 import { TenantContext, UserRole } from '../types/whatsapp.types';
 import {
   SYSTEM_EVENT_CHANNEL,
   SystemEventType,
   type SystemNotificationEvent,
-} from '../../../common/events/system-events.types';
+} from '../../../../../common/events/system-events.types';
 import { error } from 'console';
 
 interface PendingConversation {

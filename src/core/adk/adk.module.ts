@@ -5,7 +5,7 @@ import { LoginModule } from '../../features/login/login.module';
 import { CompanyModule } from '../../features/company/company.module';
 import { PaymentsModule } from '../../features/payments/payments.module';
 import { CalendarModule } from '../../features/calendar/calendar.module';
-import { WhatsappMessagingModule } from '../../features/whatsapp/whatsapp-messaging.module';
+import { WhatsappMessagingModule } from '../../features/messaging/features/whatsapp/whatsapp-messaging.module';
 import { AdkOrchestratorService } from './orchestrator/adk-orchestrator.service';
 import { OrchestratorToolsService } from './orchestrator/orchestrator.tools';
 import { GeneralClientOrchestratorService } from './orchestrator/verticals/general/general-client.orchestrator';

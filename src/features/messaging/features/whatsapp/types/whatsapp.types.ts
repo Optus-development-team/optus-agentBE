@@ -3,7 +3,7 @@ import type {
   AdkSessionSnapshot,
   Intent,
   SanitizedTextResult,
-} from '../../../core/adk/session/types/adk-session.types';
+} from '../../../../../core/adk/session/types/adk-session.types';
 
 export enum UserRole {
   ADMIN = 'ADMIN',

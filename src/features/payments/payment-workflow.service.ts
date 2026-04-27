@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PaymentIntegrationService } from './payment-integration.service';
-import { WhatsAppResponseService } from '../whatsapp/services/whatsapp-response.service';
+import { WhatsAppResponseService } from '../messaging/features/whatsapp/services/whatsapp-response.service';
 
 @Injectable()
 export class PaymentWorkflowService {

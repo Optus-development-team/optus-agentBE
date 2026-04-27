@@ -9,7 +9,7 @@ import { AuthModule } from './features/auth/auth.module';
 import { CompanyModule } from './features/company/company.module';
 import { LoginModule } from './features/login/login.module';
 import { PaymentsModule } from './features/payments/payments.module';
-import { WhatsappModule } from './features/whatsapp/whatsapp.module';
+import { WhatsappModule } from './features/messaging/features/whatsapp/whatsapp.module';
 import { WebhooksModule } from './features/webhooks/webhooks.module';
 import { AdkModule } from './core/adk/adk.module';
 import { NotificationsModule } from './features/notifications/notifications.module';

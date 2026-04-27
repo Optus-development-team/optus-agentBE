@@ -8,7 +8,7 @@ import {
   SYSTEM_EVENT_CHANNEL,
   SystemEventType,
   type SystemNotificationEvent,
-} from '../../../common/events/system-events.types';
+} from '../../../../../common/events/system-events.types';
 import {
   WhatsAppMessageResponse,
   WhatsAppTemplateComponent,

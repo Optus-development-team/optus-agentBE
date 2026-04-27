@@ -7,8 +7,8 @@ import {
   isFinalResponse,
   stringifyContent,
 } from '@google/adk';
-import type { RouterMessageContext } from '../../../../../features/whatsapp/types/whatsapp.types';
-import { UserRole } from '../../../../../features/whatsapp/types/whatsapp.types';
+import type { RouterMessageContext } from '../../../../../features/messaging/features/whatsapp/types/whatsapp.types';
+import { UserRole } from '../../../../../features/messaging/features/whatsapp/types/whatsapp.types';
 import type { OrchestrationResult } from '../../orchestrator.types';
 import { SupabaseSessionService } from '../../../session/supabase-session.service';
 import { OrchestratorToolsService } from '../../orchestrator.tools';
@@ -18,7 +18,7 @@ import { ReestockAgent } from '../../../agents/general/reestock/reestock.agent';
 import { KnowledgeAgent } from '../../../agents/general/knowledge/knowledge.agent';
 
 import { OAuthService } from '../../../../../features/auth/oauth.service';
-import { WhatsAppResponseService } from '../../../../../features/whatsapp/services/whatsapp-response.service';
+import { WhatsAppResponseService } from '../../../../../features/messaging/features/whatsapp/services/whatsapp-response.service';
 import { TimeService } from '../../../../../common/time/time.service';
 
 @Injectable()

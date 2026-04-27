@@ -1,9 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { SupabaseService } from '../../common/intraestructure/supabase/supabase.service';
-import type { TenantContext } from '../whatsapp/types/whatsapp.types';
-import type { CompanyVertical } from '../whatsapp/types/whatsapp.types';
-import { UserRole } from '../whatsapp/types/whatsapp.types';
+import type { TenantContext } from '../messaging/features/whatsapp/types/whatsapp.types';
+import type { CompanyVertical } from '../messaging/features/whatsapp/types/whatsapp.types';
+import { UserRole } from '../messaging/features/whatsapp/types/whatsapp.types';
 
 type NullableString = string | null | undefined;
 

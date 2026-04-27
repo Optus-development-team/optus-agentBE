@@ -5,7 +5,7 @@ import { PaymentIntegrationService } from './payment-integration.service';
 import { PaymentWorkflowService } from './payment-workflow.service';
 import { InfrastructureModule } from '../../common/intraestructure/infrastructure.module';
 import { SecurityModule } from '../../common/security/security.module';
-import { WhatsappMessagingModule } from '../whatsapp/whatsapp-messaging.module';
+import { WhatsappMessagingModule } from '../messaging/features/whatsapp/whatsapp-messaging.module';
 
 @Module({
   imports: [

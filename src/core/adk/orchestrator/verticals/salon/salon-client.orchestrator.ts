@@ -7,8 +7,8 @@ import {
   isFinalResponse,
   stringifyContent,
 } from '@google/adk';
-import type { RouterMessageContext } from '../../../../../features/whatsapp/types/whatsapp.types';
-import { UserRole } from '../../../../../features/whatsapp/types/whatsapp.types';
+import type { RouterMessageContext } from '../../../../../features/messaging/features/whatsapp/types/whatsapp.types';
+import { UserRole } from '../../../../../features/messaging/features/whatsapp/types/whatsapp.types';
 import type { OrchestrationResult } from '../../orchestrator.types';
 import { SupabaseSessionService } from '../../../session/supabase-session.service';
 import { OrchestratorToolsService } from '../../orchestrator.tools';

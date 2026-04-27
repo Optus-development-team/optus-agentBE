@@ -19,6 +19,7 @@ export class WhatsAppResponseService {
     private readonly stickers: CompanyStickerService,
   ) {}
 
+  // marked for deletion
   async sendSmartText(
     to: string,
     text: string,
@@ -61,7 +62,7 @@ export class WhatsAppResponseService {
       await this.sendStickerForEvent(to, event, options);
     }
   }
-
+  // marked for deletion
   async sendCtaLink(
     to: string,
     params: {
@@ -87,7 +88,7 @@ export class WhatsAppResponseService {
       },
     );
   }
-
+  // marked for deletion
   async sendStickerForEvent(
     to: string,
     event: StickerEventKey,
@@ -115,7 +116,7 @@ export class WhatsAppResponseService {
       );
     }
   }
-
+  // marked for deletion
   private isConfirmationPrompt(text: string): boolean {
     const normalized = text.toLowerCase();
     return (
@@ -123,7 +124,7 @@ export class WhatsAppResponseService {
       /confirm(ar|as|a)|rechaz(ar|as|a)|aprobar|declinar/.test(normalized)
     );
   }
-
+  // marked for deletion
   private buildConfirmationButtons(text: string): WhatsAppInteractiveButton[] {
     const normalized = text.toLowerCase();
 
