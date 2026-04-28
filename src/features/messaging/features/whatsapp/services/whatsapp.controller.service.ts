@@ -9,25 +9,20 @@ import {
 } from '../dto/whatsapp-webhook.dto';
 import { AdkOrchestratorService } from '../../../../../core/adk/orchestrator/adk-orchestrator.service';
 import { WhatsAppMessagingService } from './whatsapp.messaging.service';
-import { WhatsAppResponseService } from './whatsapp-response.service';
 import { VerificationService } from '../../../../login/verification.service';
 import { IdentityService } from '../../../../auth/identity.service';
 import { TenantContext, UserRole } from '../types/whatsapp.types';
+import { WhatsAppInboundMessage } from '../classes/whatsapp-inbound.message';
 import {
   SYSTEM_EVENT_CHANNEL,
   SystemEventType,
   type SystemNotificationEvent,
 } from '../../../../../common/events/system-events.types';
-import { error } from 'console';
 
-interface PendingConversation {
-  canonicalSender: string;
-  contactName?: string;
-  phoneNumberId: string;
-  tenant: TenantContext;
-  role: UserRole;
-  lastMessage: WhatsAppIncomingMessage;
-  fragments: string[];
+import { WhatsAppMessageBurst } from '../classes/whatsapp-message-burst';
+
+interface PendingBurst {
+  burst: WhatsAppMessageBurst;
   timeout: NodeJS.Timeout;
 }
 
@@ -40,16 +35,15 @@ export class WhatsappService {
   // Cache in-memory para evitar reprocesar mensajes cuando Meta reintenta el webhook.
   private readonly processedMessageCache = new Map<string, number>();
   private readonly processedMessageTtlMs = 10 * 60 * 1000; // 10 minutos
-  private readonly pendingConversations = new Map<
+  private readonly pendingBursts = new Map<
     string,
-    PendingConversation
+    PendingBurst
   >();
 
   constructor(
     private readonly configService: ConfigService,
     private readonly adkOrchestrator: AdkOrchestratorService,
     private readonly messagingService: WhatsAppMessagingService,
-    private readonly responseService: WhatsAppResponseService,
     private readonly verification: VerificationService,
     private readonly identity: IdentityService,
     private readonly eventEmitter: EventEmitter2,
@@ -134,23 +128,21 @@ export class WhatsappService {
         message.from,
         contactWaId,
       );
-      /*this.emitCompanyEvent(tenant.companyId, {
-              type: SystemEventType.WHATSAPP_WEBHOOK_RECEIVED,
-              payload: {
-                whatsappMessageId: message.id,
-                from: message.from,
-                phoneNumberId,
-                messageType: message.type,
-              },
-            }); */
-      await this.handleMessage(
+
+      const inboundMsg = new WhatsAppInboundMessage(
         message,
         phoneNumberId,
+        contactName,
         tenant,
         role,
-        contactWaId,
-        contactName,
+        this.messagingService,
       );
+
+      /*this.emitCompanyEvent(tenant.companyId, {
+              ...
+            }); */
+            
+      await this.handleMessage(inboundMsg);
       //this.handleMessageStatus(status);
     } catch (error) {
       const safeError = error as Error & { response?: { data?: unknown } };
@@ -166,23 +158,19 @@ export class WhatsappService {
    * Maneja un mensaje individual
    */
   private async handleMessage(
-    message: WhatsAppIncomingMessage,
-    phoneNumberId: string,
-    tenant: TenantContext,
-    role: UserRole,
-    contactWaId?: string,
-    contactName?: string,
+    inboundMsg: WhatsAppInboundMessage,
   ): Promise<void> {
-    /*     if (this.isDuplicateMessage(message.id)) {
+    /*     if (this.isDuplicateMessage(inboundMsg.id)) {
       this.logger.warn(
-        `Mensaje duplicado detectado (id=${message.id}). Se omite para evitar reprocesamiento.`,
+        `Mensaje duplicado detectado (id=${inboundMsg.id}). Se omite para evitar reprocesamiento.`,
       );
       return;
     } */
 
-    this.logger.log(`Mensaje recibido de: ${message.from}`);
-    this.logger.log(`Tipo de mensaje: ${message.type}`);
+    this.logger.log(`Mensaje recibido de: ${inboundMsg.senderId}`);
+    this.logger.log(`Tipo de mensaje: ${inboundMsg.type}`);
 
+/*     const message = inboundMsg.rawPayload;
     // Log de información adicional si está disponible
     if (message.context) {
       this.logger.log(
@@ -204,53 +192,41 @@ export class WhatsappService {
       if (message.referral.ctwa_clid) {
         this.logger.log(`CTWA Click ID: ${message.referral.ctwa_clid}`);
       }
-    }
+    } */
 
-    // Marcar el mensaje como leído apenas llega.
-    await this.messagingService.markAsRead(message.id, {
-      phoneNumberId,
-      showTypingIndicator: false,
-      companyId: tenant.companyId,
-    });
+    // Marcar el mensaje como leído apenas llega usando el adaptador de estado del Inbound Message
+    await inboundMsg.changeStatus('read');
 
-    const conversationalText = this.extractConversationText(message);
-    if (conversationalText) {
-      await this.bufferConversationMessage({
-        message,
-        messageText: conversationalText,
-        phoneNumberId,
-        tenant,
-        role,
-        canonicalSender: contactWaId ?? message.from,
-        contactName,
-      });
+    // La clase inbound ya resolvió el texto por nosotros durante su instanciación
+    if (inboundMsg.text) {
+      await this.bufferConversationMessage(inboundMsg);
       return;
     }
 
-    switch (message.type) {
+    switch (inboundMsg.type) {
       case 'image':
-        this.logger.log('Imagen recibida:', message.image);
-        await this.handleMediaMessage(message, 'image', phoneNumberId);
+        this.logger.log('Imagen recibida');
+        // await this.handleMediaMessage(inboundMsg, 'image'); // To be refactored
         break;
 
       case 'video':
-        this.logger.log('Video recibido:', message.video);
-        await this.handleMediaMessage(message, 'video', phoneNumberId);
+        this.logger.log('Video recibido');
+        // await this.handleMediaMessage(inboundMsg, 'video'); // To be refactored
         break;
 
       case 'audio':
-        this.logger.log('Audio recibido:', message.audio);
-        await this.handleMediaMessage(message, 'audio', phoneNumberId);
+        this.logger.log('Audio recibido');
+        // await this.handleMediaMessage(inboundMsg, 'audio'); // To be refactored
         break;
 
       case 'document':
-        this.logger.log('Documento recibido:', message.document);
-        await this.handleMediaMessage(message, 'document', phoneNumberId);
+        this.logger.log('Documento recibido');
+        // await this.handleMediaMessage(inboundMsg, 'document'); // To be refactored
         break;
 
       case 'location':
-        this.logger.log('Ubicación recibida:', message.location);
-        await this.handleLocationMessage(message, phoneNumberId);
+        this.logger.log('Ubicación recibida');
+        await this.handleLocationMessage(inboundMsg.rawPayload, inboundMsg.recipientId);
         break;
 
       case 'reaction':
@@ -271,8 +247,8 @@ export class WhatsappService {
 
       case 'unsupported':
         this.logger.warn('Tipo de mensaje no soportado');
-        if (message.errors && message.errors.length > 0) {
-          message.errors.forEach((error) => {
+        if (inboundMsg.rawPayload.errors && inboundMsg.rawPayload.errors.length > 0) {
+          inboundMsg.rawPayload.errors.forEach((error) => {
             this.logger.error(
               `Error ${error.code}: ${error.title} - ${error.message || 'Sin detalles'}`,
             );
@@ -281,7 +257,7 @@ export class WhatsappService {
         break;
 
       default:
-        this.logger.warn(`Tipo de mensaje no manejado: ${message.type}`);
+        this.logger.warn(`Tipo de mensaje no manejado: ${inboundMsg.type}`);
     }
   }
 
@@ -289,107 +265,57 @@ export class WhatsappService {
    * Maneja mensajes de texto con lógica de respuesta automática
    */
   private async handleTextMessage(
-    message: WhatsAppIncomingMessage,
-    phoneNumberId: string,
-    tenant: TenantContext,
-    role: UserRole,
-    contactWaId?: string,
-    contactName?: string,
+    inboundMsg: WhatsAppInboundMessage,
+    aggregatedText?: string,
   ): Promise<void> {
-    if (!message.text) return;
+    const finalContent = aggregatedText ?? inboundMsg.text;
+    if (!finalContent) return;
 
-    const canonicalSender = contactWaId ?? message.from;
-    this.logger.log(`📨 Procesando mensaje de ${canonicalSender}`);
+    this.logger.log(`📨 Procesando mensaje de ${inboundMsg.senderId}`);
 
     /*     const verifiedViaOtp = await this.verification.verifyFromMessage(
-      canonicalSender,
-      message.text.body,
+      inboundMsg.senderId,
+      inboundMsg.rawPayload.text?.body || '',
     );
-
     if (verifiedViaOtp) {
-      await this.verification.markPhoneVerified(canonicalSender);
-      await this.messagingService.sendText(
-        canonicalSender,
-        '✅ Número verificado. Ya puedes continuar en la app.',
-        { phoneNumberId },
-      );
+      await this.verification.markPhoneVerified(inboundMsg.senderId);
+      await inboundMsg.reply('✅ Número verificado. Ya puedes continuar en la app.');
       return;
     } */
 
-    await this.handleWithAdkOrchestrator(
-      canonicalSender,
-      message,
-      phoneNumberId,
-      tenant,
-      role,
-      contactName,
-    );
+    await this.handleWithAdkOrchestrator(inboundMsg, finalContent);
   }
 
   /**
    * Procesa mensaje usando el orquestador ADK (Google Agent Development Kit)
    */
   private async handleWithAdkOrchestrator(
-    canonicalSender: string,
-    message: WhatsAppIncomingMessage,
-    phoneNumberId: string,
-    tenant: TenantContext,
-    role: UserRole,
-    contactName?: string,
+    inboundMsg: WhatsAppInboundMessage,
+    finalContent: string,
   ): Promise<void> {
     this.logger.debug(
-      `🤖 Procesando con ADK orchestrator para ${canonicalSender}`,
+      `🤖 Procesando con ADK orchestrator para ${inboundMsg.senderId}`,
     );
 
     try {
       const result = await this.adkOrchestrator.route({
-        senderId: canonicalSender,
-        senderName: contactName,
-        whatsappMessageId: message.id,
-        originalText: message.text?.body ?? '',
-        message,
-        phoneNumberId,
-        tenant,
-        role,
+        senderId: inboundMsg.senderId,
+        senderName: inboundMsg.senderName,
+        whatsappMessageId: inboundMsg.id,
+        originalText: finalContent,
+        message: inboundMsg.rawPayload,
+        phoneNumberId: inboundMsg.recipientId,
+        tenant: inboundMsg.tenant,
+        role: inboundMsg.role,
       });
 
       this.logger.debug(`🪧 [ADK] Mensaje ${result.responseText}`);
-/*       if (this.sendAgentText && result.responseText?.trim()) {
-        await this.responseService.sendSmartText(
-          canonicalSender,
-          result.responseText,
-          {
-            phoneNumberId,
-            companyId: tenant.companyId,
-          },
-        );
-        this.logger.log(
-          `🪧 [ADK] Mensaje enviado para ${canonicalSender} - Intent: ${result.intent}`,
-        );
-      } */
 
       this.logger.log(
-        `✅ [ADK] Mensaje procesado para ${canonicalSender} - Intent: ${result.intent}`,
+        `✅ [ADK] Mensaje procesado para ${inboundMsg.senderId} - Intent: ${result.intent}`,
       );
     } catch (error) {
       this.logger.error(`❌ Error en ADK orchestrator:`, error);
-      // Fallback a mensaje de error amigable
-/*       await this.responseService.sendSmartText(
-        canonicalSender,
-        'Lo siento, tuve un problema procesando tu mensaje. Por favor intenta de nuevo.',
-        {
-          phoneNumberId,
-          companyId: tenant.companyId,
-        },
-      ); */
-/*       await this.responseService.sendStickerForEvent(
-        canonicalSender,
-        'error_or_unauthorized_action',
-        {
-          phoneNumberId,
-          companyId: tenant.companyId,
-        },
-      ); */
     }
   }
 
@@ -411,7 +337,7 @@ export class WhatsappService {
     // Aquí puedes implementar lógica para descargar y procesar el medio
     // Por ejemplo: const mediaBuffer = await this.messagingService.downloadMedia(media.id);
 
-    await this.responseService.sendSmartText(
+    await this.messagingService.sendText(
       message.from,
       `Recibí tu ${mediaType === 'image' ? 'imagen' : mediaType === 'video' ? 'video' : mediaType === 'audio' ? 'audio' : 'documento'}. Para continuar necesito una instrucción en texto (ej. "Pagar 1250" o "Agendar cita").`,
       { phoneNumberId },
@@ -435,37 +361,31 @@ export class WhatsappService {
       this.logger.log(`Nombre del lugar: ${message.location.name}`);
     }
 
-    await this.responseService.sendSmartText(
+    await this.messagingService.sendText(
       message.from,
       'Ubicación recibida. Confírmame en texto cómo deseas usarla y la enrutamos al agente correspondiente.',
       { phoneNumberId },
     );
   }
 
-  private async bufferConversationMessage(params: {
-    message: WhatsAppIncomingMessage;
-    messageText: string;
-    phoneNumberId: string;
-    tenant: TenantContext;
-    role: UserRole;
-    canonicalSender: string;
-    contactName?: string;
-  }): Promise<void> {
+  private async bufferConversationMessage(inboundMsg: WhatsAppInboundMessage): Promise<void> {
     const key = this.getConversationKey(
-      params.phoneNumberId,
-      params.canonicalSender,
+      inboundMsg.recipientId,
+      inboundMsg.senderId,
     );
 
-    const previous = this.pendingConversations.get(key);
-    if (previous) {
-      clearTimeout(previous.timeout);
+    let pending = this.pendingBursts.get(key);
+    if (pending) {
+      clearTimeout(pending.timeout);
+      pending.burst.addMessage(inboundMsg);
+    } else {
+      pending = {
+        burst: new WhatsAppMessageBurst(inboundMsg),
+        timeout: setTimeout(() => {}, 0),
+      };
     }
 
-    const fragments = previous
-      ? [...previous.fragments, params.messageText]
-      : [params.messageText];
-
-    const timeout = setTimeout(() => {
+    pending.timeout = setTimeout(() => {
       this.flushConversation(key).catch((error) => {
         this.logger.error(
           `Error procesando buffer de conversación ${key}: ${(error as Error).message}`,
@@ -473,105 +393,38 @@ export class WhatsappService {
       });
     }, this.waitUntilMessageMs);
 
-    this.pendingConversations.set(key, {
-      canonicalSender: params.canonicalSender,
-      contactName: params.contactName,
-      phoneNumberId: params.phoneNumberId,
-      tenant: params.tenant,
-      role: params.role,
-      lastMessage: params.message,
-      fragments,
-      timeout,
-    });
+    this.pendingBursts.set(key, pending);
   }
 
   private async flushConversation(key: string): Promise<void> {
-    const pending = this.pendingConversations.get(key);
+    const pending = this.pendingBursts.get(key);
     if (!pending) {
       return;
     }
 
-    this.pendingConversations.delete(key);
+    this.pendingBursts.delete(key);
 
-    const aggregatedText = pending.fragments
-      .map((fragment) => fragment.trim())
-      .filter((fragment) => fragment.length > 0)
-      .join('\n');
+    const aggregatedText = pending.burst.aggregatedText;
 
     if (!aggregatedText) {
       return;
     }
 
-    await this.messagingService.markAsRead(pending.lastMessage.id, {
-      phoneNumberId: pending.phoneNumberId,
-      showTypingIndicator: true,
-      companyId: pending.tenant.companyId,
-    });
+    // Marca como leído/typing directamente desde el objeto inboud final bufferizado
+    await pending.burst.baseMessage.changeStatus('typing');
 
-    /*     await this.responseService.sendStickerForEvent(
-      pending.canonicalSender,
-      'processing_ai_thinking',
-      {
-        phoneNumberId: pending.phoneNumberId,
-        companyId: pending.tenant.companyId,
-      },
-    ); */
+    /*     await pending.inboundMessage.sendSticker('processing_ai_thinking'); */
 
-    const mergedMessage = {
-      ...pending.lastMessage,
-      type: 'text',
-      text: {
-        body: aggregatedText,
-      },
-    } as WhatsAppIncomingMessage;
-
+    // Pasa directo a manejar texto invocando al ADK
     await this.handleTextMessage(
-      mergedMessage,
-      pending.phoneNumberId,
-      pending.tenant,
-      pending.role,
-      pending.canonicalSender,
-      pending.contactName,
+      pending.burst.baseMessage,
+      aggregatedText
     );
-  }
-/* 
-  private extractConversationText(
-    message: WhatsAppIncomingMessage,
-  ): string | undefined {
-    if (message.type === 'text' && message.text?.body?.trim()) {
-      return message.text.body.trim();
-    }
-
-    if (message.type === 'interactive' && message.interactive) {
-      const buttonSelection =
-        message.interactive.button_reply?.id ??
-        message.interactive.button_reply?.title;
-      if (buttonSelection?.trim()) {
-        return buttonSelection.trim();
-      }
-
-      const listSelection =
-        message.interactive.list_reply?.id ??
-        message.interactive.list_reply?.title;
-      if (listSelection?.trim()) {
-        return listSelection.trim();
-      }
-    }
-
-    if (message.type === 'button') {
-      const buttonText = (message as { button?: { text?: string } }).button
-        ?.text;
-      if (buttonText?.trim()) {
-        return buttonText.trim();
-      }
-    }
-
-    return undefined;
   }
 
   private getConversationKey(phoneNumberId: string, sender: string): string {
     return `${phoneNumberId}:${sender}`;
-  } */
+  } 
 
   private emitCompanyEvent(
     companyId: string | undefined,
@@ -594,61 +447,4 @@ export class WhatsappService {
     this.eventEmitter.emit(SYSTEM_EVENT_CHANNEL, event);
   }
 
-  /**
-   * Maneja los estados de los mensajes
-   */
-/*   private handleMessageStatus(status: WhatsAppStatus): void {
-    this.logger.log(
-      `Estado del mensaje ${status.id}: ${status.status} - Destinatario: ${status.recipient_id}`,
-    );
-  } */
-
-/*   private isDuplicateMessage(messageId: string | undefined): boolean {
-    if (!messageId) {
-      return false;
-    }
-
-    const now = Date.now();
-    this.pruneProcessedMessages(now);
-
-    if (this.processedMessageCache.has(messageId)) {
-      return true;
-    }
-
-    this.processedMessageCache.set(messageId, now);
-    return false;
-  }
-
-  private pruneProcessedMessages(reference: number): void {
-    for (const [id, timestamp] of this.processedMessageCache.entries()) {
-      if (reference - timestamp > this.processedMessageTtlMs) {
-        this.processedMessageCache.delete(id);
-      }
-    }
-  } */
-
-/*   private resolveContactWaId(
-    contacts: WhatsAppContact[] | undefined,
-    messageFrom: string,
-  ): string | undefined {
-    if (!contacts?.length) {
-      return undefined;
-    }
-
-    const match = contacts.find((contact) => contact.wa_id === messageFrom);
-    return match?.wa_id ?? contacts[0]?.wa_id;
-  } */
-
-/*   private resolveContactName(
-    contacts: WhatsAppContact[] | undefined,
-    messageFrom: string,
-  ): string | undefined {
-    if (!contacts?.length) {
-      return undefined;
-    }
-
-    const match = contacts.find((contact) => contact.wa_id === messageFrom);
-    const target = match ?? contacts[0];
-    return target?.profile?.name;
-  } */
 }

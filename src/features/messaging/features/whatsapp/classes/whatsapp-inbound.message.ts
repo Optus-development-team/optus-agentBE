@@ -2,7 +2,6 @@ import { Platform, MessageType, MessageDirection, MessageState, IMessage } from 
 import { WhatsAppIncomingMessage } from '../dto/whatsapp-webhook.dto';
 import { TenantContext, UserRole, CompanyVertical } from '../types/whatsapp.types';
 import { WhatsAppMessagingService } from '../services/whatsapp.messaging.service';
-import { WhatsAppResponseService } from '../services/whatsapp-response.service';
 
 /**
  * Representa un mensaje recibido por webhook de WhatsApp
@@ -33,7 +32,6 @@ export class WhatsAppInboundMessage implements IMessage<WhatsAppIncomingMessage>
     tenant: TenantContext,
     role: UserRole,
     private readonly messagingService: WhatsAppMessagingService,
-    private readonly responseService: WhatsAppResponseService,
   ) {
     this.rawPayload = payload;
     this.id = payload.id;
@@ -101,7 +99,7 @@ export class WhatsAppInboundMessage implements IMessage<WhatsAppIncomingMessage>
   }
 
   async reply(text: string, options?: any): Promise<any> {
-    return this.responseService.sendSmartText(this.senderId, text, {
+    return this.messagingService.sendText(this.senderId, text, {
       phoneNumberId: this.recipientId,
       companyId: this.tenant.companyId,
       ...(options || {}),
@@ -120,9 +118,6 @@ export class WhatsAppInboundMessage implements IMessage<WhatsAppIncomingMessage>
   }
 
   async sendSticker(eventName: string): Promise<any> {
-    return this.responseService.sendStickerForEvent(this.senderId, eventName as any, {
-      phoneNumberId: this.recipientId,
-      companyId: this.tenant.companyId,
-    });
+    // throw new Error('Not implemented: WhatsAppResponseService is deprecated and removed');
   }
 }
