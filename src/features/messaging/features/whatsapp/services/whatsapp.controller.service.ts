@@ -12,6 +12,7 @@ import { WhatsAppMessagingService } from './whatsapp.messaging.service';
 import { VerificationService } from '../../../../login/verification.service';
 import { IdentityService } from '../../../../auth/identity.service';
 import { TenantContext, UserRole } from '../types/whatsapp.types';
+import type { PendingBurst } from '../types/whatsapp-message-burst.types';
 import { WhatsAppInboundMessage } from '../classes/whatsapp-inbound.message';
 import {
   SYSTEM_EVENT_CHANNEL,
@@ -20,11 +21,6 @@ import {
 } from '../../../../../common/events/system-events.types';
 
 import { WhatsAppMessageBurst } from '../classes/whatsapp-message-burst';
-
-interface PendingBurst {
-  burst: WhatsAppMessageBurst;
-  timeout: NodeJS.Timeout;
-}
 
 @Injectable()
 export class WhatsappService {
@@ -265,10 +261,10 @@ export class WhatsappService {
    * Maneja mensajes de texto con lógica de respuesta automática
    */
   private async handleTextMessage(
-    inboundMsg: WhatsAppInboundMessage,
-    aggregatedText?: string,
+    burst: WhatsAppMessageBurst,
   ): Promise<void> {
-    const finalContent = aggregatedText ?? inboundMsg.text;
+    const inboundMsg = burst.baseMessage;
+    const finalContent = burst.aggregatedText || inboundMsg.text;
     if (!finalContent) return;
 
     this.logger.log(`📨 Procesando mensaje de ${inboundMsg.senderId}`);
@@ -283,16 +279,17 @@ export class WhatsappService {
       return;
     } */
 
-    await this.handleWithAdkOrchestrator(inboundMsg, finalContent);
+    await this.handleWithAdkOrchestrator(burst, finalContent);
   }
 
   /**
    * Procesa mensaje usando el orquestador ADK (Google Agent Development Kit)
    */
   private async handleWithAdkOrchestrator(
-    inboundMsg: WhatsAppInboundMessage,
+    burst: WhatsAppMessageBurst,
     finalContent: string,
   ): Promise<void> {
+    const inboundMsg = burst.baseMessage;
     this.logger.debug(
       `🤖 Procesando con ADK orchestrator para ${inboundMsg.senderId}`,
     );
@@ -404,9 +401,7 @@ export class WhatsappService {
 
     this.pendingBursts.delete(key);
 
-    const aggregatedText = pending.burst.aggregatedText;
-
-    if (!aggregatedText) {
+    if (!pending.burst.aggregatedText) {
       return;
     }
 
@@ -417,8 +412,7 @@ export class WhatsappService {
 
     // Pasa directo a manejar texto invocando al ADK
     await this.handleTextMessage(
-      pending.burst.baseMessage,
-      aggregatedText
+      pending.burst,
     );
   }
 
