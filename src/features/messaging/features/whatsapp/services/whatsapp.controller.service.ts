@@ -354,7 +354,7 @@ export class WhatsappService {
       });
 
       this.logger.debug(`🪧 [ADK] Mensaje ${result.responseText}`);
-      if (this.sendAgentText && result.responseText?.trim()) {
+/*       if (this.sendAgentText && result.responseText?.trim()) {
         await this.responseService.sendSmartText(
           canonicalSender,
           result.responseText,
@@ -366,7 +366,7 @@ export class WhatsappService {
         this.logger.log(
           `🪧 [ADK] Mensaje enviado para ${canonicalSender} - Intent: ${result.intent}`,
         );
-      }
+      } */
 
       this.logger.log(
         `✅ [ADK] Mensaje procesado para ${canonicalSender} - Intent: ${result.intent}`,
@@ -374,29 +374,29 @@ export class WhatsappService {
     } catch (error) {
       this.logger.error(`❌ Error en ADK orchestrator:`, error);
       // Fallback a mensaje de error amigable
-      await this.responseService.sendSmartText(
+/*       await this.responseService.sendSmartText(
         canonicalSender,
         'Lo siento, tuve un problema procesando tu mensaje. Por favor intenta de nuevo.',
         {
           phoneNumberId,
           companyId: tenant.companyId,
         },
-      );
-      await this.responseService.sendStickerForEvent(
+      ); */
+/*       await this.responseService.sendStickerForEvent(
         canonicalSender,
         'error_or_unauthorized_action',
         {
           phoneNumberId,
           companyId: tenant.companyId,
         },
-      );
+      ); */
     }
   }
 
   /**
    * Maneja mensajes con medios (imagen, video, audio, documento)
    */
-  private async handleMediaMessage(
+/*   private async handleMediaMessage(
     message: WhatsAppIncomingMessage,
     mediaType: 'image' | 'video' | 'audio' | 'document',
     phoneNumberId: string,
@@ -416,7 +416,7 @@ export class WhatsappService {
       `Recibí tu ${mediaType === 'image' ? 'imagen' : mediaType === 'video' ? 'video' : mediaType === 'audio' ? 'audio' : 'documento'}. Para continuar necesito una instrucción en texto (ej. "Pagar 1250" o "Agendar cita").`,
       { phoneNumberId },
     );
-  }
+  } */
 
   /**
    * Maneja mensajes de ubicación
@@ -534,7 +534,7 @@ export class WhatsappService {
       pending.contactName,
     );
   }
-
+/* 
   private extractConversationText(
     message: WhatsAppIncomingMessage,
   ): string | undefined {
@@ -571,7 +571,7 @@ export class WhatsappService {
 
   private getConversationKey(phoneNumberId: string, sender: string): string {
     return `${phoneNumberId}:${sender}`;
-  }
+  } */
 
   private emitCompanyEvent(
     companyId: string | undefined,
@@ -597,13 +597,13 @@ export class WhatsappService {
   /**
    * Maneja los estados de los mensajes
    */
-  private handleMessageStatus(status: WhatsAppStatus): void {
+/*   private handleMessageStatus(status: WhatsAppStatus): void {
     this.logger.log(
       `Estado del mensaje ${status.id}: ${status.status} - Destinatario: ${status.recipient_id}`,
     );
-  }
+  } */
 
-  private isDuplicateMessage(messageId: string | undefined): boolean {
+/*   private isDuplicateMessage(messageId: string | undefined): boolean {
     if (!messageId) {
       return false;
     }
@@ -625,9 +625,9 @@ export class WhatsappService {
         this.processedMessageCache.delete(id);
       }
     }
-  }
+  } */
 
-  private resolveContactWaId(
+/*   private resolveContactWaId(
     contacts: WhatsAppContact[] | undefined,
     messageFrom: string,
   ): string | undefined {
@@ -637,9 +637,9 @@ export class WhatsappService {
 
     const match = contacts.find((contact) => contact.wa_id === messageFrom);
     return match?.wa_id ?? contacts[0]?.wa_id;
-  }
+  } */
 
-  private resolveContactName(
+/*   private resolveContactName(
     contacts: WhatsAppContact[] | undefined,
     messageFrom: string,
   ): string | undefined {
@@ -650,5 +650,5 @@ export class WhatsappService {
     const match = contacts.find((contact) => contact.wa_id === messageFrom);
     const target = match ?? contacts[0];
     return target?.profile?.name;
-  }
+  } */
 }

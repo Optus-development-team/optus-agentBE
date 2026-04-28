@@ -22,13 +22,31 @@ export enum MessageType {
   UNSUPPORTED = 'UNSUPPORTED',
 }
 
+export enum MessageDirection {
+  INBOUND = 'INBOUND',
+  OUTBOUND = 'OUTBOUND'
+}
+
+export enum MessageState {
+  DRAFT = 'DRAFT',           // Solo Outbound
+  QUEUED = 'QUEUED',         // Solo Outbound
+  SENDING = 'SENDING',       // Solo Outbound
+  SENT = 'SENT',             // Efectivamente mandado
+  DELIVERED = 'DELIVERED',   // Recibido en cliente
+  READ = 'READ',             // Confirmado como leído
+  FAILED = 'FAILED',         // Falló en entrega
+  RECEIVED = 'RECEIVED',     // Solo Inbound: Recibido de webhook
+}
+
 export interface IMessage<T = any> {
   // === Unique Identifiers ===
-  /** Identificador único del mensaje recibido (ej: wamid...) */
-  id: string;
+  /** Identificador único del mensaje recibido o enviado (ej: wamid...) */
+  id: string | null;  // Puede ser null en drafts outbound
   
-  /** Identificador de la plataforma (WhatsApp, Telegram, etc) */
+  /** Identificadores operacionales */
   platform: Platform;
+  direction: MessageDirection;
+  state: MessageState;
   
   /** Tipo de mensaje estandarizado (texto, imagen, video, etc) */
   type: MessageType;
