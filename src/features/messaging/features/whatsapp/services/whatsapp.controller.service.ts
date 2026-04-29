@@ -11,8 +11,14 @@ import { AdkOrchestratorService } from '../../../../../core/adk/orchestrator/adk
 import { WhatsAppMessagingService } from './whatsapp.messaging.service';
 import { VerificationService } from '../../../../login/verification.service';
 import { IdentityService } from '../../../../auth/identity.service';
-import { TenantContext, UserRole } from '../types/whatsapp.types';
+import { TenantContext } from '../types/whatsapp.types';
 import type { PendingBurst } from '../types/whatsapp-message-burst.types';
+import { mapBurstToRouterMessageContext } from '../types/whatsapp-router-message-context.mapper';
+import { createWhatsAppInboundMessage } from '../mappers/whatsapp-inbound-message.mapper';
+import {
+  mapWhatsAppWebhookToIncomingContext,
+  type IncomingWhatsAppWebhookContext,
+} from '../mappers/whatsapp-webhook.mapper';
 import { WhatsAppInboundMessage } from '../classes/whatsapp-inbound.message';
 import {
   SYSTEM_EVENT_CHANNEL,
@@ -84,32 +90,30 @@ export class WhatsappService {
       }
       const webhookData: WhatsAppWebhook = body as unknown as WhatsAppWebhook;
       this.logger.debug('Webhook data:', JSON.stringify(webhookData, null, 2));
-      //this.logger.log('Messages:', JSON.stringify(webhookData.entry.changes.value.messages ?? null, null, 2));
-      if (webhookData.entry[0].changes[0].value.messages) {
-        this.logger.log('Webhook de mensaje recibido');
-        await this.processIncomingMessage(
-          webhookData.entry[0].changes[0].value.messages[0],
-          webhookData.entry[0].changes[0].value.metadata.phone_number_id,
-          webhookData.entry[0].changes[0].value.contacts[0].profile.name,
-        );
+
+      const incomingContext = mapWhatsAppWebhookToIncomingContext(webhookData);
+      if (!incomingContext) {
+        this.logger.warn('Webhook recibido sin mensajes entrantes procesables');
+        return;
       }
+
+      this.logger.log('Webhook de mensaje recibido');
+      await this.processIncomingMessage(incomingContext);
     } catch (error) {
       this.logger.error('Error procesando webhook:', error);
     }
   }
 
   async processIncomingMessage(
-    message: WhatsAppIncomingMessage,
-    phoneNumberId: string,
-    contactProfileName: string,
+    incomingContext: IncomingWhatsAppWebhookContext,
   ): Promise<void> {
     try {
       // Log del payload completo para debugging
       //this.logger.debug('Payload recibido:', JSON.stringify(message, null, 2));
 
       // Extraer datos
+      const { message, phoneNumberId, contactProfileName } = incomingContext;
       const contactWaId: string = message.from;
-      const contactName: string = contactProfileName;
       const tenant: TenantContext | null =
         (await this.identity.resolveTenantByPhoneId(phoneNumberId)) ?? null;
 
@@ -125,18 +129,14 @@ export class WhatsappService {
         contactWaId,
       );
 
-      const inboundMsg = new WhatsAppInboundMessage(
-        message,
-        phoneNumberId,
-        contactName,
+      const inboundMsg = createWhatsAppInboundMessage(
+        incomingContext,
         tenant,
         role,
         this.messagingService,
       );
 
-      /*this.emitCompanyEvent(tenant.companyId, {
-              ...
-            }); */
+      // EVENT Mensaje recibido
             
       await this.handleMessage(inboundMsg);
       //this.handleMessageStatus(status);
@@ -145,7 +145,7 @@ export class WhatsappService {
       const details = safeError.response?.data ?? safeError.message;
       this.logger.error('Error procesando mensaje entrante:', details);
       this.logger.error('Stack trace:', safeError.stack);
-      this.logger.error('Payload completo:', JSON.stringify(message, null, 2));
+      this.logger.error('Payload completo:', JSON.stringify(incomingContext.message, null, 2));
       throw safeError;
     }
   }
@@ -263,11 +263,11 @@ export class WhatsappService {
   private async handleTextMessage(
     burst: WhatsAppMessageBurst,
   ): Promise<void> {
-    const inboundMsg = burst.baseMessage;
-    const finalContent = burst.aggregatedText || inboundMsg.text;
-    if (!finalContent) return;
+    //const inboundMsg = burst.baseMessage;
+    //const finalContent = burst.aggregatedText || inboundMsg.text;
+    if (!burst.aggregatedText) return;
 
-    this.logger.log(`📨 Procesando mensaje de ${inboundMsg.senderId}`);
+    this.logger.log(`📨 Procesando mensaje de ${burst.baseMessage.senderId}`);
 
     /*     const verifiedViaOtp = await this.verification.verifyFromMessage(
       inboundMsg.senderId,
@@ -279,7 +279,7 @@ export class WhatsappService {
       return;
     } */
 
-    await this.handleWithAdkOrchestrator(burst, finalContent);
+    await this.handleWithAdkOrchestrator(burst);
   }
 
   /**
@@ -287,29 +287,19 @@ export class WhatsappService {
    */
   private async handleWithAdkOrchestrator(
     burst: WhatsAppMessageBurst,
-    finalContent: string,
   ): Promise<void> {
-    const inboundMsg = burst.baseMessage;
+    const context = mapBurstToRouterMessageContext(burst);
     this.logger.debug(
-      `🤖 Procesando con ADK orchestrator para ${inboundMsg.senderId}`,
+      `🤖 Procesando con ADK orchestrator para ${context.senderId}`,
     );
 
     try {
-      const result = await this.adkOrchestrator.route({
-        senderId: inboundMsg.senderId,
-        senderName: inboundMsg.senderName,
-        whatsappMessageId: inboundMsg.id,
-        originalText: finalContent,
-        message: inboundMsg.rawPayload,
-        phoneNumberId: inboundMsg.recipientId,
-        tenant: inboundMsg.tenant,
-        role: inboundMsg.role,
-      });
+      const result = await this.adkOrchestrator.route(context);
 
       this.logger.debug(`🪧 [ADK] Mensaje ${result.responseText}`);
 
       this.logger.log(
-        `✅ [ADK] Mensaje procesado para ${inboundMsg.senderId} - Intent: ${result.intent}`,
+        `✅ [ADK] Mensaje procesado para ${context.senderId} - Intent: ${result.intent}`,
       );
     } catch (error) {
       this.logger.error(`❌ Error en ADK orchestrator:`, error);
