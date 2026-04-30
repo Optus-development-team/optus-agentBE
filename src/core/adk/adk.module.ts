@@ -8,6 +8,7 @@ import { CalendarModule } from '../../features/calendar/calendar.module';
 import { WhatsappMessagingModule } from '../../features/messaging/features/whatsapp/whatsapp-messaging.module';
 import { AdkOrchestratorService } from './orchestrator/adk-orchestrator.service';
 import { OrchestratorToolsService } from './orchestrator/orchestrator.tools';
+import { GeneralClientOrchestratorConfig } from './orchestrator/config/general-client.config';
 import { GeneralClientOrchestratorService } from './orchestrator/verticals/general/general-client.orchestrator';
 import { GeneralAdminOrchestratorService } from './orchestrator/verticals/general/general-admin.orchestrator';
 import { AcademyClientOrchestratorService } from './orchestrator/verticals/academy/academy-client.orchestrator';
@@ -52,6 +53,7 @@ import { TimeModule } from '../../common/time/time.module';
     SalonClientOrchestratorService,
     SalonAdminOrchestratorService,
     OrchestratorToolsService,
+    GeneralClientOrchestratorConfig,
     AppointmentAdminAgent,
     AppointmentClientAgent,
     ReportingAgent,

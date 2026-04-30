@@ -1,0 +1,16 @@
+import type { FunctionTool, LlmAgent } from '@google/adk';
+import type { RouterMessageContext } from '../../../../features/messaging/features/whatsapp/types/whatsapp.types';
+import type { OrchestrationResult } from '../orchestrator.types';
+
+export interface OrchestratorConfig {
+  getName(): string;
+  getDescription(): string;
+  buildInstruction(): string;
+  buildPrompt(context: RouterMessageContext): string;
+  buildInitialState(context: RouterMessageContext): Record<string, unknown>;
+  detectIntent(message: string): OrchestrationResult['intent'];
+  getSubAgents(): LlmAgent[];
+  getTools(): FunctionTool[];
+  getErrorLogPrefix(): string;
+  getErrorResponseText(): string;
+}

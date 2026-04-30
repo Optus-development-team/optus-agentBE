@@ -89,45 +89,4 @@ export class WhatsappController {
       return { status: 'error' };
     }
   }
-
-  /*   private normalizeWebhookPayload(
-    body: Record<string, unknown>,
-  ): WhatsAppMessage {
-    if ('object' in body && 'entry' in body) {
-      // Formato real de producción
-      return body as unknown as WhatsAppMessage;
-    }
-
-    if ('field' in body && 'value' in body) {
-      // Formato de prueba de Meta - necesita normalización
-      this.logger.log('Payload de prueba de Meta detectado, normalizando');
-      const testBody = body as {
-        field: string;
-        value: Record<string, unknown>;
-      };
-      const metadata = testBody.value.metadata as
-        | Record<string, unknown>
-        | undefined;
-      const phoneNumberId = metadata?.phone_number_id;
-
-      return {
-        object: 'whatsapp_business_account',
-        entry: [
-          {
-            id: typeof phoneNumberId === 'string' ? phoneNumberId : 'test_id',el pepe es muy bueno con todosy els aul no dsb lo wue estou escribedo swui no mr imorts msf smi pi esta adorecido 
-            changes: [
-              {
-                field: testBody.field,
-                value:
-                  testBody.value as unknown as WhatsAppMessage['entry'][0]['changes'][0]['value'],
-              },
-            ],
-          },
-        ],
-      };
-    }
-
-    this.logger.error('Formato de payload no reconocido');
-    throw new BadRequestException('Formato de payload no válido');
-  } */
 }
