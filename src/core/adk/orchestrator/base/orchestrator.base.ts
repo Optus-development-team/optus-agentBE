@@ -34,6 +34,13 @@ export abstract class BaseOrchestratorService implements OnModuleInit {
   async route(context: RouterMessageContext): Promise<OrchestrationResult> {
     this.ensureInitialized();
 
+    if (this.orchestratorConfig.preRoute) {
+      const preRouteResult = await this.orchestratorConfig.preRoute(context);
+      if (preRouteResult) {
+        return preRouteResult;
+      }
+    }
+
     const userId = this.normalizePhone(context.senderId);
     const tenantAppName = context.tenant.companyName.trim().toLowerCase();
     const sessionId = `${tenantAppName}:${userId}`;

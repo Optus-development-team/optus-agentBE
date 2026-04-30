@@ -9,6 +9,11 @@ import { WhatsappMessagingModule } from '../../features/messaging/features/whats
 import { AdkOrchestratorService } from './orchestrator/adk-orchestrator.service';
 import { OrchestratorToolsService } from './orchestrator/orchestrator.tools';
 import { GeneralClientOrchestratorConfig } from './orchestrator/config/general-client.config';
+import { GeneralAdminOrchestratorConfig } from './orchestrator/config/general-admin.config';
+import { AcademyClientOrchestratorConfig } from './orchestrator/config/academy-client.config';
+import { AcademyAdminOrchestratorConfig } from './orchestrator/config/academy-admin.config';
+import { SalonClientOrchestratorConfig } from './orchestrator/config/salon-client.config';
+import { SalonAdminOrchestratorConfig } from './orchestrator/config/salon-admin.config';
 import { GeneralClientOrchestratorService } from './orchestrator/verticals/general/general-client.orchestrator';
 import { GeneralAdminOrchestratorService } from './orchestrator/verticals/general/general-admin.orchestrator';
 import { AcademyClientOrchestratorService } from './orchestrator/verticals/academy/academy-client.orchestrator';
@@ -54,6 +59,11 @@ import { TimeModule } from '../../common/time/time.module';
     SalonAdminOrchestratorService,
     OrchestratorToolsService,
     GeneralClientOrchestratorConfig,
+    GeneralAdminOrchestratorConfig,
+    AcademyClientOrchestratorConfig,
+    AcademyAdminOrchestratorConfig,
+    SalonClientOrchestratorConfig,
+    SalonAdminOrchestratorConfig,
     AppointmentAdminAgent,
     AppointmentClientAgent,
     ReportingAgent,

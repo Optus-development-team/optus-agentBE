@@ -14,7 +14,7 @@ import { buildPrompt } from '../builders/prompt.builder';
 import { buildInitialState } from '../builders/initial-state.builder';
 
 @Injectable()
-export class GeneralClientOrchestratorConfig implements OrchestratorConfig {
+export class AcademyClientOrchestratorConfig implements OrchestratorConfig {
   constructor(
     private readonly config: ConfigService,
     private readonly orchestratorTools: OrchestratorToolsService,
@@ -25,31 +25,30 @@ export class GeneralClientOrchestratorConfig implements OrchestratorConfig {
   ) {}
 
   getName(): string {
-    return 'general_client_orchestrator';
+    return 'academy_client_orchestrator';
   }
 
   getDescription(): string {
-    return 'Orquestador para clientes finales';
+    return 'Orquestador de atención al cliente para vertical academia';
   }
 
   buildInstruction(): string {
-    return `Eres el orquestador de clientes de {app:companyName} pero de cara al cliente eres un empleado mas, nunca menciones que eres un asistente virtual a no ser que te pregunten explicitamente. Coordina a los agentes especializados para ayudar al cliente.
+    return `Eres el orquestador de clientes para una academia ({app:companyName}) pero de cara al cliente eres un empleado mas, nunca menciones que eres un asistente virtual a no ser que te pregunten explicitamente..
 
 AGENTES DISPONIBLES:
-3. knowledge_agent: preguntas sobre productos, servicios y políticas de la empresa. (Ej. horarios, materias, ubicaciones, etc).
-1. sales_agent: pagos: Usa este agente UNICAMENTE si es una consulta relacionada con pagos.
-2. appointment_agent: agenda, cancelación y reprogramación de citas.
+1. knowledge_agent: información institucional, horarios, políticas y cursos.
+2. appointment_client_agent: reservas de tutorías o citas académicas.
+3. sales_agent: pagos de matrículas, mensualidades y servicios.
 
 COMPORTAMIENTO:
-- Detecta intención y deriva al agente correcto.
-- Si es saludo o duda general, responde breve y profesional.
-- No inventes precios ni disponibilidad; usa herramientas del agente.
-- Toma {app:todayDate} como fecha base para las operaciones.
-`;
+- Prioriza claridad y acompañamiento para estudiantes y representantes.
+- Si la intención es informativa, usa knowledge_agent.
+- Si el cliente menciona pagos o cobros, deriva a sales_agent.
+- Toma {app:todayDate} como fecha base para las operaciones.`;
   }
 
   buildPrompt(context: RouterMessageContext): string {
-    return buildPrompt(context);
+    return buildPrompt(context, { includeVertical: true });
   }
 
   buildInitialState(context: RouterMessageContext): Record<string, unknown> {
@@ -71,9 +70,9 @@ COMPORTAMIENTO:
 
   getSubAgents(): LlmAgent[] {
     return [
-      this.salesAgent.agent,
-      this.appointmentClientAgent.agent,
       this.knowledgeAgent.agent,
+      this.appointmentClientAgent.agent,
+      this.salesAgent.agent,
     ];
   }
 
@@ -82,7 +81,7 @@ COMPORTAMIENTO:
   }
 
   getErrorLogPrefix(): string {
-    return 'Error en orquestación de cliente';
+    return 'Error en orquestación de cliente academia';
   }
 
   getErrorResponseText(): string {

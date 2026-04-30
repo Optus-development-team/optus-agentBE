@@ -11,6 +11,7 @@ export interface OrchestratorConfig {
   detectIntent(message: string): OrchestrationResult['intent'];
   getSubAgents(): LlmAgent[];
   getTools(): FunctionTool[];
+  preRoute?(context: RouterMessageContext): Promise<OrchestrationResult | null>;
   getErrorLogPrefix(): string;
   getErrorResponseText(): string;
 }
