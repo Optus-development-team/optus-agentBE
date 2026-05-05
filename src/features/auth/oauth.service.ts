@@ -83,6 +83,8 @@ export class OAuthService {
       ? await this.buildFullSession(user, email)
       : await this.buildPendingRegistrationSession(email, data.name ?? null);
 
+    this.logger.log("Ouath companyIDs", expectedCompanyId, "&&", expectedCompanyId, "!=", session.companyId);
+
     if (expectedCompanyId && expectedCompanyId !== session.companyId) {
       throw new Error('La empresa autenticada no coincide con el estado OAuth');
     }
@@ -240,7 +242,7 @@ export class OAuthService {
               cu.company_id,
               cu.role,
               cu.is_phone_verified
-         FROM company_users cu
+         FROM company_users cuzzzzzzzzzzzzzzzz
         WHERE LOWER(cu.email) = LOWER($1)
         ORDER BY COALESCE(cu.is_phone_verified, false) DESC,
         CASE
@@ -275,6 +277,8 @@ export class OAuthService {
     authState: 'FULL';
     phoneVerified: true;
   }> {
+
+    this.logger.log("Building full session for user", user.userId, "with companyId", user.companyId);
     if (!user.companyId) {
       throw new Error('Usuario sin empresa asociada para login completo');
     }
@@ -306,6 +310,7 @@ export class OAuthService {
     authState: 'PENDING_WHATSAPP';
     phoneVerified: false;
   }> {
+    this.logger.log("Building pending registration session for email", email);
     const existing = await this.findCompanyUserByEmail(email);
 
     if (existing?.userId) {

@@ -115,8 +115,10 @@ export class WhatsappService {
       // Extraer datos
       const { message, phoneNumberId, contactProfileName } = incomingContext;
       const contactWaId: string = message.from;
+      // Resolver Tenant
       const tenant: TenantContext | null =
         (await this.identity.resolveTenantByPhoneId(phoneNumberId)) ?? null;
+      this.logger.debug(`Tenant resuelto: ${tenant ? tenant.companyName : 'No resuelto'} para phone_number_id=${phoneNumberId}`);
 
       if (!tenant) {
         this.logger.warn(
@@ -124,11 +126,13 @@ export class WhatsappService {
         );
         return;
       }
+      // Resolver rol del usuario
       const role = await this.identity.resolveRole(
         tenant,
         message.from,
         contactWaId,
       );
+      this.logger.debug(`Rol resuelto: ${role} para phone_number_id=${phoneNumberId}`);
 
       const inboundMsg = createWhatsAppInboundMessage(
         incomingContext,

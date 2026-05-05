@@ -32,6 +32,7 @@ export class AdkOrchestratorService {
 
   async route(context: RouterMessageContext): Promise<OrchestrationResult> {
     const role = context.role ?? UserRole.CLIENT;
+    this.logger.debug("Role", role, "for sender", context.senderId);
     const vertical = this.normalizeVertical(context.tenant.vertical);
     const orchestrator = this.resolveOrchestrator(role, vertical);
     const companyId = context.tenant?.companyId;

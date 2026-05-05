@@ -28,13 +28,13 @@ export async function handleGoogleAccountConnectionRequirement(
 
   try {
     const authUrl = params.oauthService.getAuthUrl(params.companyId);
-
+    params.logger.debug(`Generated Google auth URL for company ${params.companyId}: ${authUrl}`);
     await params.whatsappMessaging.sendInteractiveCtaUrl(
       params.userId,
       {
         bodyText:
           '⚠️ *Configuración necesaria*\n\nPara gestionar tu empresa, es necesario conectar tu cuenta de Google.',
-        buttonDisplayText: 'Conectar cuenta de Google',
+        buttonDisplayText: 'Conectar Google',
         buttonUrl: authUrl,
         footerText: 'Cuando termines, vuelve al chat y continúa.',
       },
