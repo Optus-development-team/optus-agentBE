@@ -1,4 +1,4 @@
-import { Platform, MessageType, MessageDirection, MessageState, IMessage } from '../../interfaces/message.interface';
+import { Platform, MessageType, MessageDirection, MessageState, IMessage } from '../../../interfaces/message.interface';
 import { WhatsAppIncomingMessage } from '../dto/whatsapp-webhook.dto';
 import { TenantContext, UserRole, CompanyVertical } from '../types/whatsapp.types';
 import { WhatsAppMessagingService } from '../services/whatsapp.messaging.service';

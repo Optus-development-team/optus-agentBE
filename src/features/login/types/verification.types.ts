@@ -11,15 +11,6 @@ export interface VerificationRecord {
   verifiedAt: Date | null;
 }
 
-export interface DbVerificationRow {
-  id: string;
-  phone: string;
-  code: string;
-  expires_at: string | null;
-  verified: boolean;
-  created_at: string | null;
-}
-
 export interface VerificationStatus {
   verified: boolean;
   linkedAt?: Date | null;

@@ -20,6 +20,7 @@ import {
   type IncomingWhatsAppWebhookContext,
 } from '../mappers/whatsapp-webhook.mapper';
 import { WhatsAppInboundMessage } from '../classes/whatsapp-inbound.message';
+import { MessageType } from '../../../interfaces/message.interface';
 import {
   SYSTEM_EVENT_CHANNEL,
   SystemEventType,
@@ -200,48 +201,48 @@ export class WhatsappService {
     }
 
     switch (inboundMsg.type) {
-      case 'image':
+      case MessageType.IMAGE:
         this.logger.log('Imagen recibida');
         // await this.handleMediaMessage(inboundMsg, 'image'); // To be refactored
         break;
 
-      case 'video':
+      case MessageType.VIDEO:
         this.logger.log('Video recibido');
         // await this.handleMediaMessage(inboundMsg, 'video'); // To be refactored
         break;
 
-      case 'audio':
+      case MessageType.AUDIO:
         this.logger.log('Audio recibido');
         // await this.handleMediaMessage(inboundMsg, 'audio'); // To be refactored
         break;
 
-      case 'document':
+      case MessageType.DOCUMENT:
         this.logger.log('Documento recibido');
         // await this.handleMediaMessage(inboundMsg, 'document'); // To be refactored
         break;
 
-      case 'location':
+      case MessageType.LOCATION:
         this.logger.log('Ubicación recibida');
         await this.handleLocationMessage(inboundMsg.rawPayload, inboundMsg.recipientId);
         break;
 
-      case 'reaction':
+      case MessageType.REACTION:
         this.logger.log('Reacción recibida');
         break;
 
-      case 'sticker':
+      case MessageType.STICKER:
         this.logger.log('Sticker recibido');
         break;
 
-      case 'order':
+      case MessageType.ORDER:
         this.logger.log('Orden recibida');
         break;
 
-      case 'system':
+      case MessageType.SYSTEM:
         this.logger.log('Mensaje de sistema recibido');
         break;
 
-      case 'unsupported':
+      case MessageType.UNSUPPORTED:
         this.logger.warn('Tipo de mensaje no soportado');
         if (inboundMsg.rawPayload.errors && inboundMsg.rawPayload.errors.length > 0) {
           inboundMsg.rawPayload.errors.forEach((error) => {

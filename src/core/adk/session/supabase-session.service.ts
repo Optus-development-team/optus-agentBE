@@ -11,13 +11,7 @@ import type {
   Session,
 } from '@google/adk';
 import { SupabaseService } from '../../../common/intraestructure/supabase/supabase.service';
-
-interface AdkSessionRow {
-  session_id: string;
-  company_id: string;
-  context_data: unknown;
-  updated_at: string;
-}
+import type { DbAdkSessionRow } from '../../../common/intraestructure/supabase/supabase.types';
 
 /**
  * Implementación de BaseSessionService de ADK usando Supabase como backend.
@@ -94,7 +88,7 @@ export class SupabaseSessionService extends BaseSessionService {
   }: GetSessionRequest): Promise<Session | undefined> {
     if (this.supabase.isEnabled()) {
       try {
-        const rows = await this.supabase.query<AdkSessionRow>(
+        const rows = await this.supabase.query<DbAdkSessionRow>(
           `SELECT session_id, company_id, context_data, updated_at
            FROM adk_sessions
            WHERE session_id = $1
@@ -132,7 +126,7 @@ export class SupabaseSessionService extends BaseSessionService {
 
     if (this.supabase.isEnabled()) {
       try {
-        const rows = await this.supabase.query<AdkSessionRow>(
+        const rows = await this.supabase.query<DbAdkSessionRow>(
           `SELECT session_id, company_id, context_data, updated_at
            FROM adk_sessions
            WHERE session_id LIKE $1 || ':%'
@@ -276,7 +270,7 @@ export class SupabaseSessionService extends BaseSessionService {
    * Convierte una fila de base de datos a un objeto Session
    */
   private rowToSession(
-    row: AdkSessionRow,
+    row: DbAdkSessionRow,
     fallbackIds: { appName: string; userId: string },
   ): Session {
     const context = this.parseJson(row.context_data, {}) as {

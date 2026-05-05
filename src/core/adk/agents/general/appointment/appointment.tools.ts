@@ -112,8 +112,8 @@ export class AppointmentToolsService {
         );
 
         const state = context?.state;
-        const userPhone = state?.get('user:phone');
-        const userName = state?.get('user:name');
+        const userPhone = state?.get('user:phone') as string | undefined;
+        const userName = state?.get('user:name') as string | undefined;
         const companyId = state?.get('app:companyId') as string;
 
         this.emitToolTriggered(companyId, 'create_appointment');

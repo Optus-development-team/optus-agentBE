@@ -1,7 +1,11 @@
 import type { WhatsAppWebhook } from '../dto/whatsapp-webhook.dto';
 
+type WhatsAppIncomingPayload = NonNullable<
+  WhatsAppWebhook['entry'][number]['changes'][number]['value']['messages']
+>[number];
+
 export interface IncomingWhatsAppWebhookContext {
-  message: WhatsAppWebhook['entry'][number]['changes'][number]['value']['messages'][number];
+  message: WhatsAppIncomingPayload;
   phoneNumberId: string;
   contactProfileName: string;
 }

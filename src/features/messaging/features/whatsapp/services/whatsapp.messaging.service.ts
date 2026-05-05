@@ -164,6 +164,33 @@ export class WhatsAppMessagingService {
     );
   }
 
+  async sendAudio(
+    to: string,
+    audio: { id?: string; link?: string },
+    options?: MessageContextOptions,
+  ): Promise<WhatsAppMessageResponse> {
+    const payload: Record<string, unknown> = {
+      messaging_product: 'whatsapp',
+      recipient_type: 'individual',
+      to,
+      type: 'audio',
+      audio: {
+        ...(audio.id ? { id: audio.id } : {}),
+        ...(audio.link ? { link: audio.link } : {}),
+      },
+    };
+
+    if (options?.replyToMessageId) {
+      payload.context = { message_id: options.replyToMessageId };
+    }
+
+    return this.sendMessage(
+      payload,
+      options?.phoneNumberId,
+      options?.companyId,
+    );
+  }
+
   async sendDocument(
     to: string,
     document: { id?: string; link?: string },

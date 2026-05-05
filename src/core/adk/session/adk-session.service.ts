@@ -5,12 +5,7 @@ import type {
   SanitizedTextResult,
 } from './types/adk-session.types';
 import { SupabaseService } from '../../../common/intraestructure/supabase/supabase.service';
-
-interface AdkSessionRow {
-  session_id: string;
-  company_id: string;
-  context_data: unknown;
-}
+import type { DbAdkSessionRow } from '../../../common/intraestructure/supabase/supabase.types';
 
 @Injectable()
 export class AdkSessionService {
@@ -53,7 +48,7 @@ export class AdkSessionService {
       return null;
     }
 
-    const rows = await this.supabase.query<AdkSessionRow>(
+    const rows = await this.supabase.query<DbAdkSessionRow>(
       'SELECT session_id, company_id, context_data FROM public.adk_sessions WHERE session_id = $1 LIMIT 1',
       [sessionId],
     );

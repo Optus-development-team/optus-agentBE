@@ -1,6 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { SupabaseService } from '../../common/intraestructure/supabase/supabase.service';
+import type {
+  DbCompanyTenantRow,
+  DbCompanyUserPhoneRow,
+  DbCompanyUserRoleRow,
+} from '../../common/intraestructure/supabase/supabase.types';
 import type { TenantContext } from '../messaging/features/whatsapp/types/whatsapp.types';
 import type { CompanyVertical } from '../messaging/features/whatsapp/types/whatsapp.types';
 import { UserRole } from '../messaging/features/whatsapp/types/whatsapp.types';
@@ -53,7 +58,7 @@ export class IdentityService {
       return this.buildFallbackTenant(phoneNumberId);
     }
 
-    const rows = await this.supabaseService.query<CompanyRow>(
+    const rows = await this.supabaseService.query<DbCompanyTenantRow>(
       `SELECT id, name, vertical, config, whatsapp_admin_phone_ids, whatsapp_display_phone_number, whatsapp_phone_id
        FROM public.companies
        WHERE whatsapp_phone_id = $1
@@ -95,7 +100,7 @@ export class IdentityService {
       return null;
     }
 
-    const rows = await this.supabaseService.query<CompanyRow>(
+    const rows = await this.supabaseService.query<DbCompanyTenantRow>(
       `SELECT id, name, vertical, config, whatsapp_admin_phone_ids, whatsapp_display_phone_number, whatsapp_phone_id
        FROM public.companies
        WHERE id = $1
@@ -129,7 +134,7 @@ export class IdentityService {
     }
 
     if (this.supabaseService.isEnabled() && candidates.length) {
-      const rows = await this.supabaseService.query<CompanyUserRow>(
+      const rows = await this.supabaseService.query<DbCompanyUserRoleRow>(
         `SELECT role, phone FROM public.company_users
          WHERE company_id = $1
          AND regexp_replace(phone, '\\D', '', 'g') = ANY($2::text[])
@@ -162,14 +167,14 @@ export class IdentityService {
     );
 
     if (this.supabaseService.isEnabled()) {
-      const rows = await this.supabaseService.query<CompanyUserRow>(
+      const rows = await this.supabaseService.query<DbCompanyUserPhoneRow>(
         `SELECT phone FROM public.company_users
          WHERE company_id = $1 AND role = 'ADMIN'`,
         [companyId],
       );
 
       for (const row of rows) {
-        const phone = this.cleanNumber(row.phone);
+        const phone = row.phone ? this.cleanNumber(row.phone) : '';
         if (phone) {
           adminPhones.add(phone);
         }
@@ -276,7 +281,7 @@ export class IdentityService {
   }
 
   private buildTenantFromRow(
-    row: CompanyRow,
+    row: DbCompanyTenantRow,
     explicitPhoneNumberId?: NullableString,
   ): TenantContext | null {
     const companyConfig = this.parseConfig(row.config);

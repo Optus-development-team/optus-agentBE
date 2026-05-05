@@ -3,11 +3,7 @@ import { FunctionTool } from '@google/adk';
 import type { ToolContext } from '@google/adk';
 import { z } from 'zod';
 import { SupabaseService } from '../../../../../common/intraestructure/supabase/supabase.service';
-
-interface SearchPublicKnowledgeRow {
-  entity_name: string;
-  data: Record<string, unknown>;
-}
+import type { DbSearchPublicKnowledgeRow } from '../../../../../common/intraestructure/supabase/supabase.types';
 
 const searchCompanyInformationSchema = z.object({
   query: z
@@ -71,7 +67,7 @@ export class KnowledgeBaseToolsService {
         }
 
         try {
-          const rows = await this.supabase.query<SearchPublicKnowledgeRow>(
+          const rows = await this.supabase.query<DbSearchPublicKnowledgeRow>(
             `select entity_name, data
              from public.search_public_knowledge($1::uuid, $2::text)`,
             [companyId, parsedArgs.query],

@@ -1,11 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { SupabaseService } from '../../common/intraestructure/supabase/supabase.service';
 import type {
-  DbVerificationRow,
   IssueCodeResult,
   VerificationRecord,
   VerificationStatus,
 } from './types/verification.types';
+import type { DbVerificationCodeRow } from '../../common/intraestructure/supabase/supabase.types';
 
 @Injectable()
 export class VerificationService {
@@ -118,8 +118,8 @@ export class VerificationService {
 
   private async getRowByPhone(
     phone: string,
-  ): Promise<DbVerificationRow | null> {
-    const rows = await this.supabase.query<DbVerificationRow>(
+  ): Promise<DbVerificationCodeRow | null> {
+    const rows = await this.supabase.query<DbVerificationCodeRow>(
       'select id, phone, code, expires_at, verified, created_at from verification_codes where phone = $1 limit 1',
       [phone],
     );
