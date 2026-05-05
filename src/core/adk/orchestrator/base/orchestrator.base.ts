@@ -9,7 +9,7 @@ import {
 } from '@google/adk';
 import type { RouterMessageContext } from '../../../../features/messaging/features/whatsapp/types/whatsapp.types';
 import type { OrchestrationResult } from '../orchestrator.types';
-import { SupabaseSessionService } from '../session/supabase-session.service';
+import { SupabaseSessionService } from '../../session/supabase-session.service';
 import type { OrchestratorConfig } from '../config/orchestrator.config';
 
 export abstract class BaseOrchestratorService implements OnModuleInit {

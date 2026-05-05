@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PaymentIntegrationService } from './payment-integration.service';
-import { WhatsAppResponseService } from '../messaging/features/whatsapp/services/whatsapp-response.service';
+import { WhatsAppMessagingService } from '../messaging/features/whatsapp/services/whatsapp.messaging.service';
 
 @Injectable()
 export class PaymentWorkflowService {
@@ -8,7 +8,7 @@ export class PaymentWorkflowService {
 
   constructor(
     private readonly payments: PaymentIntegrationService,
-    private readonly responses: WhatsAppResponseService,
+    private readonly whatsappMessaging: WhatsAppMessagingService,
   ) {}
 
   async createPaymentLink(params: {
@@ -29,7 +29,7 @@ export class PaymentWorkflowService {
       const paymentUrl = this.extractFirstUrl(negotiation.raw);
 
       if (paymentUrl) {
-        await this.responses.sendCtaLink(
+        await this.whatsappMessaging.sendInteractiveCtaUrl(
           params.senderPhone,
           {
             bodyText:
@@ -43,7 +43,7 @@ export class PaymentWorkflowService {
           },
         );
       } else {
-        await this.responses.sendSmartText(
+        await this.whatsappMessaging.sendText(
           params.senderPhone,
           negotiation.qrBase64
             ? 'Generamos tu enlace y QR de pago, revisa la imagen o el link provisto.'
@@ -55,7 +55,7 @@ export class PaymentWorkflowService {
         );
       }
 
-      await this.responses.sendStickerForEvent(
+      await this.whatsappMessaging.sendStickerForEvent(
         params.senderPhone,
         'supplier_payment_started',
         {
@@ -67,7 +67,7 @@ export class PaymentWorkflowService {
       this.logger.error(
         `No se pudo generar link de pago ${params.orderId}: ${(error as Error).message}`,
       );
-      await this.responses.sendSmartText(
+      await this.whatsappMessaging.sendText(
         params.senderPhone,
         'No pudimos generar el link de pago. Intenta de nuevo en unos minutos.',
         {
@@ -75,7 +75,7 @@ export class PaymentWorkflowService {
           phoneNumberId: params.phoneNumberId,
         },
       );
-      await this.responses.sendStickerForEvent(
+      await this.whatsappMessaging.sendStickerForEvent(
         params.senderPhone,
         'payment_failed_or_rejected',
         {
@@ -91,7 +91,7 @@ export class PaymentWorkflowService {
     companyId?: string;
     phoneNumberId?: string;
   }): Promise<void> {
-    await this.responses.sendSmartText(
+    await this.whatsappMessaging.sendText(
       params.senderPhone,
       'Recibimos tu comprobante. Validaremos la transacción y te avisaremos.',
       {
@@ -99,7 +99,7 @@ export class PaymentWorkflowService {
         phoneNumberId: params.phoneNumberId,
       },
     );
-    await this.responses.sendStickerForEvent(
+    await this.whatsappMessaging.sendStickerForEvent(
       params.senderPhone,
       'client_payment_received',
       {
@@ -115,7 +115,7 @@ export class PaymentWorkflowService {
     companyId?: string;
     phoneNumberId?: string;
   }): Promise<void> {
-    await this.responses.sendSmartText(
+    await this.whatsappMessaging.sendText(
       params.senderPhone,
       `Seleccionaste ${params.method}. Procesaremos tu pago y te notificaremos cuando esté listo.`,
       {
@@ -123,7 +123,7 @@ export class PaymentWorkflowService {
         phoneNumberId: params.phoneNumberId,
       },
     );
-    await this.responses.sendStickerForEvent(
+    await this.whatsappMessaging.sendStickerForEvent(
       params.senderPhone,
       'processing_ai_thinking',
       {
@@ -138,7 +138,7 @@ export class PaymentWorkflowService {
     companyId?: string;
     phoneNumberId?: string;
   }): Promise<void> {
-    await this.responses.sendSmartText(
+    await this.whatsappMessaging.sendText(
       params.to,
       'Consultaremos tu información financiera y te la enviaremos pronto.',
       {

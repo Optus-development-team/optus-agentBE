@@ -10,10 +10,11 @@ import { ReportingAgent } from '../agents/general/reporting/reporting.agent';
 import { AppointmentAdminAgent } from '../agents/general/appointment/admin/appointment.agent';
 import { ReestockAgent } from '../agents/general/reestock/reestock.agent';
 import { OAuthService } from '../../../../features/auth/oauth.service';
-import { WhatsAppResponseService } from '../../../../features/messaging/features/whatsapp/services/whatsapp-response.service';
+import { WhatsAppMessagingService } from '../../../../features/messaging/features/whatsapp/services/whatsapp.messaging.service';
 import { TimeService } from '../../../../common/time/time.service';
 import { buildPrompt } from '../builders/prompt.builder';
 import { buildInitialState } from '../builders/initial-state.builder';
+import { handleGoogleAccountConnectionRequirement } from '../helpers/google-account-connection.helper';
 
 @Injectable()
 export class GeneralAdminOrchestratorConfig implements OrchestratorConfig {
@@ -26,7 +27,7 @@ export class GeneralAdminOrchestratorConfig implements OrchestratorConfig {
     private readonly appointmentAdminAgent: AppointmentAdminAgent,
     private readonly reestockAgent: ReestockAgent,
     private readonly oauthService: OAuthService,
-    private readonly whatsappResponse: WhatsAppResponseService,
+    private readonly whatsappMessaging: WhatsAppMessagingService,
     private readonly timeService: TimeService,
   ) {}
 
@@ -65,14 +66,17 @@ COMPORTAMIENTO:
       const hasCreds = await this.oauthService.checkCredentials(companyId);
 
       if (!hasCreds) {
-        this.logNeedsCalendar(userId, companyId);
-        await this.sendCalendarCta(userId, companyId, context);
-        return {
-          intent: 'UNKNOWN',
+        return handleGoogleAccountConnectionRequirement({
+          logger: this.logger,
+          oauthService: this.oauthService,
+          whatsappMessaging: this.whatsappMessaging,
+          context,
+          userId,
+          companyId,
           responseText:
-            'Necesitas completar la conexión con Google Calendar para continuar.',
+            'Necesitas completar la conexión con tu cuenta de Google para continuar.',
           agentUsed: this.getName(),
-        };
+        });
       }
     }
 
@@ -115,60 +119,6 @@ COMPORTAMIENTO:
 
   getErrorResponseText(): string {
     return 'Hubo un problema procesando tu solicitud interna. Intenta de nuevo en unos momentos.';
-  }
-
-  private logNeedsCalendar(userId: string, companyId: string): void {
-    this.logger.log(
-      `Admin ${userId} needs to connect Google Calendar for company ${companyId}`,
-    );
-  }
-
-  private async sendCalendarCta(
-    userId: string,
-    companyId: string,
-    context: RouterMessageContext,
-  ): Promise<void> {
-    try {
-      const authUrl = this.oauthService.getAuthUrl(companyId);
-      await this.whatsappResponse.sendCtaLink(
-        userId,
-        {
-          bodyText:
-            '⚠️ *Configuración necesaria*\n\nPara gestionar tu empresa, es necesario conectar con tu cuenta de Google.',
-          buttonDisplayText: 'Conectar Google',
-          buttonUrl: authUrl,
-          footerText: 'Cuando termines, vuelve al chat y continúa.',
-        },
-        {
-          phoneNumberId: context.phoneNumberId ?? context.tenant?.phoneNumberId,
-          companyId,
-        },
-      );
-      await this.whatsappResponse.sendStickerForEvent(
-        userId,
-        'error_or_unauthorized_action',
-        {
-          phoneNumberId: context.phoneNumberId ?? context.tenant?.phoneNumberId,
-          companyId,
-        },
-      );
-    } catch (error) {
-      this.logger.error(`Error sending auth URL: ${(error as Error).message}`);
-      try {
-        await this.whatsappResponse.sendStickerForEvent(
-          userId,
-          'error_or_unauthorized_action',
-          {
-            phoneNumberId: context.phoneNumberId ?? context.tenant?.phoneNumberId,
-            companyId,
-          },
-        );
-      } catch (stickerError) {
-        this.logger.error(
-          `Error sending error sticker: ${(stickerError as Error).message}`,
-        );
-      }
-    }
   }
 
   private normalizePhone(phone: string): string {
