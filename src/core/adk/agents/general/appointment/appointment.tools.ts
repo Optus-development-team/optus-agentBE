@@ -46,8 +46,8 @@ export class AppointmentToolsService {
         this.logger.debug(`Consultando disponibilidad para: ${args.date}`);
 
         const state = context?.state;
-        const companyId = state?.get('app:companyId') as string;
-        const userPhone = state?.get('user:phone');
+        const companyId = state?.get('app:companyId') as string ;
+        const userPhone = state?.get('user:phone') as string ;
 
         this.emitToolTriggered(companyId, 'check_availability');
 
@@ -125,7 +125,7 @@ export class AppointmentToolsService {
           const appointmentStart = this.timeService.buildAppointmentStart(
             args.date,
             args.time,
-            userPhone as string | undefined,
+            userPhone,
           );
 
           const event = await this.calendarService.createAppointment(
@@ -136,7 +136,7 @@ export class AppointmentToolsService {
               start: appointmentStart.startIso,
               durationMinutes,
             },
-            userPhone as string | undefined,
+            userPhone,
           );
           const appointmentLink = event.htmlLink;
           this.logger.debug(`Cita creada con enlace: ${appointmentLink}`);
@@ -181,7 +181,9 @@ export class AppointmentToolsService {
         reason: z.string().optional().describe('Motivo de la cancelación'),
       }),
       execute: (args, _context?: ToolContext) => {
-        const companyId = _context?.state?.get('app:companyId');
+        const companyId = _context?.state?.get('app:companyId') as
+          | string
+          | undefined;
         this.emitToolTriggered(companyId, 'cancel_appointment');
 
         this.logger.debug(`Cancelando cita: ${args.appointmentId}`);
@@ -207,7 +209,9 @@ export class AppointmentToolsService {
         newTime: z.string().describe('Nueva hora'),
       }),
       execute: (args, _context?: ToolContext) => {
-        const companyId = _context?.state?.get('app:companyId');
+        const companyId = _context?.state?.get('app:companyId') as
+          | string
+          | undefined;
         this.emitToolTriggered(companyId, 'reschedule_appointment');
 
         this.logger.debug(
@@ -244,8 +248,8 @@ export class AppointmentToolsService {
       }),
       execute: (args, context?: ToolContext) => {
         const state = context?.state;
-        const userPhone = state?.get('user:phone');
-        const companyId = state?.get('app:companyId');
+        const userPhone = state?.get('user:phone') as string | undefined;
+        const companyId = state?.get('app:companyId') as string | undefined;
 
         this.emitToolTriggered(companyId, 'list_user_appointments');
 

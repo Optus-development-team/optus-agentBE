@@ -6,9 +6,9 @@ import { UserRole } from '../../../../features/messaging/features/whatsapp/types
 import type { OrchestrationResult } from '../orchestrator.types';
 import type { OrchestratorConfig } from './orchestrator.config';
 import { OrchestratorToolsService } from '../orchestrator.tools';
-import { SalesAgent } from '../agents/general/sales/sales.agent';
-import { AppointmentClientAgent } from '../agents/general/appointment/client/appointment.agent';
-import { KnowledgeAgent } from '../agents/general/knowledge/knowledge.agent';
+import { SalesAgent } from '../../agents/general/sales/sales.agent';
+import { AppointmentClientAgent } from '../../agents/general/appointment/client/appointment.agent';
+import { KnowledgeAgent } from '../../agents/general/knowledge/knowledge.agent';
 import { TimeService } from '../../../../common/time/time.service';
 import { buildPrompt } from '../builders/prompt.builder';
 import { buildInitialState } from '../builders/initial-state.builder';

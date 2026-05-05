@@ -1,7 +1,9 @@
 import { Injectable, Logger, Scope } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Gemini, LlmAgent } from '@google/adk';
+import type { LlmAgent } from '@google/adk';
 import { AcademyToolsService } from './academy.tools';
+import { createGeminiAgent } from '../../shared/adk-agent.factory';
+import { AcademySubAgentConfig } from '../config/verticals.config';
 
 @Injectable({ scope: Scope.TRANSIENT })
 export class AcademyAgent {
@@ -12,36 +14,11 @@ export class AcademyAgent {
     private readonly config: ConfigService,
     private readonly tools: AcademyToolsService,
   ) {
-    const apiKey = this.config.get<string>('GOOGLE_GENAI_API_KEY', '');
-    const modelName = this.config.get<string>(
-      'GOOGLE_GENAI_MODEL',
-      'gemini-2.0-flash',
+    const agentConfig = new AcademySubAgentConfig();
+    this.agent = createGeminiAgent(
+      this.config,
+      agentConfig.buildDefinition(this.tools.allTools),
     );
-
-    if (!apiKey) {
-      throw new Error('Google AI no configurado para AcademyAgent');
-    }
-
-    const model = new Gemini({ apiKey, model: modelName });
-
-    const instruction = `Eres el agente académico de {app:companyName}.
-
-FUNCIONES PRINCIPALES:
-1. Consultar notas (query_student_grades).
-2. Consultar inscripciones activas (check_student_enrollments).
-
-REGLAS:
-- Si falta información del estudiante, solicita datos antes de ejecutar herramientas.
-- No inventes notas ni historial académico.
-- Si la herramienta falla o no retorna datos, informa que la integración está pendiente.`;
-
-    this.agent = new LlmAgent({
-      name: 'academy_agent',
-      model,
-      instruction,
-      description: 'Agente especializado en operaciones académicas',
-      tools: this.tools.allTools,
-    });
 
     this.logger.log('Academy Agent inicializado');
   }

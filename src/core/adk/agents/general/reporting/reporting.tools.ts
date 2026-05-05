@@ -29,7 +29,7 @@ export class ReportingToolsService {
       execute: async (args, context?: ToolContext) => {
         const state = context?.state;
         const userRole = state?.get('user:role');
-        const userPhone = state?.get('user:phone');
+        const userPhone = state?.get('user:phone') as string | undefined;
 
         if (userRole !== 'ADMIN') {
           return {

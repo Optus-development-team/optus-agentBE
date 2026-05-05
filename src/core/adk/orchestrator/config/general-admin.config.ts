@@ -6,9 +6,9 @@ import { UserRole } from '../../../../features/messaging/features/whatsapp/types
 import type { OrchestrationResult } from '../orchestrator.types';
 import type { OrchestratorConfig } from './orchestrator.config';
 import { OrchestratorToolsService } from '../orchestrator.tools';
-import { ReportingAgent } from '../agents/general/reporting/reporting.agent';
-import { AppointmentAdminAgent } from '../agents/general/appointment/admin/appointment.agent';
-import { ReestockAgent } from '../agents/general/reestock/reestock.agent';
+import { ReportingAgent } from '../../agents/general/reporting/reporting.agent';
+import { AppointmentAdminAgent } from '../../agents/general/appointment/admin/appointment.agent';
+import { ReestockAgent } from '../../agents/general/reestock/reestock.agent';
 import { OAuthService } from '../../../../features/auth/oauth.service';
 import { WhatsAppMessagingService } from '../../../../features/messaging/features/whatsapp/services/whatsapp.messaging.service';
 import { TimeService } from '../../../../common/time/time.service';
