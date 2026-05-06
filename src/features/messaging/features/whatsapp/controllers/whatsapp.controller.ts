@@ -16,7 +16,7 @@ import {
   ApiQuery,
   ApiTags,
 } from '@nestjs/swagger';
-import { WhatsappService } from '../services/whatsapp.controller.service';
+import { WhatsappService } from '../services/whatsapp.webhook.service';
 
 @ApiTags('WhatsApp Webhook')
 @Controller('webhooks/whatsapp')
