@@ -11,6 +11,7 @@ import type { RouterMessageContext } from '../../../../features/messaging/featur
 import type { OrchestrationResult } from '../orchestrator.types';
 import { SupabaseSessionService } from '../../session/supabase-session.service';
 import type { OrchestratorConfig } from '../config/orchestrator.config';
+import { ORCHESTRATOR_INPUT_SCHEMA } from '../types/orchestrator-io.types';
 
 export abstract class BaseOrchestratorService implements OnModuleInit {
   protected readonly logger: Logger;
@@ -50,7 +51,7 @@ export abstract class BaseOrchestratorService implements OnModuleInit {
     try {
       const userMessage = {
         role: 'user' as const,
-        parts: [{ text: this.orchestratorConfig.buildPrompt(context) }],
+        parts: [{ text: JSON.stringify(this.orchestratorConfig.buildInput(context)) }],
       };
 
       let responseText = '';
@@ -115,6 +116,7 @@ export abstract class BaseOrchestratorService implements OnModuleInit {
       model,
       instruction: this.orchestratorConfig.buildInstruction(),
       description: this.orchestratorConfig.getDescription(),
+      inputSchema: ORCHESTRATOR_INPUT_SCHEMA,
       subAgents: this.orchestratorConfig.getSubAgents(),
       tools: this.orchestratorConfig.getTools(),
     });

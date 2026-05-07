@@ -8,10 +8,11 @@ import {
   WhatsAppContact,
 } from '../dto/whatsapp-webhook.dto';
 import { AdkOrchestratorService } from '../../../../../core/adk/orchestrator/adk-orchestrator.service';
+import { LlmResponseFormatterService } from '../../../../../core/adk/formatters/llm-response-formatter.service';
 import { WhatsAppMessagingService } from './whatsapp.messaging.service';
 import { VerificationService } from '../../../../login/verification.service';
 import { IdentityService } from '../../../../auth/identity.service';
-import { TenantContext } from '../types/whatsapp.types';
+import { TenantContext, UserRole } from '../types/whatsapp.types';
 import type { PendingBurst } from '../types/whatsapp-message-burst.types';
 import { mapBurstToRouterMessageContext } from '../types/whatsapp-router-message-context.mapper';
 import { createWhatsAppInboundMessage } from '../mappers/whatsapp-inbound-message.mapper';
@@ -20,6 +21,7 @@ import {
   type IncomingWhatsAppWebhookContext,
 } from '../mappers/whatsapp-webhook.mapper';
 import { WhatsAppInboundMessage } from '../classes/whatsapp-inbound.message';
+import { WhatsAppOutboundMessage } from '../classes/whatsapp-outbound.message';
 import { MessageType } from '../../../interfaces/message.interface';
 import {
   SYSTEM_EVENT_CHANNEL,
@@ -46,6 +48,7 @@ export class WhatsappService {
   constructor(
     private readonly configService: ConfigService,
     private readonly adkOrchestrator: AdkOrchestratorService,
+    private readonly responseFormatter: LlmResponseFormatterService,
     private readonly messagingService: WhatsAppMessagingService,
     private readonly verification: VerificationService,
     private readonly identity: IdentityService,
@@ -300,14 +303,41 @@ export class WhatsappService {
 
     try {
       const result = await this.adkOrchestrator.route(context);
+      const formattedResponse = await this.responseFormatter.formatResponse({
+        responseText: result.responseText ?? '',
+        intent: result.intent,
+        agentUsed: result.agentUsed,
+      });
 
-      this.logger.debug(`🪧 [ADK] Mensaje ${result.responseText}`);
+      const outbound = WhatsAppOutboundMessage.Structured(
+        formattedResponse,
+        context.senderId,
+        context.tenant,
+        context.role ?? UserRole.CLIENT,
+        this.messagingService,
+      );
+
+      await outbound.send();
+
+      this.logger.debug(`🪧 [ADK] Mensaje ${result.responseText ?? ''}`);
 
       this.logger.log(
         `✅ [ADK] Mensaje procesado para ${context.senderId} - Intent: ${result.intent}`,
       );
     } catch (error) {
-      this.logger.error(`❌ Error en ADK orchestrator:`, error);
+      this.logger.error('❌ Error en ADK orchestrator:', error);
+      try {
+        await this.messagingService.sendStickerForEvent(
+          context.senderId,
+          'error_or_unauthorized_action',
+          {
+            phoneNumberId: context.tenant.phoneNumberId,
+            companyId: context.tenant.companyId,
+          },
+        );
+      } catch (stickerError) {
+        this.logger.error('Error enviando sticker de error:', stickerError);
+      }
     }
   }
 

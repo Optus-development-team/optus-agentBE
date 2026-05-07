@@ -37,6 +37,7 @@ import { AcademyToolsService } from './agents/verticals/academy/academy.tools';
 import { SalonStylistAgent } from './agents/verticals/salon/salon.agent';
 import { SalonToolsService } from './agents/verticals/salon/salon.tools';
 import { TimeModule } from '../../common/time/time.module';
+import { LlmResponseFormatterService } from './formatters/llm-response-formatter.service';
 
 @Module({
   imports: [
@@ -80,7 +81,8 @@ import { TimeModule } from '../../common/time/time.module';
     SalonToolsService,
     SalonStylistAgent,
     SupabaseSessionService,
+    LlmResponseFormatterService,
   ],
-  exports: [AdkOrchestratorService],
+  exports: [AdkOrchestratorService, LlmResponseFormatterService],
 })
 export class AdkModule {}

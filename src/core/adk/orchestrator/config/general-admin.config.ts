@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import type { FunctionTool, LlmAgent } from '@google/adk';
 import { ConfigService } from '@nestjs/config';
 import type { RouterMessageContext } from '../../../../features/messaging/features/whatsapp/types/whatsapp.types';
+import type { OrchestratorInput } from '../types/orchestrator-io.types';
 import { UserRole } from '../../../../features/messaging/features/whatsapp/types/whatsapp.types';
 import type { OrchestrationResult } from '../orchestrator.types';
 import type { OrchestratorConfig } from './orchestrator.config';
@@ -13,6 +14,7 @@ import { OAuthService } from '../../../../features/auth/oauth.service';
 import { WhatsAppMessagingService } from '../../../../features/messaging/features/whatsapp/services/whatsapp.messaging.service';
 import { TimeService } from '../../../../common/time/time.service';
 import { buildPrompt } from '../builders/prompt.builder';
+import { buildInput } from '../builders/input.builder';
 import { buildInitialState } from '../builders/initial-state.builder';
 import { handleGoogleAccountConnectionRequirement } from '../helpers/google-account-connection.helper';
 
@@ -85,6 +87,10 @@ COMPORTAMIENTO:
 
   buildPrompt(context: RouterMessageContext): string {
     return buildPrompt(context);
+  }
+
+  buildInput(context: RouterMessageContext): OrchestratorInput {
+    return buildInput(context);
   }
 
   buildInitialState(context: RouterMessageContext): Record<string, unknown> {

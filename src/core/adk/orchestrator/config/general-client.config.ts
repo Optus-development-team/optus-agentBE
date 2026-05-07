@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import type { FunctionTool, LlmAgent } from '@google/adk';
 import { ConfigService } from '@nestjs/config';
 import type { RouterMessageContext } from '../../../../features/messaging/features/whatsapp/types/whatsapp.types';
+import type { OrchestratorInput } from '../types/orchestrator-io.types';
 import { UserRole } from '../../../../features/messaging/features/whatsapp/types/whatsapp.types';
 import type { OrchestrationResult } from '../orchestrator.types';
 import type { OrchestratorConfig } from './orchestrator.config';
@@ -11,6 +12,7 @@ import { AppointmentClientAgent } from '../../agents/general/appointment/client/
 import { KnowledgeAgent } from '../../agents/general/knowledge/knowledge.agent';
 import { TimeService } from '../../../../common/time/time.service';
 import { buildPrompt } from '../builders/prompt.builder';
+import { buildInput } from '../builders/input.builder';
 import { buildInitialState } from '../builders/initial-state.builder';
 
 @Injectable()
@@ -50,6 +52,10 @@ COMPORTAMIENTO:
 
   buildPrompt(context: RouterMessageContext): string {
     return buildPrompt(context);
+  }
+
+  buildInput(context: RouterMessageContext): OrchestratorInput {
+    return buildInput(context);
   }
 
   buildInitialState(context: RouterMessageContext): Record<string, unknown> {

@@ -1,6 +1,17 @@
-import { Platform, MessageType, MessageDirection, MessageState, IMessage } from '../../../interfaces/message.interface';
+import {
+  Platform,
+  MessageType,
+  MessageDirection,
+  MessageState,
+  IMessage,
+} from '../../../interfaces/message.interface';
 import { TenantContext, UserRole, CompanyVertical } from '../types/whatsapp.types';
 import { WhatsAppMessagingService } from '../services/whatsapp.messaging.service';
+import type {
+  FormattedResponse,
+  FormattedResponseListSection,
+  FormattedResponseOption,
+} from '../../../../../core/adk/formatters/types/llm-response.types';
 
 /**
  * Representa un mensaje creado por nosotros, que va de salida hacia el usuario.
@@ -20,6 +31,7 @@ export class WhatsAppOutboundMessage implements IMessage<any> {
   public text?: string; // Text to send, valid if Type=TEXT
   public mediaUrl?: string; // valid if Type=MEDIA
   public caption?: string;
+  public formattedOutput?: FormattedResponse;
   
   public rawPayload: any = null; // Can hold generated JSON payload internally before dispatch
 
@@ -55,6 +67,24 @@ export class WhatsAppOutboundMessage implements IMessage<any> {
     return msg;
   }
 
+  static Structured(
+    output: FormattedResponse,
+    recipientId: string,
+    tenant: TenantContext,
+    role: UserRole,
+    messagingService: WhatsAppMessagingService,
+  ) {
+    const type = output.type === 'plain_text'
+      ? MessageType.TEXT
+      : MessageType.INTERACTIVE;
+    const msg = new WhatsAppOutboundMessage(recipientId, type, tenant, role, messagingService);
+    msg.formattedOutput = output;
+    if (output.type === 'plain_text') {
+      msg.text = output.text;
+    }
+    return msg;
+  }
+
   /** Lanza este único evento de envío (ya sea texto o media, utilizando info del objeto) */
   async send(options?: any): Promise<void> {
     if (this.state !== MessageState.DRAFT && this.state !== MessageState.FAILED) {
@@ -65,7 +95,9 @@ export class WhatsAppOutboundMessage implements IMessage<any> {
     const opts = { phoneNumberId: this.tenant.phoneNumberId, companyId: this.tenant.companyId, ...(options || {}) };
     try {
       let result;
-      if (this.type === MessageType.TEXT && this.text) {
+      if (this.formattedOutput) {
+        result = await this.sendStructuredOutput(opts);
+      } else if (this.type === MessageType.TEXT && this.text) {
         result = await this.messagingService.sendText(this.recipientId, this.text, opts);
       } else if (this.mediaUrl) {
          switch (this.type) {
@@ -85,6 +117,73 @@ export class WhatsAppOutboundMessage implements IMessage<any> {
       this.state = MessageState.FAILED;
       throw e;
     }
+  }
+
+  private async sendStructuredOutput(options: {
+    phoneNumberId?: string;
+    companyId?: string;
+  }) {
+    const output = this.formattedOutput;
+    if (!output) {
+      throw new Error('OutboundMessage sin output estructurado');
+    }
+
+    switch (output.type) {
+      case 'plain_text':
+        return this.messagingService.sendText(this.recipientId, output.text, {
+          phoneNumberId: options.phoneNumberId,
+          companyId: options.companyId,
+        });
+      case 'binary_question':
+        return this.messagingService.sendInteractiveButtons(
+          this.recipientId,
+          output.question,
+          this.mapButtons(output.options),
+          { phoneNumberId: options.phoneNumberId, companyId: options.companyId },
+        );
+      case 'buttons':
+        return this.messagingService.sendInteractiveButtons(
+          this.recipientId,
+          output.body,
+          this.mapButtons(output.options),
+          { phoneNumberId: options.phoneNumberId, companyId: options.companyId },
+        );
+      case 'list':
+        return this.messagingService.sendInteractiveList(
+          this.recipientId,
+          output.body,
+          output.buttonText,
+          this.mapListSections(output.sections),
+          { phoneNumberId: options.phoneNumberId, companyId: options.companyId },
+        );
+      default:
+        return this.messagingService.sendText(
+          this.recipientId,
+          JSON.stringify(output),
+          { phoneNumberId: options.phoneNumberId, companyId: options.companyId },
+        );
+    }
+  }
+
+  private mapButtons(options: FormattedResponseOption[]) {
+    return options.slice(0, 3).map((option) => ({
+      type: 'reply' as const,
+      reply: {
+        id: option.id,
+        title: option.title,
+      },
+    }));
+  }
+
+  private mapListSections(sections: FormattedResponseListSection[]) {
+    return sections.map((section) => ({
+      title: section.title,
+      rows: section.items.map((item) => ({
+        id: item.id,
+        title: item.title,
+        ...(item.description ? { description: item.description } : {}),
+      })),
+    }));
   }
 
   async changeStatus(status: 'read' | 'delivered' | 'typing'): Promise<void> {
