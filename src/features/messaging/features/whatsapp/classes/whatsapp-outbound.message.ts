@@ -74,14 +74,14 @@ export class WhatsAppOutboundMessage implements IMessage<any> {
     role: UserRole,
     messagingService: WhatsAppMessagingService,
   ) {
-    const type = output.type === 'plain_text'
-      ? MessageType.TEXT
-      : MessageType.INTERACTIVE;
-    const msg = new WhatsAppOutboundMessage(recipientId, type, tenant, role, messagingService);
+    const msg = new WhatsAppOutboundMessage(
+      recipientId,
+      MessageType.INTERACTIVE,
+      tenant,
+      role,
+      messagingService,
+    );
     msg.formattedOutput = output;
-    if (output.type === 'plain_text') {
-      msg.text = output.text;
-    }
     return msg;
   }
 
@@ -129,11 +129,6 @@ export class WhatsAppOutboundMessage implements IMessage<any> {
     }
 
     switch (output.type) {
-      case 'plain_text':
-        return this.messagingService.sendText(this.recipientId, output.text, {
-          phoneNumberId: options.phoneNumberId,
-          companyId: options.companyId,
-        });
       case 'binary_question':
         return this.messagingService.sendInteractiveButtons(
           this.recipientId,
@@ -156,13 +151,22 @@ export class WhatsAppOutboundMessage implements IMessage<any> {
           this.mapListSections(output.sections),
           { phoneNumberId: options.phoneNumberId, companyId: options.companyId },
         );
-      default:
-        return this.messagingService.sendText(
+      case 'cta_url':
+        return this.messagingService.sendInteractiveCtaUrl(
           this.recipientId,
-          JSON.stringify(output),
+          {
+            bodyText: output.body,
+            buttonDisplayText: output.buttonDisplayText,
+            buttonUrl: output.buttonUrl,
+            ...(output.headerImageUrl ? { headerImageUrl: output.headerImageUrl } : {}),
+            ...(output.headerImageId ? { headerImageId: output.headerImageId } : {}),
+            ...(output.footerText ? { footerText: output.footerText } : {}),
+          },
           { phoneNumberId: options.phoneNumberId, companyId: options.companyId },
         );
     }
+
+    throw new Error(`Tipo de respuesta estructurada no soportado: ${(output as { type: string }).type}`);
   }
 
   private mapButtons(options: FormattedResponseOption[]) {

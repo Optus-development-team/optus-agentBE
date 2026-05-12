@@ -8,7 +8,6 @@ import {
   WhatsAppContact,
 } from '../dto/whatsapp-webhook.dto';
 import { AdkOrchestratorService } from '../../../../../core/adk/orchestrator/adk-orchestrator.service';
-import { LlmResponseFormatterService } from '../../../../../core/adk/formatters/llm-response-formatter.service';
 import { WhatsAppMessagingService } from './whatsapp.messaging.service';
 import { VerificationService } from '../../../../login/verification.service';
 import { IdentityService } from '../../../../auth/identity.service';
@@ -23,6 +22,7 @@ import {
 import { WhatsAppInboundMessage } from '../classes/whatsapp-inbound.message';
 import { WhatsAppOutboundMessage } from '../classes/whatsapp-outbound.message';
 import { MessageType } from '../../../interfaces/message.interface';
+import type { StickerEventKey } from '../types/sticker-events.types';
 import {
   SYSTEM_EVENT_CHANNEL,
   SystemEventType,
@@ -48,7 +48,6 @@ export class WhatsappService {
   constructor(
     private readonly configService: ConfigService,
     private readonly adkOrchestrator: AdkOrchestratorService,
-    private readonly responseFormatter: LlmResponseFormatterService,
     private readonly messagingService: WhatsAppMessagingService,
     private readonly verification: VerificationService,
     private readonly identity: IdentityService,
@@ -303,11 +302,7 @@ export class WhatsappService {
 
     try {
       const result = await this.adkOrchestrator.route(context);
-      const formattedResponse = await this.responseFormatter.formatResponse({
-        responseText: result.responseText ?? '',
-        intent: result.intent,
-        agentUsed: result.agentUsed,
-      });
+      const formattedResponse = result.formattedResponse;
 
       const outbound = WhatsAppOutboundMessage.Structured(
         formattedResponse,
@@ -318,6 +313,17 @@ export class WhatsappService {
       );
 
       await outbound.send();
+
+      if (formattedResponse.stickerEventType) {
+        await this.messagingService.sendStickerForEvent(
+          context.senderId,
+          formattedResponse.stickerEventType as StickerEventKey,
+          {
+            phoneNumberId: context.tenant.phoneNumberId,
+            companyId: context.tenant.companyId,
+          },
+        );
+      }
 
       this.logger.debug(`🪧 [ADK] Mensaje ${result.responseText ?? ''}`);
 

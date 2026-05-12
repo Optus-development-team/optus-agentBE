@@ -13,9 +13,7 @@ import { ReestockAgent } from '../../agents/general/reestock/reestock.agent';
 import { KnowledgeAgent } from '../../agents/general/knowledge/knowledge.agent';
 import { AcademyAgent } from '../../agents/verticals/academy/academy.agent';
 import { OAuthService } from '../../../../features/auth/oauth.service';
-import { WhatsAppMessagingService } from '../../../../features/messaging/features/whatsapp/services/whatsapp.messaging.service';
 import { TimeService } from '../../../../common/time/time.service';
-import { buildPrompt } from '../builders/prompt.builder';
 import { buildInput } from '../builders/input.builder';
 import { buildInitialState } from '../builders/initial-state.builder';
 import { handleGoogleAccountConnectionRequirement } from '../helpers/google-account-connection.helper';
@@ -33,7 +31,6 @@ export class AcademyAdminOrchestratorConfig implements OrchestratorConfig {
     private readonly knowledgeAgent: KnowledgeAgent,
     private readonly academyAgent: AcademyAgent,
     private readonly oauthService: OAuthService,
-    private readonly whatsappMessaging: WhatsAppMessagingService,
     private readonly timeService: TimeService,
   ) {}
 
@@ -75,7 +72,6 @@ COMPORTAMIENTO:
         return handleGoogleAccountConnectionRequirement({
           logger: this.logger,
           oauthService: this.oauthService,
-          whatsappMessaging: this.whatsappMessaging,
           context,
           userId,
           companyId,
@@ -89,9 +85,7 @@ COMPORTAMIENTO:
     return null;
   }
 
-  buildPrompt(context: RouterMessageContext): string {
-    return buildPrompt(context, { includeVertical: true });
-  }
+  
 
   buildInput(context: RouterMessageContext): OrchestratorInput {
     return buildInput(context);

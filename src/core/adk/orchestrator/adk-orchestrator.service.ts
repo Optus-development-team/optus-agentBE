@@ -15,6 +15,7 @@ import {
   SystemEventType,
   type SystemNotificationEvent,
 } from '../../../common/events/system-events.types';
+import { LlmResponseFormatterService } from '../formatters/llm-response-formatter.service';
 
 @Injectable()
 export class AdkOrchestratorService {
@@ -28,6 +29,7 @@ export class AdkOrchestratorService {
     private readonly salonClientOrchestrator: SalonClientOrchestratorService,
     private readonly salonAdminOrchestrator: SalonAdminOrchestratorService,
     private readonly eventEmitter: EventEmitter2,
+    private readonly responseFormatter: LlmResponseFormatterService,
   ) {}
 
   async route(context: RouterMessageContext): Promise<OrchestrationResult> {
@@ -66,7 +68,38 @@ export class AdkOrchestratorService {
       });
     }
 
-    return result;
+    // Formatear la respuesta final a un objeto estructurado para la capa
+    // de mensajería. Esto mantiene a los agentes agnósticos respecto al
+    // canal (WhatsApp, SMS, etc.).
+    if (result.formattedResponse.type === 'cta_url') {
+      return result;
+    }
+
+    try {
+      return {
+        ...result,
+        formattedResponse: await this.responseFormatter.formatResponse({
+          responseText: result.responseText ?? '',
+          intent: result.intent,
+          agentUsed: result.agentUsed,
+        }),
+      };
+    } catch (err) {
+      this.logger.warn('No se pudo formatear respuesta en orchestrator', err);
+      return {
+        ...result,
+        formattedResponse: {
+          type: 'buttons',
+          body: result.responseText ?? 'No se pudo generar una respuesta estructurada.',
+          options: [
+            {
+              id: 'acknowledge',
+              title: 'Entendido',
+            },
+          ],
+        },
+      };
+    }
   }
 
   private emitCompanyEvent(

@@ -94,10 +94,16 @@ export class LlmResponseFormatterService {
       return formatted;
     }
 
-    this.logger.warn('No se pudo formatear la respuesta, usando plain_text');
+    this.logger.warn('No se pudo formatear la respuesta, usando fallback estructurado');
     return {
-      type: 'plain_text',
-      text: input.responseText,
+      type: 'buttons',
+      body: input.responseText,
+      options: [
+        {
+          id: 'acknowledge',
+          title: 'Entendido',
+        },
+      ],
     };
   }
 

@@ -11,7 +11,6 @@ import { ReportingAgent } from '../../agents/general/reporting/reporting.agent';
 import { AppointmentAdminAgent } from '../../agents/general/appointment/admin/appointment.agent';
 import { ReestockAgent } from '../../agents/general/reestock/reestock.agent';
 import { OAuthService } from '../../../../features/auth/oauth.service';
-import { WhatsAppMessagingService } from '../../../../features/messaging/features/whatsapp/services/whatsapp.messaging.service';
 import { TimeService } from '../../../../common/time/time.service';
 import { buildPrompt } from '../builders/prompt.builder';
 import { buildInput } from '../builders/input.builder';
@@ -29,7 +28,6 @@ export class GeneralAdminOrchestratorConfig implements OrchestratorConfig {
     private readonly appointmentAdminAgent: AppointmentAdminAgent,
     private readonly reestockAgent: ReestockAgent,
     private readonly oauthService: OAuthService,
-    private readonly whatsappMessaging: WhatsAppMessagingService,
     private readonly timeService: TimeService,
   ) {}
 
@@ -71,7 +69,6 @@ COMPORTAMIENTO:
         return handleGoogleAccountConnectionRequirement({
           logger: this.logger,
           oauthService: this.oauthService,
-          whatsappMessaging: this.whatsappMessaging,
           context,
           userId,
           companyId,
@@ -85,9 +82,7 @@ COMPORTAMIENTO:
     return null;
   }
 
-  buildPrompt(context: RouterMessageContext): string {
-    return buildPrompt(context);
-  }
+  
 
   buildInput(context: RouterMessageContext): OrchestratorInput {
     return buildInput(context);

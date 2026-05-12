@@ -11,6 +11,7 @@ import type { RouterMessageContext } from '../../../../features/messaging/featur
 import type { OrchestrationResult } from '../orchestrator.types';
 import { SupabaseSessionService } from '../../session/supabase-session.service';
 import type { OrchestratorConfig } from '../config/orchestrator.config';
+import type { FormattedResponse } from '../../formatters/types/llm-response.types';
 import { ORCHESTRATOR_INPUT_SCHEMA } from '../types/orchestrator-io.types';
 
 export abstract class BaseOrchestratorService implements OnModuleInit {
@@ -75,6 +76,7 @@ export abstract class BaseOrchestratorService implements OnModuleInit {
         intent: this.orchestratorConfig.detectIntent(context.originalText),
         responseText,
         agentUsed,
+        formattedResponse: this.buildFallbackFormattedResponse(responseText),
         sessionState: (
           await this.sessionService.getSession({
             appName: tenantAppName,
@@ -92,6 +94,9 @@ export abstract class BaseOrchestratorService implements OnModuleInit {
         intent: 'UNKNOWN',
         responseText: this.orchestratorConfig.getErrorResponseText(),
         agentUsed: this.orchestratorConfig.getName(),
+        formattedResponse: this.buildFallbackFormattedResponse(
+          this.orchestratorConfig.getErrorResponseText(),
+        ),
       };
     }
   }
@@ -158,5 +163,18 @@ export abstract class BaseOrchestratorService implements OnModuleInit {
 
   private normalizePhone(phone: string): string {
     return phone.replace(/\D/g, '');
+  }
+
+  private buildFallbackFormattedResponse(message: string): FormattedResponse {
+    return {
+      type: 'buttons',
+      body: message,
+      options: [
+        {
+          id: 'acknowledge',
+          title: 'Entendido',
+        },
+      ],
+    };
   }
 }

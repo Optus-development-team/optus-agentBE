@@ -7,7 +7,6 @@ export interface OrchestratorConfig {
   getName(): string;
   getDescription(): string;
   buildInstruction(): string;
-  buildPrompt(context: RouterMessageContext): string;
   buildInput
   (context: RouterMessageContext): OrchestratorInput;
   buildInitialState(context: RouterMessageContext): Record<string, unknown>;

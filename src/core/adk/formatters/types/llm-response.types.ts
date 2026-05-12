@@ -1,14 +1,18 @@
 import { z } from 'zod';
 import { zodObjectToSchema } from '@google/adk';
 export type FormattedResponseType =
-  | 'plain_text'
   | 'binary_question'
   | 'list'
-  | 'buttons';
+  | 'buttons'
+  | 'cta_url';
 
 export interface FormattedResponseOption {
   id: string;
   title: string;
+}
+
+export interface FormattedResponseBase {
+  stickerEventType?: string;
 }
 
 export interface FormattedResponseListItem {
@@ -22,35 +26,40 @@ export interface FormattedResponseListSection {
   items: FormattedResponseListItem[];
 }
 
-export interface PlainTextFormattedResponse {
-  type: 'plain_text';
-  text: string;
-}
-
-export interface BinaryQuestionFormattedResponse {
+export interface BinaryQuestionFormattedResponse extends FormattedResponseBase {
   type: 'binary_question';
   question: string;
   options: [FormattedResponseOption, FormattedResponseOption];
 }
 
-export interface ButtonsFormattedResponse {
+export interface ButtonsFormattedResponse extends FormattedResponseBase {
   type: 'buttons';
   body: string;
   options: FormattedResponseOption[];
 }
 
-export interface ListFormattedResponse {
+export interface ListFormattedResponse extends FormattedResponseBase {
   type: 'list';
   body: string;
   buttonText: string;
   sections: FormattedResponseListSection[];
 }
 
+export interface CtaUrlFormattedResponse extends FormattedResponseBase {
+  type: 'cta_url';
+  body: string;
+  buttonDisplayText: string;
+  buttonUrl: string;
+  headerImageUrl?: string;
+  headerImageId?: string;
+  footerText?: string;
+}
+
 export type FormattedResponse =
-  | PlainTextFormattedResponse
   | BinaryQuestionFormattedResponse
   | ButtonsFormattedResponse
-  | ListFormattedResponse;
+  | ListFormattedResponse
+  | CtaUrlFormattedResponse;
 
 export interface LlmResponseFormatInput {
   responseText: string;
@@ -85,13 +94,18 @@ const ResponseListSectionSchema = z.object({
 });
 
 const FormattedResponseSchema = z.object({
-  type: z.enum(['plain_text', 'binary_question', 'list', 'buttons']),
-  text: z.string().optional(),
+  type: z.enum(['binary_question', 'list', 'buttons', 'cta_url']),
   question: z.string().optional(),
   options: z.array(ResponseOptionSchema).optional(),
   body: z.string().optional(),
   buttonText: z.string().optional(),
+  buttonDisplayText: z.string().optional(),
+  buttonUrl: z.string().optional(),
+  headerImageUrl: z.string().optional(),
+  headerImageId: z.string().optional(),
+  footerText: z.string().optional(),
   sections: z.array(ResponseListSectionSchema).optional(),
+  stickerEventType: z.string().optional(),
 });
 
 export const LLM_FORMATTED_RESPONSE_SCHEMA = zodObjectToSchema(

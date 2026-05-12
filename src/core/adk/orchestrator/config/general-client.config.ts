@@ -11,7 +11,6 @@ import { SalesAgent } from '../../agents/general/sales/sales.agent';
 import { AppointmentClientAgent } from '../../agents/general/appointment/client/appointment.agent';
 import { KnowledgeAgent } from '../../agents/general/knowledge/knowledge.agent';
 import { TimeService } from '../../../../common/time/time.service';
-import { buildPrompt } from '../builders/prompt.builder';
 import { buildInput } from '../builders/input.builder';
 import { buildInitialState } from '../builders/initial-state.builder';
 
@@ -50,9 +49,7 @@ COMPORTAMIENTO:
 `;
   }
 
-  buildPrompt(context: RouterMessageContext): string {
-    return buildPrompt(context);
-  }
+  
 
   buildInput(context: RouterMessageContext): OrchestratorInput {
     return buildInput(context);
