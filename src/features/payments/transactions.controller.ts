@@ -93,6 +93,27 @@ export class TransactionsController {
         null,
     };
   }
+  @Post('item/:itemId')
+  @ApiOperation({ summary: 'Inicia proceso de pago para un item específico' })
+  async createPaymentLinkForItem(
+    @Headers('authorization') authorization: string,
+    @Param('itemId') itemId: string,
+  ): Promise<{ orderId: string | null }> {
+    const { userId } = this.resolveUser(authorization);
+
+    // Aquí podríamos agregar lógica para validar el itemId, obtener su precio, etc.
+    // Por simplicidad, asumiremos que el item es válido y tiene un precio fijo.
+
+    const orderId = await this.recordTransaction({
+      userId,
+      type: 'PURCHASE',
+      method: 'EXTERNAL_PAYMENT',
+      paymentReference: `ITEM-${itemId}`,
+    });
+
+    return { orderId };
+  }
+
 
   private async recordTransaction(params: {
     userId: string;
@@ -144,4 +165,6 @@ export class TransactionsController {
     const payload = this.tokens.verifyToken(token);
     return { userId: payload.userId };
   }
+
+
 }
