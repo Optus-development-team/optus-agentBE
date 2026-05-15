@@ -11,6 +11,7 @@ export class PaymentWorkflowService {
     private readonly whatsappMessaging: WhatsAppMessagingService,
   ) {}
 
+  // marked for modification
   async createPaymentLink(params: {
     senderPhone: string;
     orderId: string;
@@ -86,6 +87,7 @@ export class PaymentWorkflowService {
     }
   }
 
+  //marked for deletion
   async verifyProofPlaceholder(params: {
     senderPhone: string;
     companyId?: string;
@@ -109,6 +111,7 @@ export class PaymentWorkflowService {
     );
   }
 
+  //marked for deletion
   async choosePayoutPlaceholder(params: {
     senderPhone: string;
     method: 'FIAT' | 'USDC' | 'LATER';
@@ -133,6 +136,7 @@ export class PaymentWorkflowService {
     );
   }
 
+  //marked for deletion
   async sendUserInfoPlaceholder(params: {
     to: string;
     companyId?: string;
@@ -148,6 +152,7 @@ export class PaymentWorkflowService {
     );
   }
 
+  //marked for deletion
   private extractFirstUrl(source: unknown): string | null {
     const urlRegex = /https?:\/\/[^\s"']+/i;
 
