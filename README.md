@@ -1,138 +1,147 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# OPTUS Agent Backend
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+Backend NestJS para el bot de WhatsApp de OPTUS. Recibe webhooks de Meta,
+resuelve la empresa por `phone_number_id`, enruta mensajes al orquestador ADK y
+responde por WhatsApp Cloud API.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
-
-## Descripción
-
-Backend construido con [NestJS](https://nestjs.com/) para exponer un webhook de WhatsApp, enviar mensajes manualmente y consumir la API Graph de Meta. Ahora incluye documentación interactiva con Swagger.
-
-## Project setup
+## Setup
 
 ```bash
-$ npm install
+npm install
+npm run start
 ```
 
-## Configuración requerida
+Por defecto la API usa prefijo global `/v1`.
 
-Crear un archivo `.env` en la raíz con las variables:
+Health local:
 
-```
-WHATSAPP_API_VERSION=v24.0
-WHATSAPP_PHONE_NUMBER_ID=<id_del_numero>
-META_API_TOKEN=<token_de_acceso_meta>
-WHATSAPP_VERIFY_TOKEN=<token_para_verificacion>
+```http
+GET http://localhost:3000/v1
 ```
 
-### Nuevas funcionalidades: Catálogo de Meta
+Swagger:
 
-Para habilitar la sincronización con el catálogo de productos de Meta:
+```http
+GET http://localhost:3000/docs
+```
 
-1. Configura el `business_catalog_id` en la tabla `companies` de Supabase
-2. El token `META_API_TOKEN` debe tener permisos de catálogo
-3. Ver documentación completa en `.github/docs/META_CATALOG_INTEGRATION.md`
+## Variables Criticas
 
-Opcionalmente puedes añadir `APP_SECRET` para validar firmas HMAC cuando se implemente.
+Crear `.env` en la raiz. No commitear este archivo.
 
-## Multi-tenant y remitentes
+```env
+PORT='3000'
 
-- No existe lista blanca de números entrantes: cualquier remitente que escriba a tu número de WhatsApp Business se registra automáticamente como `CLIENT` en la tabla `company_users` y puede interactuar con los agentes.
-- Para designar administradores basta con insertar su número en `company_users` con rol `ADMIN`. Hasta entonces seguirán operando como clientes.
-- La conexión a base de datos usa una sola variable: `SUPABASE_DB_URL` (compatible con PostgreSQL). Para esta configuración directa usa el puerto `5432`.
-- Puedes proporcionar un certificado raíz propio mediante `SUPABASE_DB_CA_FILE`, `SUPABASE_DB_CA_BASE64` o `SUPABASE_DB_CA_CERT`. Si estás en desarrollo, `SUPABASE_DB_ALLOW_SELF_SIGNED=true` evitará errores por cadenas autofirmadas.
+WHATSAPP_API_VERSION='v24.0'
+WHATSAPP_PHONE_NUMBER_ID='<phone_number_id_interno_de_meta>'
+META_API_TOKEN='<token_meta>'
+WHATSAPP_VERIFY_TOKEN='<token_de_verificacion_webhook>'
+WHATSAPP_PROCESS_MESSAGES_SYNC='true'
 
-## Ejecutar el proyecto
+SUPABASE_DB_URL='<postgres_connection_string>'
+GOOGLE_GENAI_API_KEY='<gemini_api_key>'
+
+APP_JWT_SECRET='<secret_aleatorio>'
+AUTH_JWT_SECRET='<secret_aleatorio>'
+ENCRYPTION_KEY='<secret_aleatorio>'
+```
+
+`WHATSAPP_PHONE_NUMBER_ID` no es el numero visible del bot. Debe salir de:
+
+```txt
+Meta Developers -> App -> WhatsApp -> API Setup -> From phone number -> Phone number ID
+```
+
+Ese valor debe coincidir con `public.companies.whatsapp_phone_id` en Supabase.
+
+## Rutas Reales
+
+Base local:
+
+```txt
+http://localhost:3000/v1
+```
+
+Base Vercel actual:
+
+```txt
+https://optus-agent-be.vercel.app/v1
+```
+
+Endpoints principales:
+
+```http
+GET  /v1
+GET  /v1/webhooks/whatsapp
+POST /v1/webhooks/whatsapp
+POST /v1/webhooks/bank-provider
+GET  /v1/pay/:id
+POST /v1/pay/:id
+GET  /v1/auth/google
+GET  /v1/auth/google/callback
+POST /v1/auth/login
+POST /v1/auth/phone/otp
+GET  /v1/auth/phone/status
+GET  /v1/company
+POST /v1/company
+GET  /v1/company/products
+GET  /v1/company/orders
+GET  /v1/notifications/stream
+```
+
+Verificacion webhook Meta:
+
+```http
+GET /v1/webhooks/whatsapp?hub.mode=subscribe&hub.verify_token=<WHATSAPP_VERIFY_TOKEN>&hub.challenge=test123
+```
+
+Debe responder:
+
+```txt
+test123
+```
+
+## Vercel
+
+El proyecto se despliega como backend NestJS. El root `/` puede responder 404;
+probar siempre `/v1`.
+
+Variables necesarias en Vercel:
+
+```env
+WHATSAPP_API_VERSION
+WHATSAPP_PHONE_NUMBER_ID
+META_API_TOKEN
+WHATSAPP_VERIFY_TOKEN
+WHATSAPP_PROCESS_MESSAGES_SYNC=true
+SUPABASE_DB_URL
+GOOGLE_GENAI_API_KEY
+APP_JWT_SECRET
+AUTH_JWT_SECRET
+ENCRYPTION_KEY
+```
+
+Para Meta, la callback URL debe ser:
+
+```txt
+https://optus-agent-be.vercel.app/v1/webhooks/whatsapp
+```
+
+## Diagnostico Rapido
+
+Si el bot no responde:
+
+1. Verificar que el deploy compila en Vercel.
+2. Probar `GET /v1`.
+3. Probar el challenge de `GET /v1/webhooks/whatsapp`.
+4. Confirmar que `WHATSAPP_PHONE_NUMBER_ID` en Vercel coincide con
+   `companies.whatsapp_phone_id`.
+5. Revisar logs de Vercel para `POST /v1/webhooks/whatsapp`.
+6. Confirmar que `WHATSAPP_PROCESS_MESSAGES_SYNC=true` en Vercel.
+
+## Tests
 
 ```bash
-# development
-$ npm run start
-
-# watch mode (recarga automática)
-$ npm run start:dev
-
-# production mode
-$ npm run start:prod
+npm run build
+npm test -- --runInBand
 ```
-
-## Documentación Swagger
-
-Al levantar la aplicación estará disponible en `http://localhost:3000/docs` (ajusta el puerto según tu entorno). Ahí encontrarás los siguientes endpoints documentados:
-
-- `GET /webhook`: verificación usada por Meta.
-- `POST /webhook`: recepción de eventos entrantes.
-- `POST /webhook/send`: envío de mensajes de texto.
-- `POST /webhook/send-image`: envío de imágenes.
-- `POST /webhook/send-template`: envío de plantillas aprobadas.
-
-Cada DTO incluye ejemplos y validaciones para facilitar las pruebas desde Swagger UI.
-
-## Ejecutar pruebas
-
-```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
-```
-
-## Deployment
-
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
-
-```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
-```
-
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
-
-## Resources
-
-Check out a few resources that may come in handy when working with NestJS:
-
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).

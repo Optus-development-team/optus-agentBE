@@ -37,6 +37,7 @@ export class WhatsappService {
   private readonly defaultPhoneNumberId: string;
   private readonly sendAgentText: boolean;
   private readonly waitUntilMessageMs: number;
+  private readonly processMessagesSynchronously: boolean;
   // Cache in-memory para evitar reprocesar mensajes cuando Meta reintenta el webhook.
   private readonly processedMessageCache = new Map<string, number>();
   private readonly processedMessageTtlMs = 10 * 60 * 1000; // 10 minutos
@@ -61,6 +62,11 @@ export class WhatsappService {
     this.waitUntilMessageMs = Number(
       this.configService.get<string>('WAIT_UNTIL_MESSAGE', '3000'),
     );
+    this.processMessagesSynchronously =
+      this.configService.get<string>(
+        'WHATSAPP_PROCESS_MESSAGES_SYNC',
+        this.configService.get<string>('VERCEL') === '1' ? 'true' : 'false',
+      ) === 'true';
     this.logger.log('🤖 Orquestador ADK activado');
   }
 
@@ -202,6 +208,11 @@ export class WhatsappService {
 
     // La clase inbound ya resolvió el texto por nosotros durante su instanciación
     if (inboundMsg.text) {
+      if (this.processMessagesSynchronously) {
+        await this.processConversationMessageNow(inboundMsg);
+        return;
+      }
+
       await this.bufferConversationMessage(inboundMsg);
       return;
     }
@@ -432,6 +443,19 @@ export class WhatsappService {
   }
 
   // Funcion a la que se llama luego de que el timeout de la ráfaga expire, para procesar todos los mensajes recibidos en la ráfaga
+  private async processConversationMessageNow(
+    inboundMsg: WhatsAppInboundMessage,
+  ): Promise<void> {
+    const burst = new WhatsAppMessageBurst(inboundMsg);
+
+    if (!burst.aggregatedText) {
+      return;
+    }
+
+    await inboundMsg.changeStatus('typing');
+    await this.handleTextMessage(burst);
+  }
+
   private async flushConversation(key: string): Promise<void> {
     const pending = this.pendingBursts.get(key);
     if (!pending) {
