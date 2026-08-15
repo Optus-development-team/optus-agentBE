@@ -1,8 +1,7 @@
 import { MiddlewareConsumer, Module, NestModule, RequestMethod } from '@nestjs/common';
 import { HttpModule } from '@nestjs/axios';
-import { TransactionsController } from './transactions.controller';
-import { PaymentIntegrationService } from './payment-integration.service';
-import { PaymentWorkflowService } from './payment-workflow.service';
+import { TransactionsController } from './payments.controller';
+import { PaymentWorkflowService } from './payments.service';
 import { InfrastructureModule } from '../../common/intraestructure/infrastructure.module';
 import { SecurityModule } from '../../common/security/security.module';
 import { X402DynamicMiddleware } from '../../common/security/x402/x402.middleware';
@@ -16,7 +15,7 @@ import { WhatsappMessagingModule } from '../messaging/features/whatsapp/whatsapp
     WhatsappMessagingModule,
   ],
   controllers: [TransactionsController],
-  providers: [PaymentIntegrationService, PaymentWorkflowService, X402DynamicMiddleware],
+  providers: [PaymentWorkflowService, X402DynamicMiddleware],
   exports: [PaymentWorkflowService],
 })
 export class PaymentsModule implements NestModule {

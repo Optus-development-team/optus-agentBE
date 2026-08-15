@@ -13,6 +13,8 @@ import { ConfigService } from '@nestjs/config';
 import { paymentMiddleware, x402ResourceServer } from '@x402/express';
 import { HTTPFacilitatorClient } from '@x402/core/server';
 import { ExactEvmScheme } from '@x402/evm/exact/server';
+import { ExactStellarScheme } from '@x402/stellar/exact/server';
+
 
 import { SupabaseService } from '../../intraestructure/supabase/supabase.service';
 
@@ -41,7 +43,8 @@ export class X402DynamicMiddleware implements NestMiddleware {
     this.resourceServer = new x402ResourceServer(this.facilitatorClient)
       .register('eip155:43113', new ExactEvmScheme())
       .register('eip155:84532', new ExactEvmScheme())
-      .register('eip155:2043', new ExactEvmScheme());
+      .register('eip155:2043', new ExactEvmScheme())
+      .register('stellar:testnet', new ExactStellarScheme());
 
     this.logger.log('X402 Middleware inicializado con esquemas EVM');
   }

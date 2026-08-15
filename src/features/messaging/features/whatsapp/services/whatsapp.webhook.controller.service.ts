@@ -397,46 +397,54 @@ export class WhatsappService {
   }
 
   private async bufferConversationMessage(inboundMsg: WhatsAppInboundMessage): Promise<void> {
+    // Id de la conversación (combinación de phoneNumberId y senderId) para agrupar mensajes en un burst (conjunto de mensajes)
     const key = this.getConversationKey(
       inboundMsg.recipientId,
       inboundMsg.senderId,
     );
 
+    // Obtener burst pendiente para esta conversación
     let pending = this.pendingBursts.get(key);
+
+    // Si ya hay un burst pendiente, agregamos el mensaje a ese burst y reiniciamos el timeout
     if (pending) {
       clearTimeout(pending.timeout);
       pending.burst.addMessage(inboundMsg);
+    // Si no hay un burst pendiente, creamos uno nuevo
     } else {
       pending = {
         burst: new WhatsAppMessageBurst(inboundMsg),
         timeout: setTimeout(() => {}, 0),
       };
     }
-
+    // Recreamos el timeout al obtener un nuevo mensaje, para esperar a que el usuario termine de enviar mensajes antes de procesar la ráfaga completa
     pending.timeout = setTimeout(() => {
+      // Procesamos la ráfaga completa de mensajes después de que el usuario haya dejado de enviar mensajes por un tiempo
       this.flushConversation(key).catch((error) => {
         this.logger.error(
           `Error procesando buffer de conversación ${key}: ${(error as Error).message}`,
         );
       });
+    // el tiempo de espera se puede configurar en la variable de entorno WAIT_UNTIL_MESSAGE, por defecto 3000ms
     }, this.waitUntilMessageMs);
 
     this.pendingBursts.set(key, pending);
   }
 
+  // Funcion a la que se llama luego de que el timeout de la ráfaga expire, para procesar todos los mensajes recibidos en la ráfaga
   private async flushConversation(key: string): Promise<void> {
     const pending = this.pendingBursts.get(key);
     if (!pending) {
       return;
     }
-
+    // Eliminamos la ráfaga pendiente de la lista de pendientes
     this.pendingBursts.delete(key);
 
     if (!pending.burst.aggregatedText) {
       return;
     }
 
-    // Marca como leído/typing directamente desde el objeto inboud final bufferizado
+    // Marca como leído/typing directamente desde el objeto inbound final bufferizado
     await pending.burst.baseMessage.changeStatus('typing');
 
     /*     await pending.inboundMessage.sendSticker('processing_ai_thinking'); */

@@ -1,0 +1,305 @@
+Project optus_agentbe_db {
+  database_type: "PostgreSQL"
+  Note: "Schema público de Supabase refactorizado para arquitectura multi-tenant con verticales academy/salon/general"
+}
+
+Table adk_sessions {
+  session_id text [pk, not null]
+  company_id uuid [not null]
+  context_data json [not null]
+  updated_at timestamp [not null]
+}
+
+Table appointments {
+  id uuid [pk, not null]
+  company_id uuid [not null]
+  customer_id uuid
+  staff_id uuid
+  appointment_type text [not null]
+  context_type text [not null]
+  catalog_item_id uuid
+  title varchar
+  description text
+  scheduled_start timestamp [not null]
+  scheduled_end timestamp [not null]
+  location text
+  meeting_link text
+  status text [not null]
+  source varchar
+  created_by_staff_id uuid
+  metadata json [not null]
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+}
+
+Table catalog_items {
+  id uuid [pk, not null]
+  company_id uuid [not null]
+  item_type text [not null]
+  name text [not null]
+  description text
+  category text
+  sale_price decimal [not null]
+  cost_price decimal [not null]
+  currency text [not null]
+  sku text
+  barcode text
+  stock_on_hand decimal
+  duration_minutes int
+  capacity int
+  sessions_count int
+  is_active boolean [not null]
+  is_bookable boolean [not null]
+  is_sellable boolean [not null]
+  metadata json [not null]
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+}
+
+Table companies {
+  id uuid [pk, not null]
+  name varchar [not null]
+  company_type text [not null]
+  email varchar
+  phone varchar
+  address text
+  city varchar
+  country varchar
+  timezone varchar
+  currency_code varchar
+  currency text [not null]
+  vertical text [not null]
+  settings json [not null]
+  is_active boolean [not null]
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+}
+
+Table company_integrations {
+  id uuid [pk, not null]
+  company_id uuid [not null]
+  provider text [not null]
+  integration_name text
+  encrypted_credentials json [not null]
+  config_json json [not null]
+  status text [not null]
+  is_active boolean [not null]
+  last_sync_at timestamp
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+}
+
+Table company_users {
+  id uuid [pk, not null]
+  company_id uuid [not null]
+  phone text
+  role text [not null]
+  email text
+  alias text
+  permissions json [not null]
+  embedding vector(1536)
+  is_phone_verified boolean [not null]
+  last_login_at timestamp
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+}
+
+Table company_staff {
+  id uuid [pk, not null]
+  company_id uuid [not null]
+  user_id uuid
+  first_name varchar [not null]
+  last_name varchar
+  role text [not null]
+  specialty varchar
+  hire_date date
+  end_date date
+  salary decimal
+  commission_config json [not null]
+  is_active boolean [not null]
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+}
+
+Table customers {
+  id uuid [pk, not null]
+  company_id uuid [not null]
+  user_id uuid
+  customer_type text [not null]
+  first_name varchar
+  last_name varchar
+  company_name varchar
+  notes text
+  extra_data json [not null]
+  is_active boolean [not null]
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+}
+
+Table company_whatsapp_stickers {
+  id uuid [pk, not null]
+  company_id uuid [not null]
+  name text [not null]
+  sticker_url text [not null]
+  trigger_type text
+  trigger_value text
+  is_active boolean [not null]
+  metadata json [not null]
+  event_key text
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+}
+
+Table course_enrollments {
+  id uuid [pk, not null]
+  company_id uuid [not null]
+  customer_id uuid
+  catalog_item_id uuid [not null]
+  status text [not null]
+  enrolled_at timestamp [not null]
+  notes text
+}
+
+Table catalog_inventory {
+  id uuid [pk, not null]
+  company_id uuid [not null]
+  catalog_item_id uuid [not null]
+  current_stock decimal [not null]
+  reorder_point decimal [not null]
+  safety_stock decimal [not null]
+  notify json [not null]
+  updated_at timestamp [not null]
+}
+
+Table order_items {
+  id uuid [pk, not null]
+  order_id uuid [not null]
+  company_id uuid [not null]
+  item_type text [not null]
+  catalog_item_id uuid
+  item_name text [not null]
+  quantity decimal [not null]
+  unit_price decimal [not null]
+  unit_cost decimal [not null]
+  line_total decimal [not null]
+  created_at timestamp [not null]
+}
+
+Table orders {
+  id uuid [pk, not null]
+  company_id uuid [not null]
+  customer_id uuid
+  staff_id uuid
+  user_id uuid
+  order_number text
+  status text [not null]
+  subtotal decimal [not null]
+  discount decimal [not null]
+  total_amount decimal [not null]
+  currency text [not null]
+  payment_status text [not null]
+  qr_payment_link text
+  details text
+  metadata json [not null]
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+}
+
+Table payments {
+  id uuid [pk, not null]
+  company_id uuid [not null]
+  order_id uuid
+  customer_id uuid
+  amount decimal [not null]
+  currency text [not null]
+  method text [not null]
+  provider text
+  qr_reference text
+  qr_payload json
+  status text [not null]
+  paid_at timestamp
+  metadata json [not null]
+  created_at timestamp [not null]
+}
+
+Table public_knowledge_entries {
+  id uuid [pk, not null]
+  company_id uuid [not null]
+  entity_name text [not null]
+  text_content text [not null]
+  data json [not null]
+  is_active boolean [not null]
+  search_vector tsvector
+  semantic_embedding vector(1536)
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+}
+
+Table staff_availability {
+  id uuid [pk, not null]
+  company_id uuid [not null]
+  staff_id uuid [not null]
+  day_of_week int [not null]
+  start_time time [not null]
+  end_time time [not null]
+  is_available boolean [not null]
+  created_at timestamp [not null]
+}
+
+Table user_integrations {
+  id uuid [pk, not null]
+  user_id uuid [not null]
+  provider text [not null]
+  integration_name text
+  encrypted_credentials json [not null]
+  config_json json [not null]
+  status text [not null]
+  is_active boolean [not null]
+  last_sync_at timestamp
+  metadata json [not null]
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+}
+
+Table verification_codes {
+  id uuid [pk, not null]
+  phone text [not null]
+  code text [not null]
+  expires_at timestamp [not null]
+  verified boolean [not null]
+  created_at timestamp [not null]
+}
+
+Ref: adk_sessions.company_id > companies.id
+Ref: appointments.company_id > companies.id
+Ref: appointments.catalog_item_id > catalog_items.id
+Ref: appointments.created_by_staff_id > company_staff.id
+Ref: appointments.customer_id > customers.id
+Ref: appointments.staff_id > company_staff.id
+Ref: catalog_items.company_id > companies.id
+Ref: catalog_inventory.company_id > companies.id
+Ref: catalog_inventory.catalog_item_id > catalog_items.id
+Ref: company_integrations.company_id > companies.id
+Ref: company_users.company_id > companies.id
+Ref: company_staff.company_id > companies.id
+Ref: company_staff.user_id > company_users.id
+Ref: customers.company_id > companies.id
+Ref: customers.user_id > company_users.id
+Ref: company_whatsapp_stickers.company_id > companies.id
+Ref: course_enrollments.company_id > companies.id
+Ref: course_enrollments.catalog_item_id > catalog_items.id
+Ref: course_enrollments.customer_id > customers.id
+Ref: order_items.company_id > companies.id
+Ref: order_items.order_id > orders.id
+Ref: order_items.catalog_item_id > catalog_items.id
+Ref: orders.company_id > companies.id
+Ref: orders.customer_id > customers.id
+Ref: orders.staff_id > company_staff.id
+Ref: orders.user_id > company_users.id
+Ref: payments.company_id > companies.id
+Ref: payments.customer_id > customers.id
+Ref: payments.order_id > orders.id
+Ref: public_knowledge_entries.company_id > companies.id
+Ref: staff_availability.company_id > companies.id
+Ref: staff_availability.staff_id > company_staff.id
+Ref: user_integrations.user_id > company_users.id
