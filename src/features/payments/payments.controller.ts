@@ -1,33 +1,20 @@
 import {
-  Body,
+  BadRequestException,
   Controller,
-  Headers,
-  Param,
   Get,
+  NotFoundException,
+  Param,
   Post,
-  UnauthorizedException,
+  ServiceUnavailableException,
 } from '@nestjs/common';
-
-import {
-  ApiBearerAuth,
-  ApiOkResponse,
-  ApiOperation,
-  ApiTags,
-} from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { SupabaseService } from '../../common/intraestructure/supabase/supabase.service';
-import { TokenService } from '../../common/security/token.service';
-import { NotifySuccessDto } from './dto/payment.dto';
-import { ConfigService } from '@nestjs/config';
 
 @ApiTags('transactions')
 @ApiBearerAuth()
 @Controller('pay')
 export class TransactionsController {
-  constructor(
-    private readonly tokens: TokenService,
-    private readonly supabase: SupabaseService,
-    private readonly config: ConfigService,
-  ) {}
+  constructor(private readonly supabase: SupabaseService) {}
 
   @Get(':id')
   @ApiOperation({ summary: 'Obtiene estado de link de pago' })
@@ -43,10 +30,11 @@ export class TransactionsController {
       id: string;
       status: string;
       total_amount: string | null;
+      currency: string | null;
       details: string | null;
       metadata: Record<string, unknown> | null;
     }>(
-      'select id, status, total_amount, details, metadata from orders where id = $1 limit 1',
+      'select id, status, total_amount, currency, details, metadata from orders where id = $1 limit 1',
       [id],
     );
 
@@ -55,7 +43,7 @@ export class TransactionsController {
       id,
       status: row?.status ?? 'CART',
       amount: row?.total_amount ? Number(row.total_amount) : 0,
-      currency: 'USDC',
+      currency: row?.currency ?? 'USDC',
       concept: row?.details ?? 'Pago pendiente',
       qrImageLink:
         (row?.metadata as { qr_image_link?: string } | null)?.qr_image_link ??
@@ -64,14 +52,88 @@ export class TransactionsController {
   }
 
   @Post(':id')
-  @ApiOperation({ summary: 'Inicia proceso de pago para un item específico' })
+  @ApiOperation({ summary: 'Inicia proceso de pago para un item especifico' })
   async createPaymentLinkForItem(
-    @Param('id') id: string,
+    @Param('id') itemId: string,
   ): Promise<{ orderId: string | null }> {
-    //const { userId } = this.resolveUser(authorization);
+    if (!itemId) {
+      throw new BadRequestException('itemId es requerido');
+    }
 
-    return ;
+    if (!this.supabase.isEnabled()) {
+      throw new ServiceUnavailableException('Servicio de pagos no disponible');
+    }
+
+    const created = await this.supabase.query<{ id: string }>(
+      `WITH item AS (
+         SELECT id, company_id, item_type, name, sale_price, cost_price, currency
+           FROM catalog_items
+          WHERE id = $1
+            AND is_active = true
+            AND is_sellable = true
+          LIMIT 1
+       ),
+       new_order AS (
+         INSERT INTO orders (
+           company_id,
+           subtotal,
+           total_amount,
+           currency,
+           status,
+           payment_status,
+           details,
+           metadata
+         )
+         SELECT
+           company_id,
+           sale_price,
+           sale_price,
+           COALESCE(currency, 'USDC'),
+           'PENDING_PAYMENT',
+           'pending',
+           CONCAT('Pago de ', name),
+           jsonb_build_object(
+             'source', 'pay_endpoint',
+             'catalog_item_id', id
+           )
+         FROM item
+         RETURNING id, company_id
+       ),
+       new_item AS (
+         INSERT INTO order_items (
+           order_id,
+           company_id,
+           item_type,
+           catalog_item_id,
+           item_name,
+           quantity,
+           unit_price,
+           unit_cost,
+           line_total
+         )
+         SELECT
+           new_order.id,
+           item.company_id,
+           item.item_type,
+           item.id,
+           item.name,
+           1,
+           item.sale_price,
+           item.cost_price,
+           item.sale_price
+         FROM item
+         CROSS JOIN new_order
+         RETURNING order_id
+       )
+       SELECT id FROM new_order`,
+      [itemId],
+    );
+
+    const orderId = created[0]?.id ?? null;
+    if (!orderId) {
+      throw new NotFoundException('Producto invalido o inactivo');
+    }
+
+    return { orderId };
   }
-
-
 }
