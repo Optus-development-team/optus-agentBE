@@ -15,6 +15,12 @@ import {
   type FormattedResponse,
   type LlmResponseFormatInput,
 } from './types/llm-response.types';
+import { resolveGeminiModelName } from '../config/gemini-model.config';
+
+type AdkErrorEvent = {
+  errorCode?: string;
+  errorMessage?: string;
+};
 
 @Injectable()
 export class LlmResponseFormatterService {
@@ -23,10 +29,7 @@ export class LlmResponseFormatterService {
 
   constructor(private readonly config: ConfigService) {
     const apiKey = this.config.get<string>('GOOGLE_GENAI_API_KEY', '');
-    const modelName = this.config.get<string>(
-      'GOOGLE_GENAI_MODEL',
-      'gemini-2.0-flash',
-    );
+    const modelName = resolveGeminiModelName(this.config);
 
     if (!apiKey) {
       throw new Error('Google AI no configurado para el formateador');
@@ -82,6 +85,15 @@ export class LlmResponseFormatterService {
         sessionId: session.id, // ¡Aquí ya no será undefined!
         newMessage: userMessage,
       })) {
+        const adkError = event as AdkErrorEvent;
+        if (adkError.errorCode || adkError.errorMessage) {
+          throw new Error(
+            `ADK formatter event error ${adkError.errorCode ?? 'unknown'}: ${
+              adkError.errorMessage ?? 'sin detalle'
+            }`,
+          );
+        }
+
         if (isFinalResponse(event)) {
           formatted = this.extractFormattedResponse(event);
         }
@@ -97,7 +109,9 @@ export class LlmResponseFormatterService {
     this.logger.warn('No se pudo formatear la respuesta, usando fallback estructurado');
     return {
       type: 'buttons',
-      body: input.responseText,
+      body:
+        input.responseText?.trim() ||
+        'Ocurrió un error procesando tu mensaje. Intenta nuevamente en unos momentos.',
       options: [
         {
           id: 'acknowledge',

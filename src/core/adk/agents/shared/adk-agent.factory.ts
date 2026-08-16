@@ -1,15 +1,14 @@
 import { ConfigService } from '@nestjs/config';
 import { Gemini, LlmAgent } from '@google/adk';
 import type { SubAgentDefinition } from './subagent-definition';
+import { resolveGeminiModelName } from '../../config/gemini-model.config';
 
 export function createGeminiAgent(
   config: ConfigService,
   definition: SubAgentDefinition,
 ): LlmAgent {
   const apiKey = config.get<string>('GOOGLE_GENAI_API_KEY', '');
-  const modelName =
-    definition.modelName ??
-    config.get<string>('GOOGLE_GENAI_MODEL', 'gemini-2.0-flash');
+  const modelName = definition.modelName ?? resolveGeminiModelName(config);
 
   if (!apiKey) {
     throw new Error(
