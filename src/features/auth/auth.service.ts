@@ -121,7 +121,7 @@ export class AuthService {
       'update company_users set phone = $1, is_phone_verified = true where id = $2',
       [normalizedPhone, userId],
     );
-    await this.verification.markPhoneVerified(normalizedPhone);
+    await this.verification.markPhoneVerified(userId, normalizedPhone);
   }
 
   async setUserPhonePending(userId: string, phone: string): Promise<void> {

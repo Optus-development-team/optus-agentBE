@@ -83,7 +83,12 @@ export class OAuthService {
       ? await this.buildFullSession(user, email)
       : await this.buildPendingRegistrationSession(email, data.name ?? null);
 
-    this.logger.log("Ouath companyIDs", expectedCompanyId, "&&", expectedCompanyId, "!=", session.companyId);
+    this.logger.log(
+      'OAuth callback: expectedCompanyId=',
+      expectedCompanyId,
+      ', session.companyId=',
+      session.companyId,
+    );
 
     if (expectedCompanyId && expectedCompanyId !== session.companyId) {
       throw new Error('La empresa autenticada no coincide con el estado OAuth');
@@ -242,7 +247,7 @@ export class OAuthService {
               cu.company_id,
               cu.role,
               cu.is_phone_verified
-         FROM company_users cuzzzzzzzzzzzzzzzz
+         FROM company_users cu
         WHERE LOWER(cu.email) = LOWER($1)
         ORDER BY COALESCE(cu.is_phone_verified, false) DESC,
         CASE
@@ -277,8 +282,12 @@ export class OAuthService {
     authState: 'FULL';
     phoneVerified: true;
   }> {
-
-    this.logger.log("Building full session for user", user.userId, "with companyId", user.companyId);
+    this.logger.log(
+      'Building full session for user',
+      user.userId,
+      'with companyId',
+      user.companyId,
+    );
     if (!user.companyId) {
       throw new Error('Usuario sin empresa asociada para login completo');
     }
@@ -308,9 +317,9 @@ export class OAuthService {
     companyId: string;
     role: string;
     authState: 'PENDING_WHATSAPP';
-    phoneVerified: false;
+    phoneVerified: boolean;
   }> {
-    this.logger.log("Building pending registration session for email", email);
+    this.logger.log('Building pending registration session for email', email);
     const existing = await this.findCompanyUserByEmail(email);
 
     if (existing?.userId) {
@@ -323,7 +332,7 @@ export class OAuthService {
                 END,
                 email = COALESCE(email, $2),
                 alias = COALESCE($3, alias),
-                is_phone_verified = false,
+                is_phone_verified = COALESCE(is_phone_verified, false),
                 last_login_at = timezone('utc', now())
           WHERE id = $4
           RETURNING id`,
@@ -340,7 +349,7 @@ export class OAuthService {
         companyId: existing.companyId ?? this.registrationCompanyId,
         role: this.normalizeRole(existing.role, 'ADMIN'),
         authState: 'PENDING_WHATSAPP',
-        phoneVerified: false,
+        phoneVerified: Boolean(existing.isPhoneVerified),
       };
     }
 
@@ -473,6 +482,11 @@ export class OAuthService {
   }
 
   private getCallbackUrl(): string {
+    const explicitUrl = this.configService.get<string>('GOOGLE_CALLBACK_URL');
+    if (explicitUrl) {
+      return explicitUrl.replace(/\/$/, '');
+    }
+
     const baseUrl =
       this.configService.get<string>('MAIN_PAGE_URL') ||
       'http://localhost:3000';

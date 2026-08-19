@@ -342,7 +342,7 @@ export class WhatsappService {
         `✅ [ADK] Mensaje procesado para ${context.senderId} - Intent: ${result.intent}`,
       );
     } catch (error) {
-      this.logger.error('❌ Error en ADK orchestrator:', error);
+      this.logSafeOrchestratorError(error);
       try {
         await this.messagingService.sendStickerForEvent(
           context.senderId,
@@ -355,6 +355,29 @@ export class WhatsappService {
       } catch (stickerError) {
         this.logger.error('Error enviando sticker de error:', stickerError);
       }
+    }
+  }
+
+  private logSafeOrchestratorError(error: unknown): void {
+    const safeError = error as {
+      message?: string;
+      stack?: string;
+      response?: { status?: number; data?: unknown };
+    };
+
+    const details = safeError.response
+      ? {
+          status: safeError.response.status,
+          data: safeError.response.data,
+        }
+      : safeError.message ?? error;
+
+    this.logger.error(
+      `❌ Error en ADK orchestrator: ${JSON.stringify(details)}`,
+    );
+
+    if (safeError.stack) {
+      this.logger.debug(safeError.stack);
     }
   }
 

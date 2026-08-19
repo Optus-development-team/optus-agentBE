@@ -13,6 +13,12 @@ import { SupabaseSessionService } from '../../session/supabase-session.service';
 import type { OrchestratorConfig } from '../config/orchestrator.config';
 import type { FormattedResponse } from '../../formatters/types/llm-response.types';
 import { ORCHESTRATOR_INPUT_SCHEMA } from '../types/orchestrator-io.types';
+import { resolveGeminiModelName } from '../../config/gemini-model.config';
+
+type AdkErrorEvent = {
+  errorCode?: string;
+  errorMessage?: string;
+};
 
 export abstract class BaseOrchestratorService implements OnModuleInit {
   protected readonly logger: Logger;
@@ -63,6 +69,15 @@ export abstract class BaseOrchestratorService implements OnModuleInit {
         sessionId,
         newMessage: userMessage,
       })) {
+        const adkError = event as AdkErrorEvent;
+        if (adkError.errorCode || adkError.errorMessage) {
+          throw new Error(
+            `ADK event error ${adkError.errorCode ?? 'unknown'}: ${
+              adkError.errorMessage ?? 'sin detalle'
+            }`,
+          );
+        }
+
         if (event.author && event.author !== 'user') {
           agentUsed = event.author;
         }
@@ -70,6 +85,13 @@ export abstract class BaseOrchestratorService implements OnModuleInit {
         if (isFinalResponse(event)) {
           responseText = stringifyContent(event);
         }
+      }
+
+      if (!responseText.trim()) {
+        this.logger.warn(
+          `${this.orchestratorConfig.getName()} no devolvió texto final. Usando respuesta fallback.`,
+        );
+        responseText = this.orchestratorConfig.getErrorResponseText();
       }
 
       return {
@@ -103,10 +125,7 @@ export abstract class BaseOrchestratorService implements OnModuleInit {
 
   protected initialize(): void {
     const apiKey = this.configService.get<string>('GOOGLE_GENAI_API_KEY', '');
-    const modelName = this.configService.get<string>(
-      'GOOGLE_GENAI_MODEL',
-      'gemini-2.0-flash',
-    );
+    const modelName = resolveGeminiModelName(this.configService);
 
     if (!apiKey) {
       throw new Error(
