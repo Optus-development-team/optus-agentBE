@@ -148,8 +148,8 @@ export class AuthController {
 
       res.cookie('optus_auth', upgraded, {
         httpOnly: true,
-        secure: true,
-        sameSite: 'strict',
+        secure: this.isSecureCookie(),
+        sameSite: 'lax',
         path: '/',
         maxAge: this.authTokenService.getTtlMs(),
       });
@@ -181,8 +181,8 @@ export class AuthController {
       const token = this.authTokenService.issueToken(session);
       res.cookie('optus_auth', token, {
         httpOnly: true,
-        secure: true,
-        sameSite: 'strict',
+        secure: this.isSecureCookie(),
+        sameSite: 'lax',
         path: '/',
         maxAge: this.authTokenService.getTtlMs(),
       });
@@ -196,6 +196,10 @@ export class AuthController {
         .status(HttpStatus.INTERNAL_SERVER_ERROR)
         .send('Error authenticating with Google');
     }
+  }
+
+  private isSecureCookie(): boolean {
+    return this.configService.get<string>('NODE_ENV') === 'production';
   }
 
   private getFrontendDashboardUrl(): string {

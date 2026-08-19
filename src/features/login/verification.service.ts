@@ -107,13 +107,37 @@ export class VerificationService {
     return false;
   }
 
-  async markPhoneVerified(phone: string): Promise<void> {
+  async markPhoneVerified(userId: string, phone: string): Promise<void> {
     this.ensureSupabaseReady();
     const normalizedPhone = this.normalizePhone(phone);
     await this.supabase.query(
-      'update company_users set phone = $1, is_phone_verified = true where phone = $1',
-      [normalizedPhone],
+      'update company_users set phone = $1, is_phone_verified = true where id = $2',
+      [normalizedPhone, userId],
     );
+  }
+
+  /**
+   * Marca como verificado el teléfono del usuario dentro de una empresa específica.
+   * Multi-tenant seguro: filtra por `company_id` y `phone` normalizado.
+   * Devuelve `true` si se actualizó al menos un usuario.
+   */
+  async markPhoneVerifiedByCompany(
+    companyId: string,
+    phone: string,
+  ): Promise<boolean> {
+    this.ensureSupabaseReady();
+    const normalizedPhone = this.normalizePhone(phone);
+    const rows = await this.supabase.query<{ id: string }>(
+      `UPDATE company_users
+          SET phone = $1,
+              is_phone_verified = true
+        WHERE company_id = $2
+          AND regexp_replace(phone, '\\D', '', 'g') = $1
+        RETURNING id
+        LIMIT 1`,
+      [normalizedPhone, companyId],
+    );
+    return rows.length > 0;
   }
 
   private async getRowByPhone(
