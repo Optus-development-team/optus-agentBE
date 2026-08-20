@@ -29,6 +29,7 @@ import { LoginModule } from '../login/login.module';
     AuthTokenService,
     CookieJwtAuthGuard,
     FullCookieJwtAuthGuard,
+    OAuthService,
   ],
 })
 export class AuthModule {}

@@ -21,7 +21,8 @@ REGLAS:
 
 export class SalonSubAgentConfig extends BaseSubAgentConfig {
   readonly name = 'salon_stylist_agent';
-  readonly description = 'Agente especializado en operación de salón de belleza';
+  readonly description =
+    'Agente especializado en operación de salón de belleza';
   readonly errorLabel = 'SalonStylistAgent';
 
   buildInstruction(): string {

@@ -15,7 +15,6 @@ import { HTTPFacilitatorClient } from '@x402/core/server';
 import { ExactEvmScheme } from '@x402/evm/exact/server';
 import { ExactStellarScheme } from '@x402/stellar/exact/server';
 
-
 import { SupabaseService } from '../../intraestructure/supabase/supabase.service';
 
 @Injectable()
@@ -29,7 +28,9 @@ export class X402DynamicMiddleware implements NestMiddleware {
     private readonly configService: ConfigService,
   ) {
     const facilitatorUrl = this.configService.get<string>('FACILITATOR_URL');
-    const facilitatorApiKey = this.configService.get<string>('FACILITATOR_INTERNAL_API_KEY');
+    const facilitatorApiKey = this.configService.get<string>(
+      'FACILITATOR_INTERNAL_API_KEY',
+    );
 
     this.facilitatorClient = new HTTPFacilitatorClient({
       url: facilitatorUrl,
@@ -113,7 +114,10 @@ export class X402DynamicMiddleware implements NestMiddleware {
         accepts: paymentAccepts,
       };
 
-      const expressMiddleware = paymentMiddleware(routeConfig, this.resourceServer);
+      const expressMiddleware = paymentMiddleware(
+        routeConfig,
+        this.resourceServer,
+      );
 
       return expressMiddleware(req, res, next);
     } catch (error) {

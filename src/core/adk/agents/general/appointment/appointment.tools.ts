@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { CalendarService } from '../../../../../features/calendar/calendar.service';
+import { AppointmentsService } from '../../../../../features/calendar/appointments.service';
 import { FunctionTool } from '@google/adk';
 import type { ToolContext } from '@google/adk';
 import { EventEmitter2 } from '@nestjs/event-emitter';
@@ -16,7 +16,7 @@ export class AppointmentToolsService {
   private readonly logger = new Logger('AppointmentTools');
 
   constructor(
-    private readonly calendarService: CalendarService,
+    private readonly appointmentsService: AppointmentsService,
     private readonly timeService: TimeService,
     private readonly eventEmitter: EventEmitter2,
   ) {}
@@ -46,34 +46,34 @@ export class AppointmentToolsService {
         this.logger.debug(`Consultando disponibilidad para: ${args.date}`);
 
         const state = context?.state;
-        const companyId = state?.get('app:companyId') as string ;
-        const userPhone = state?.get('user:phone') as string ;
+        const companyId = this.stateString(state?.get('app:companyId'));
+        const userPhone = this.stateString(state?.get('user:phone'));
 
         this.emitToolTriggered(companyId, 'check_availability');
 
         try {
+          if (!companyId) throw new Error('Empresa no identificada');
           const resolvedDate = this.timeService.resolveDateBounds(
             args.date,
             userPhone,
           );
-          const events = await this.calendarService.checkAvailability(
+          const available = await this.appointmentsService.availability({
             companyId,
-            resolvedDate.date,
-            userPhone,
-          );
-          // Here you would process events to find free slots. For now returning raw events or a summary.
-          // Simplified logic: Just returning the events found for now.
+            date: resolvedDate.date,
+            durationMinutes: args.duration,
+          });
           return {
             success: true,
             date: resolvedDate.date,
-            events: events.map((e: any) => ({
-              start: e.start.dateTime || e.start.date,
-              end: e.end.dateTime || e.end.date,
-              summary: e.summary,
+            available: available.map((slot) => ({
+              start: slot.start,
+              end: slot.end,
+              staffId: slot.staffId,
+              staffName: slot.staffName,
             })),
-            message:
-              `Encontré estos eventos para ${resolvedDate.date}: ` +
-              events.map((e: any) => e.summary).join(', '),
+            message: available.length
+              ? `Hay ${available.length} horario(s) disponible(s) el ${resolvedDate.date}.`
+              : `No hay horarios disponibles el ${resolvedDate.date}.`,
           };
         } catch (error) {
           const err = error as Error;
@@ -112,13 +112,14 @@ export class AppointmentToolsService {
         );
 
         const state = context?.state;
-        const userPhone = state?.get('user:phone') as string | undefined;
-        const userName = state?.get('user:name') as string | undefined;
-        const companyId = state?.get('app:companyId') as string;
+        const userPhone = this.stateString(state?.get('user:phone'));
+        const userName = this.stateString(state?.get('user:name'));
+        const companyId = this.stateString(state?.get('app:companyId'));
 
         this.emitToolTriggered(companyId, 'create_appointment');
 
         try {
+          if (!companyId) throw new Error('Empresa no identificada');
           const durationMinutes = this.timeService.parseDurationToMinutes(
             args.duration,
           );
@@ -128,23 +129,29 @@ export class AppointmentToolsService {
             userPhone,
           );
 
-          const event = await this.calendarService.createAppointment(
-            companyId,
+          const appointment = await this.appointmentsService.create(
             {
-              summary: `Cita con ${userName || userPhone} - ${args.serviceType || 'General'}`,
+              companyId,
+              customerPhone: userPhone,
+              customerName: userName,
+              title: `Cita con ${userName || userPhone || 'cliente'} - ${args.serviceType || 'General'}`,
               description: args.notes || '',
               start: appointmentStart.startIso,
-              durationMinutes,
+              end: new Date(
+                new Date(appointmentStart.startIso).getTime() +
+                  durationMinutes * 60_000,
+              ).toISOString(),
+              appointmentType: 'service',
+              contextType: 'service',
             },
-            userPhone,
+            { kind: 'customer', companyId, phone: userPhone },
           );
-          const appointmentLink = event.htmlLink;
-          this.logger.debug(`Cita creada con enlace: ${appointmentLink}`);
+          this.logger.debug(`Cita creada en DB: ${appointment.id}`);
 
           this.emitCompanyEvent(companyId, {
             type: SystemEventType.APPOINTMENT_CREATED,
             payload: {
-              appointmentId: event.id,
+              appointmentId: appointment.id,
               date: args.date,
               time: args.time,
               durationMinutes,
@@ -153,8 +160,9 @@ export class AppointmentToolsService {
 
           return {
             success: true,
-            appointmentId: event.id,
-            link: event.htmlLink,
+            appointmentId: appointment.id,
+            link: appointment.google_calendar_link,
+            syncStatus: appointment.sync_status,
             durationMinutes,
             timezone: appointmentStart.timezone,
             message: `Cita agendada correctamente.`,
@@ -175,26 +183,57 @@ export class AppointmentToolsService {
   get cancelAppointmentTool(): FunctionTool {
     return new FunctionTool({
       name: 'cancel_appointment',
-      description: 'Cancela una cita existente por su ID.',
+      description:
+        'Cancela una cita por su ID o identificándola por fecha y hora.',
       parameters: z.object({
-        appointmentId: z.string().describe('ID de la cita a cancelar'),
+        appointmentId: z
+          .string()
+          .optional()
+          .describe('ID de la cita a cancelar'),
+        date: z
+          .string()
+          .optional()
+          .describe('Fecha de la cita si no se conoce su ID'),
+        time: z
+          .string()
+          .optional()
+          .describe('Hora de la cita si no se conoce su ID'),
         reason: z.string().optional().describe('Motivo de la cancelación'),
       }),
-      execute: (args, _context?: ToolContext) => {
-        const companyId = _context?.state?.get('app:companyId') as
-          | string
-          | undefined;
+      execute: async (args, _context?: ToolContext) => {
+        const companyId = this.stateString(
+          _context?.state?.get('app:companyId'),
+        );
         this.emitToolTriggered(companyId, 'cancel_appointment');
 
-        this.logger.debug(`Cancelando cita: ${args.appointmentId}`);
-
-        return {
-          success: true,
-          appointmentId: args.appointmentId,
-          status: 'cancelled',
-          reason: args.reason || 'Cancelada por el usuario',
-          message: `La cita ${args.appointmentId} ha sido cancelada. ¿Deseas reagendar?`,
-        };
+        try {
+          if (!companyId) throw new Error('Empresa no identificada');
+          const phone = this.stateString(_context?.state?.get('user:phone'));
+          if (!phone) throw new Error('Cliente no identificado');
+          const target = args.appointmentId
+            ? { id: args.appointmentId }
+            : await this.appointmentsService.findForCustomer({
+                companyId,
+                phone,
+                date: args.date,
+                time: args.time,
+              });
+          const appointment = await this.appointmentsService.cancel(
+            companyId,
+            target.id,
+            args.reason,
+            { kind: 'customer', companyId, phone },
+          );
+          return {
+            success: true,
+            appointmentId: appointment.id,
+            status: appointment.status,
+            syncStatus: appointment.sync_status,
+            message: `La cita ${appointment.id} ha sido cancelada. ¿Deseas reagendar?`,
+          };
+        } catch (error) {
+          return { success: false, message: (error as Error).message };
+        }
       },
     });
   }
@@ -202,32 +241,69 @@ export class AppointmentToolsService {
   get rescheduleAppointmentTool(): FunctionTool {
     return new FunctionTool({
       name: 'reschedule_appointment',
-      description: 'Cambia la fecha y/o hora de una cita existente.',
+      description:
+        'Cambia la fecha y/o hora de una cita existente por ID o fecha/hora actual.',
       parameters: z.object({
-        appointmentId: z.string().describe('ID de la cita a reprogramar'),
+        appointmentId: z
+          .string()
+          .optional()
+          .describe('ID de la cita a reprogramar'),
+        currentDate: z
+          .string()
+          .optional()
+          .describe('Fecha actual si no se conoce el ID'),
+        currentTime: z
+          .string()
+          .optional()
+          .describe('Hora actual si no se conoce el ID'),
         newDate: z.string().describe('Nueva fecha'),
         newTime: z.string().describe('Nueva hora'),
       }),
-      execute: (args, _context?: ToolContext) => {
-        const companyId = _context?.state?.get('app:companyId') as
-          | string
-          | undefined;
+      execute: async (args, _context?: ToolContext) => {
+        const companyId = this.stateString(
+          _context?.state?.get('app:companyId'),
+        );
         this.emitToolTriggered(companyId, 'reschedule_appointment');
 
         this.logger.debug(
           `Reprogramando cita ${args.appointmentId} a ${args.newDate} ${args.newTime}`,
         );
 
-        return {
-          success: true,
-          appointmentId: args.appointmentId,
-          previousDate: '2024-01-15',
-          previousTime: '10:00',
-          newDate: args.newDate,
-          newTime: args.newTime,
-          status: 'rescheduled',
-          message: `Cita ${args.appointmentId} reprogramada para ${args.newDate} a las ${args.newTime}.`,
-        };
+        try {
+          if (!companyId) throw new Error('Empresa no identificada');
+          const phone = this.stateString(_context?.state?.get('user:phone'));
+          if (!phone) throw new Error('Cliente no identificado');
+          const target = args.appointmentId
+            ? { id: args.appointmentId }
+            : await this.appointmentsService.findForCustomer({
+                companyId,
+                phone,
+                date: args.currentDate,
+                time: args.currentTime,
+              });
+          const start = this.timeService.buildAppointmentStart(
+            args.newDate,
+            args.newTime,
+            phone,
+          );
+          const appointment =
+            await this.appointmentsService.rescheduleKeepingDuration(
+              companyId,
+              target.id,
+              start.startIso,
+              { kind: 'customer', companyId, phone },
+            );
+          return {
+            success: true,
+            appointmentId: appointment.id,
+            newDate: args.newDate,
+            newTime: args.newTime,
+            syncStatus: appointment.sync_status,
+            message: `Cita ${appointment.id} reprogramada para ${args.newDate} a las ${args.newTime}.`,
+          };
+        } catch (error) {
+          return { success: false, message: (error as Error).message };
+        }
       },
     });
   }
@@ -246,35 +322,35 @@ export class AppointmentToolsService {
           .optional()
           .describe('Número máximo de citas a mostrar'),
       }),
-      execute: (args, context?: ToolContext) => {
+      execute: async (args, context?: ToolContext) => {
         const state = context?.state;
-        const userPhone = state?.get('user:phone') as string | undefined;
-        const companyId = state?.get('app:companyId') as string | undefined;
+        const userPhone = this.stateString(state?.get('user:phone'));
+        const companyId = this.stateString(state?.get('app:companyId'));
 
         this.emitToolTriggered(companyId, 'list_user_appointments');
 
         this.logger.debug(`Listando citas para usuario: ${userPhone}`);
 
+        if (!companyId || !userPhone) {
+          return { success: false, message: 'No pude identificar al usuario.' };
+        }
+        const appointments = await this.appointmentsService.listForCustomer(
+          companyId,
+          userPhone,
+          args.status,
+          args.limit,
+        );
         return {
           success: true,
-          appointments: [
-            {
-              id: 'APT-001',
-              date: '2024-01-20',
-              time: '10:00',
-              status: 'confirmed',
-              serviceType: 'Consulta general',
-            },
-            {
-              id: 'APT-002',
-              date: '2024-01-25',
-              time: '15:00',
-              status: 'confirmed',
-              serviceType: 'Seguimiento',
-            },
-          ],
+          appointments: appointments.map((appointment) => ({
+            id: appointment.id,
+            start: appointment.scheduled_start,
+            end: appointment.scheduled_end,
+            status: appointment.status,
+            title: appointment.title,
+          })),
           filter: args.status || 'upcoming',
-          message: 'Tienes 2 citas programadas próximamente.',
+          message: `Tienes ${appointments.length} cita(s).`,
         };
       },
     });
@@ -296,6 +372,7 @@ export class AppointmentToolsService {
       this.createAppointmentTool,
       this.cancelAppointmentTool,
       this.rescheduleAppointmentTool,
+      this.listUserAppointmentsTool,
     ];
   }
 
@@ -315,6 +392,10 @@ export class AppointmentToolsService {
       type: SystemEventType.TOOL_ACTION_TRIGGERED,
       payload: { toolName },
     });
+  }
+
+  private stateString(value: unknown): string | undefined {
+    return typeof value === 'string' ? value : undefined;
   }
 
   private emitCompanyEvent(

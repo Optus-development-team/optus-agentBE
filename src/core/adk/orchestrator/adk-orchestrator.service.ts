@@ -34,7 +34,7 @@ export class AdkOrchestratorService {
 
   async route(context: RouterMessageContext): Promise<OrchestrationResult> {
     const role = context.role ?? UserRole.CLIENT;
-    this.logger.debug("Role", role, "for sender", context.senderId);
+    this.logger.debug('Role', role, 'for sender', context.senderId);
     const vertical = this.normalizeVertical(context.tenant.vertical);
     const orchestrator = this.resolveOrchestrator(role, vertical);
     const companyId = context.tenant?.companyId;
@@ -90,7 +90,9 @@ export class AdkOrchestratorService {
         ...result,
         formattedResponse: {
           type: 'buttons',
-          body: result.responseText ?? 'No se pudo generar una respuesta estructurada.',
+          body:
+            result.responseText ??
+            'No se pudo generar una respuesta estructurada.',
           options: [
             {
               id: 'acknowledge',

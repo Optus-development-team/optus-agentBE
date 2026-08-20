@@ -83,7 +83,14 @@ export class OAuthService {
       ? await this.buildFullSession(user, email)
       : await this.buildPendingRegistrationSession(email, data.name ?? null);
 
-    this.logger.log("Ouath companyIDs", expectedCompanyId, "&&", expectedCompanyId, "!=", session.companyId);
+    this.logger.log(
+      'Ouath companyIDs',
+      expectedCompanyId,
+      '&&',
+      expectedCompanyId,
+      '!=',
+      session.companyId,
+    );
 
     if (expectedCompanyId && expectedCompanyId !== session.companyId) {
       throw new Error('La empresa autenticada no coincide con el estado OAuth');
@@ -136,6 +143,29 @@ export class OAuthService {
     return rows.length > 0;
   }
 
+  async disconnectCalendar(companyId: string): Promise<void> {
+    const tokens = await this.loadStoredTokens(companyId);
+    if (tokens) {
+      const client = this.createOAuthClient();
+      client.setCredentials(tokens);
+      try {
+        await client.revokeCredentials();
+      } catch (error) {
+        this.logger.warn(
+          `Google no pudo revocar las credenciales de ${companyId}: ${(error as Error).message}`,
+        );
+      }
+    }
+    await this.supabase.query(
+      `UPDATE company_integrations
+          SET encrypted_credentials = '{}'::jsonb, is_active = FALSE,
+              sync_enabled = FALSE, webhook_configured = FALSE,
+              updated_at = NOW()
+        WHERE company_id = $1 AND provider = 'GOOGLE_CALENDAR'`,
+      [companyId],
+    );
+  }
+
   async getClient(companyId: string): Promise<Auth.OAuth2Client> {
     const rows = await this.supabase.query<{
       encrypted_credentials: { token?: string } | null;
@@ -159,6 +189,14 @@ export class OAuthService {
 
     const auth = this.createOAuthClient();
     auth.setCredentials(tokens);
+    auth.on('tokens', (refreshedTokens) => {
+      void this.saveCredentialsSafe(companyId, refreshedTokens).catch(
+        (error: Error) =>
+          this.logger.error(
+            `No se pudieron persistir tokens renovados de ${companyId}: ${error.message}`,
+          ),
+      );
+    });
     return auth;
   }
 
@@ -212,18 +250,30 @@ export class OAuthService {
       JSON.stringify(params.tokens),
     );
 
-    await this.supabase.query(
-      `INSERT INTO user_integrations (
-         user_id, provider, encrypted_credentials, metadata, is_active, created_at, updated_at
-       )
-       VALUES ($1, $2, $3::jsonb, $4::jsonb, true, timezone('utc', now()), timezone('utc', now()))
-       ON CONFLICT (user_id, provider)
-       DO UPDATE SET encrypted_credentials = EXCLUDED.encrypted_credentials,
-                     metadata = EXCLUDED.metadata,
-                     is_active = true,
-                     updated_at = timezone('utc', now())`,
-      [params.userId, params.provider, { token: encrypted }, params.metadata],
+    const existing = await this.supabase.query<{ id: string }>(
+      `SELECT id FROM user_integrations
+        WHERE user_id = $1 AND provider = $2
+        ORDER BY updated_at DESC LIMIT 1`,
+      [params.userId, params.provider],
     );
+    if (existing[0]) {
+      await this.supabase.query(
+        `UPDATE user_integrations
+            SET encrypted_credentials = $2::jsonb, metadata = $3::jsonb,
+                is_active = true, updated_at = timezone('utc', now())
+          WHERE id = $1`,
+        [existing[0].id, { token: encrypted }, params.metadata],
+      );
+    } else {
+      await this.supabase.query(
+        `INSERT INTO user_integrations (
+           user_id, provider, encrypted_credentials, metadata, is_active,
+           created_at, updated_at
+         ) VALUES ($1, $2, $3::jsonb, $4::jsonb, true,
+                   timezone('utc', now()), timezone('utc', now()))`,
+        [params.userId, params.provider, { token: encrypted }, params.metadata],
+      );
+    }
   }
 
   private async findCompanyUserByEmail(email: string): Promise<{
@@ -242,7 +292,7 @@ export class OAuthService {
               cu.company_id,
               cu.role,
               cu.is_phone_verified
-         FROM company_users cuzzzzzzzzzzzzzzzz
+         FROM company_users cu
         WHERE LOWER(cu.email) = LOWER($1)
         ORDER BY COALESCE(cu.is_phone_verified, false) DESC,
         CASE
@@ -277,8 +327,12 @@ export class OAuthService {
     authState: 'FULL';
     phoneVerified: true;
   }> {
-
-    this.logger.log("Building full session for user", user.userId, "with companyId", user.companyId);
+    this.logger.log(
+      'Building full session for user',
+      user.userId,
+      'with companyId',
+      user.companyId,
+    );
     if (!user.companyId) {
       throw new Error('Usuario sin empresa asociada para login completo');
     }
@@ -310,7 +364,7 @@ export class OAuthService {
     authState: 'PENDING_WHATSAPP';
     phoneVerified: false;
   }> {
-    this.logger.log("Building pending registration session for email", email);
+    this.logger.log('Building pending registration session for email', email);
     const existing = await this.findCompanyUserByEmail(email);
 
     if (existing?.userId) {

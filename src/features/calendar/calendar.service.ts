@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
-import { OAuthService } from '../auth/oauth.service';
-import { google } from 'googleapis';
+import { google, type calendar_v3 } from 'googleapis';
 import dayjs from 'dayjs';
+import { OAuthService } from '../auth/oauth.service';
 import { TimeService } from '../../common/time/time.service';
 
 @Injectable()
@@ -11,27 +11,48 @@ export class CalendarService {
     private readonly timeService: TimeService,
   ) {}
 
-  // --- Calendar Operations ---
-
   async checkAvailability(
     companyId: string,
     date: string,
     phoneNumber?: string,
-  ): Promise<any[]> {
-    const auth = await this.oauthService.getClient(companyId);
-    const calendar = google.calendar({ version: 'v3', auth });
-    const dateBounds = this.timeService.resolveDateBounds(date, phoneNumber);
+    calendarId = 'primary',
+  ): Promise<calendar_v3.Schema$Event[]> {
+    const bounds = this.timeService.resolveDateBounds(date, phoneNumber);
+    const response = await this.client(companyId).then((calendar) =>
+      calendar.events.list({
+        calendarId,
+        timeMin: bounds.timeMinIso,
+        timeMax: bounds.timeMaxIso,
+        singleEvents: true,
+        orderBy: 'startTime',
+        showDeleted: false,
+      }),
+    );
+    return response.data.items ?? [];
+  }
 
-    const res = await calendar.events.list({
-      calendarId: 'primary',
-      timeMin: dateBounds.timeMinIso,
-      timeMax: dateBounds.timeMaxIso,
+  async listEvents(
+    companyId: string,
+    calendarId: string,
+    options: {
+      updatedMin?: string;
+      timeMin?: string;
+      pageToken?: string;
+      syncToken?: string;
+    } = {},
+  ): Promise<calendar_v3.Schema$Events> {
+    const calendar = await this.client(companyId);
+    const response = await calendar.events.list({
+      calendarId,
       singleEvents: true,
-      orderBy: 'startTime',
+      showDeleted: true,
+      maxResults: 250,
+      pageToken: options.pageToken,
+      syncToken: options.syncToken,
+      updatedMin: options.syncToken ? undefined : options.updatedMin,
+      timeMin: options.syncToken ? undefined : options.timeMin,
     });
-
-    // Simply returning events for now, logic to determine "slots" can be added here
-    return res.data.items || [];
+    return response.data;
   }
 
   async createAppointment(
@@ -39,50 +60,133 @@ export class CalendarService {
     details: {
       summary: string;
       start: string;
-      durationMinutes: number;
+      durationMinutes?: number;
+      end?: string;
       description?: string;
+      location?: string;
+      calendarId?: string;
+      appointmentId?: string;
     },
     phoneNumber?: string,
-  ): Promise<any> {
-    const auth = await this.oauthService.getClient(companyId);
-    const calendar = google.calendar({ version: 'v3', auth });
+  ): Promise<calendar_v3.Schema$Event & { calendarAppLink?: string }> {
+    const calendar = await this.client(companyId);
     const timezone = this.timeService.getTimezone(phoneNumber);
     const startDate = dayjs(details.start);
+    const endDate = details.end
+      ? dayjs(details.end)
+      : startDate.add(details.durationMinutes ?? 30, 'minute');
 
-    if (!startDate.isValid()) {
-      throw new Error('Fecha/hora de inicio inválida para crear la cita.');
+    if (
+      !startDate.isValid() ||
+      !endDate.isValid() ||
+      !endDate.isAfter(startDate)
+    ) {
+      throw new Error('El rango de fecha y hora de la cita no es válido');
     }
 
-    const endDate = startDate.add(details.durationMinutes, 'minute');
-
-    const res = await calendar.events.insert({
-      calendarId: 'primary',
+    const response = await calendar.events.insert({
+      calendarId: details.calendarId ?? 'primary',
       requestBody: {
         summary: details.summary,
         description: details.description,
-        start: {
-          dateTime: startDate.toISOString(),
-          timeZone: timezone,
-        },
-        end: {
-          dateTime: endDate.toISOString(),
-          timeZone: timezone,
-        },
+        location: details.location,
+        start: { dateTime: startDate.toISOString(), timeZone: timezone },
+        end: { dateTime: endDate.toISOString(), timeZone: timezone },
+        extendedProperties: details.appointmentId
+          ? { private: { optusAppointmentId: details.appointmentId } }
+          : undefined,
       },
     });
-    console.log('Evento creado en Google Calendar:', res.data);
 
     return {
-      ...res.data,
-      calendarAppLink: this.buildCalendarAppLink(res.data.id),
+      ...response.data,
+      calendarAppLink: this.buildCalendarAppLink(response.data.id),
     };
   }
 
-  private buildCalendarAppLink(eventId?: string | null): string | undefined {
-    if (!eventId) {
-      return undefined;
-    }
+  async updateAppointment(
+    companyId: string,
+    calendarId: string,
+    eventId: string,
+    details: {
+      summary: string;
+      description?: string | null;
+      location?: string | null;
+      start: string;
+      end: string;
+    },
+  ): Promise<calendar_v3.Schema$Event> {
+    const calendar = await this.client(companyId);
+    const response = await calendar.events.patch({
+      calendarId,
+      eventId,
+      requestBody: {
+        summary: details.summary,
+        description: details.description ?? undefined,
+        location: details.location ?? undefined,
+        start: { dateTime: dayjs(details.start).toISOString() },
+        end: { dateTime: dayjs(details.end).toISOString() },
+      },
+    });
+    return response.data;
+  }
 
-    return `https://calendar.app.google/${encodeURIComponent(eventId)}`;
+  async deleteAppointment(
+    companyId: string,
+    calendarId: string,
+    eventId: string,
+  ): Promise<void> {
+    const calendar = await this.client(companyId);
+    try {
+      await calendar.events.delete({ calendarId, eventId });
+    } catch (error) {
+      const candidate = error as {
+        code?: number;
+        response?: { status?: number };
+      };
+      const status = candidate.response?.status ?? candidate.code;
+      if (status !== 404 && status !== 410) throw error;
+    }
+  }
+
+  async watch(
+    companyId: string,
+    calendarId: string,
+    channelId: string,
+    address: string,
+  ): Promise<calendar_v3.Schema$Channel> {
+    const calendar = await this.client(companyId);
+    const response = await calendar.events.watch({
+      calendarId,
+      requestBody: {
+        id: channelId,
+        type: 'web_hook',
+        address,
+        params: { ttl: '604800' },
+      },
+    });
+    return response.data;
+  }
+
+  async stopChannel(
+    companyId: string,
+    channelId: string,
+    resourceId: string,
+  ): Promise<void> {
+    const calendar = await this.client(companyId);
+    await calendar.channels.stop({
+      requestBody: { id: channelId, resourceId },
+    });
+  }
+
+  private async client(companyId: string): Promise<calendar_v3.Calendar> {
+    const auth = await this.oauthService.getClient(companyId);
+    return google.calendar({ version: 'v3', auth });
+  }
+
+  private buildCalendarAppLink(eventId?: string | null): string | undefined {
+    return eventId
+      ? `https://calendar.google.com/calendar/event?eid=${encodeURIComponent(eventId)}`
+      : undefined;
   }
 }

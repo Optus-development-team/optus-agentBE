@@ -62,4 +62,15 @@ report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 
 # Archivos locales de desarrollo/documentación
 sql/
+!sql/
+sql/*
+!sql/calendar_sync_migration.sql
+!sql/calendar_sync_hardening.sql
+!sql/calendar_operational_completion.sql
 .github/docs/calendar/
+!.github/docs/calendar/
+.github/docs/calendar/*
+!.github/docs/calendar/IMPLEMENTATION_PLAN_CORRECTED.md
+!.github/docs/calendar/SYSTEM_AND_REAL_TESTING_GUIDE.md
+!.github/docs/calendar/BACKEND_OPERATIONAL_COMPLETION.md
+!.github/docs/calendar/CALENDAR_CODE_REVIEW.md

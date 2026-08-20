@@ -49,8 +49,6 @@ COMPORTAMIENTO:
 `;
   }
 
-  
-
   buildInput(context: RouterMessageContext): OrchestratorInput {
     return buildInput(context);
   }

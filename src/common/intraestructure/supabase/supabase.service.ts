@@ -5,6 +5,13 @@ import { isAbsolute, resolve } from 'node:path';
 import type { ConnectionOptions as TlsConnectionOptions } from 'node:tls';
 import { Pool, QueryResultRow } from 'pg';
 
+export interface SqlExecutor {
+  query<T extends QueryResultRow = QueryResultRow>(
+    sql: string,
+    params?: unknown[],
+  ): Promise<T[]>;
+}
+
 @Injectable()
 export class SupabaseService implements OnModuleDestroy {
   private readonly logger = new Logger(SupabaseService.name);
@@ -62,6 +69,58 @@ export class SupabaseService implements OnModuleDestroy {
         `Error ejecutando consulta: ${safeError.message ?? 'desconocido'}`,
       );
       throw safeError;
+    }
+  }
+
+  async withTransaction<T>(
+    work: (executor: SqlExecutor) => Promise<T>,
+  ): Promise<T> {
+    if (!this.pool) {
+      throw new Error('Pool de Supabase no inicializado');
+    }
+    const client = await this.pool.connect();
+    const executor: SqlExecutor = {
+      query: async <R extends QueryResultRow = QueryResultRow>(
+        sql: string,
+        params: unknown[] = [],
+      ): Promise<R[]> => (await client.query<R>(sql, params)).rows,
+    };
+    try {
+      await client.query('BEGIN');
+      const result = await work(executor);
+      await client.query('COMMIT');
+      return result;
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
+  async withAdvisoryLock<T>(
+    lockKey: string,
+    work: () => Promise<T>,
+  ): Promise<T | null> {
+    if (!this.pool) {
+      throw new Error('Pool de Supabase no inicializado');
+    }
+    const client = await this.pool.connect();
+    try {
+      const locked = await client.query<{ acquired: boolean }>(
+        'SELECT pg_try_advisory_lock(hashtext($1)) AS acquired',
+        [lockKey],
+      );
+      if (!locked.rows[0]?.acquired) return null;
+      try {
+        return await work();
+      } finally {
+        await client.query('SELECT pg_advisory_unlock(hashtext($1))', [
+          lockKey,
+        ]);
+      }
+    } finally {
+      client.release();
     }
   }
 

@@ -11,9 +11,7 @@ export function createGeminiAgent(
   const modelName = definition.modelName ?? resolveGeminiModelName(config);
 
   if (!apiKey) {
-    throw new Error(
-      `Google AI no configurado para ${definition.errorLabel}`,
-    );
+    throw new Error(`Google AI no configurado para ${definition.errorLabel}`);
   }
 
   const model = new Gemini({ apiKey, model: modelName });
