@@ -30,6 +30,7 @@ import { LoginModule } from '../login/login.module';
     OAuthService,
     CookieJwtAuthGuard,
     FullCookieJwtAuthGuard,
+    OAuthService,
   ],
 })
 export class AuthModule {}
