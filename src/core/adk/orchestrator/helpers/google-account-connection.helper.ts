@@ -26,9 +26,7 @@ export async function handleGoogleAccountConnectionRequirement(
   );
 
   const authUrl = params.oauthService.getAuthUrl(params.companyId);
-  params.logger.debug(
-    `Generated Google auth URL for company ${params.companyId}: ${authUrl}`,
-  );
+  params.logger.debug(`Generated Google auth URL for company ${params.companyId}: ${authUrl}`);
 
   const formatted: FormattedResponse = {
     type: 'cta_url',

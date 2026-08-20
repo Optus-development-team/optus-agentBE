@@ -2,8 +2,7 @@ import { BaseSubAgentConfig } from '../../shared/subagent-config.base';
 
 export class ReportingSubAgentConfig extends BaseSubAgentConfig {
   readonly name = 'reporting_agent';
-  readonly description =
-    'Agente especializado en reportes, métricas y análisis del negocio';
+  readonly description = 'Agente especializado en reportes, métricas y análisis del negocio';
   readonly errorLabel = 'ReportingAgent';
 
   buildInstruction(): string {

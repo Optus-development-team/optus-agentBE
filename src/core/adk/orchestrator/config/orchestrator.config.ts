@@ -7,7 +7,8 @@ export interface OrchestratorConfig {
   getName(): string;
   getDescription(): string;
   buildInstruction(): string;
-  buildInput(context: RouterMessageContext): OrchestratorInput;
+  buildInput
+  (context: RouterMessageContext): OrchestratorInput;
   buildInitialState(context: RouterMessageContext): Record<string, unknown>;
   detectIntent(message: string): OrchestrationResult['intent'];
   getSubAgents(): LlmAgent[];

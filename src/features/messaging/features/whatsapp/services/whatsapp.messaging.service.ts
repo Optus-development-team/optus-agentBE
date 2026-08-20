@@ -347,7 +347,9 @@ export class WhatsAppMessagingService {
     // La API exige que `display_text` tenga como máximo 20 caracteres.
     // Normalizamos y truncamos para evitar errores 400 de validación.
     const displayTextRaw = String(params.buttonDisplayText ?? '').trim();
-    const displayText = displayTextRaw ? displayTextRaw.slice(0, 20) : 'Abrir';
+    const displayText = displayTextRaw
+      ? displayTextRaw.slice(0, 20)
+      : 'Abrir';
 
     const payload: Record<string, unknown> = {
       messaging_product: 'whatsapp',

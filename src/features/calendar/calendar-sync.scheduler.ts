@@ -1,5 +1,9 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { Cron } from '@nestjs/schedule';
+import {
+  Injectable,
+  Logger,
+  type OnModuleDestroy,
+  type OnModuleInit,
+} from '@nestjs/common';
 import dayjs from 'dayjs';
 import { AppointmentRepository } from './appointment.repository';
 import { CalendarSyncService } from './calendar-sync.service';
@@ -10,9 +14,10 @@ import { SupabaseService } from '../../common/intraestructure/supabase/supabase.
 import type { CompanyCalendarIntegration } from './calendar.types';
 
 @Injectable()
-export class CalendarSyncScheduler {
+export class CalendarSyncScheduler implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(CalendarSyncScheduler.name);
   private readonly running = new Set<string>();
+  private readonly timers: NodeJS.Timeout[] = [];
 
   constructor(
     private readonly appointments: AppointmentRepository,
@@ -23,7 +28,31 @@ export class CalendarSyncScheduler {
     private readonly db: SupabaseService,
   ) {}
 
-  @Cron('* * * * *')
+  onModuleInit(): void {
+    this.schedule('sincronización incremental', 60_000, () =>
+      this.incremental(),
+    );
+    this.schedule('sincronización completa', 60 * 60_000, () => {
+      if (new Date().getUTCHours() !== 3) return Promise.resolve();
+      return this.full();
+    });
+    this.schedule('renovación de webhooks', 6 * 60 * 60_000, () =>
+      this.renewWebhooks(),
+    );
+    this.schedule('recordatorios', 60_000, () => this.processNotifications());
+    this.schedule('reconciliación de recordatorios', 5 * 60_000, () =>
+      this.reconcileNotifications(),
+    );
+    this.schedule('cola de sincronización', 60_000, () =>
+      this.processSyncJobs(),
+    );
+  }
+
+  onModuleDestroy(): void {
+    for (const timer of this.timers) clearInterval(timer);
+    this.timers.length = 0;
+  }
+
   async incremental(): Promise<void> {
     let integrations: CompanyCalendarIntegration[];
     try {
@@ -66,7 +95,6 @@ export class CalendarSyncScheduler {
     }
   }
 
-  @Cron('0 3 * * *')
   async full(): Promise<void> {
     let integrations: CompanyCalendarIntegration[];
     try {
@@ -102,12 +130,10 @@ export class CalendarSyncScheduler {
     }
   }
 
-  @Cron('0 */6 * * *')
   renewWebhooks(): Promise<void> {
     return this.webhooks.renewExpiring();
   }
 
-  @Cron('* * * * *')
   async processNotifications(): Promise<void> {
     try {
       await this.notifications.processDue();
@@ -116,7 +142,6 @@ export class CalendarSyncScheduler {
     }
   }
 
-  @Cron('*/5 * * * *')
   async reconcileNotifications(): Promise<void> {
     try {
       await this.notifications.reconcileRecent();
@@ -127,12 +152,25 @@ export class CalendarSyncScheduler {
     }
   }
 
-  @Cron('* * * * *')
   async processSyncJobs(): Promise<void> {
     try {
       await this.jobs.processDue();
     } catch (error) {
       this.logger.error(`Cola de sincronización: ${(error as Error).message}`);
     }
+  }
+
+  private schedule(
+    name: string,
+    intervalMs: number,
+    task: () => Promise<unknown>,
+  ): void {
+    const timer = setInterval(() => {
+      void task().catch((error: Error) =>
+        this.logger.error(`${name}: ${error.message}`),
+      );
+    }, intervalMs);
+    timer.unref();
+    this.timers.push(timer);
   }
 }

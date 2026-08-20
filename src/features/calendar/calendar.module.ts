@@ -1,5 +1,4 @@
 import { Module } from '@nestjs/common';
-import { ScheduleModule } from '@nestjs/schedule';
 import { CalendarService } from './calendar.service';
 import { SecurityModule } from '../../common/security/security.module';
 import { InfrastructureModule } from '../../common/intraestructure/infrastructure.module';
@@ -25,7 +24,6 @@ import { CalendarSyncJobService } from './calendar-sync-job.service';
 
 @Module({
   imports: [
-    ScheduleModule.forRoot(),
     AuthModule,
     SecurityModule,
     InfrastructureModule,

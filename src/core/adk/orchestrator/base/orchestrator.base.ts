@@ -58,9 +58,7 @@ export abstract class BaseOrchestratorService implements OnModuleInit {
     try {
       const userMessage = {
         role: 'user' as const,
-        parts: [
-          { text: JSON.stringify(this.orchestratorConfig.buildInput(context)) },
-        ],
+        parts: [{ text: JSON.stringify(this.orchestratorConfig.buildInput(context)) }],
       };
 
       let responseText = '';

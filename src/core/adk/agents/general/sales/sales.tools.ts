@@ -120,7 +120,7 @@ export class SalesToolsService {
 
         const state = context?.state;
         const companyId = state?.get('app:companyId') as string | undefined;
-        const senderPhone = state?.get('user:phone');
+        const senderPhone = state?.get('user:phone') as string | undefined;
 
         this.emitToolTriggered(companyId, 'create_payment_order');
 
