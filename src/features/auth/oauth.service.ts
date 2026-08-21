@@ -84,17 +84,14 @@ export class OAuthService {
       : await this.buildPendingRegistrationSession(email, data.name ?? null);
 
     this.logger.log(
-<<<<<<< HEAD
       'OAuth callback: expectedCompanyId=',
       expectedCompanyId,
       ', session.companyId=',
-=======
       'Ouath companyIDs',
       expectedCompanyId,
       '&&',
       expectedCompanyId,
       '!=',
->>>>>>> origin/test-calendario
       session.companyId,
     );
 

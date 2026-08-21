@@ -1,9 +1,5 @@
 import { Module } from '@nestjs/common';
 import { CalendarService } from './calendar.service';
-<<<<<<< HEAD
-import { AuthModule } from '../auth/auth.module';
-=======
->>>>>>> origin/test-calendario
 import { SecurityModule } from '../../common/security/security.module';
 import { InfrastructureModule } from '../../common/intraestructure/infrastructure.module';
 import { TimeModule } from '../../common/time/time.module';
@@ -27,11 +23,6 @@ import { AppointmentNotificationService } from './appointment-notification.servi
 import { CalendarSyncJobService } from './calendar-sync-job.service';
 
 @Module({
-<<<<<<< HEAD
-  imports: [AuthModule, SecurityModule, InfrastructureModule, TimeModule],
-  providers: [CalendarService],
-  exports: [CalendarService],
-=======
   imports: [
     AuthModule,
     SecurityModule,
@@ -68,6 +59,5 @@ import { CalendarSyncJobService } from './calendar-sync-job.service';
     AvailabilityService,
     BookingManagementService,
   ],
->>>>>>> origin/test-calendario
 })
 export class CalendarModule {}
