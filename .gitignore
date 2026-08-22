@@ -74,3 +74,10 @@ sql/*
 !.github/docs/calendar/SYSTEM_AND_REAL_TESTING_GUIDE.md
 !.github/docs/calendar/BACKEND_OPERATIONAL_COMPLETION.md
 !.github/docs/calendar/CALENDAR_CODE_REVIEW.md
+!.github/docs/calendar/full-system/
+.github/docs/calendar/full-system/*
+!.github/docs/calendar/full-system/README.md
+!.github/docs/calendar/full-system/01_DATABASE.md
+!.github/docs/calendar/full-system/02_BACKEND.md
+!.github/docs/calendar/full-system/03_FRONTEND_DESIGN.md
+!.github/docs/calendar/full-system/04_FRONTEND_IMPLEMENTATION_PLAN.md
