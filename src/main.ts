@@ -1,10 +1,17 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { ValidationPipe } from '@nestjs/common';
+import { Logger, ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  // the snapshot value is true in development and false in production/test
+  const snapshot = process.env.NODE_ENV === 'development';
+  Logger.log('NODE_ENV value: ', process.env.NODE_ENV || 'development');
+  const app = await NestFactory.create(AppModule,
+    {
+      snapshot,
+    }
+  );
   app.setGlobalPrefix('v1', {
     exclude: ['docs', 'docs-json', 'docs/*path'],
   });

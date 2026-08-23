@@ -72,7 +72,7 @@ export class OAuthService {
     if (
       expectedCompanyId &&
       !this.isFullAccessUser(user) &&
-      this.configService.get<string>('IS_DEV') !== 'true'
+      this.configService.get<string>('NODE_ENV') !== 'development'
     ) {
       throw new Error(
         'La cuenta requiere verificación de teléfono antes de conectar Google Calendar',
@@ -537,7 +537,7 @@ export class OAuthService {
 
     const baseUrl =
       this.configService.get<string>('MAIN_PAGE_URL') ||
-      'http://localhost:3000';
+      'https://dot-revealable-telescopically.ngrok-free.dev';
 
     return `${baseUrl.replace(/\/$/, '')}/v1/auth/google/callback`;
   }

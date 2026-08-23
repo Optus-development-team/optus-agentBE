@@ -1,5 +1,4 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { SupabaseService } from '../../common/intraestructure/supabase/supabase.service';
 import type {
   DbCompanyTenantRow,
@@ -15,47 +14,22 @@ type NullableString = string | null | undefined;
 @Injectable()
 export class IdentityService {
   private readonly logger = new Logger(IdentityService.name);
-  private readonly adminPhone: string;
-  private readonly fallbackCompanyId: string;
-  private readonly fallbackCompanyName: string;
-  private readonly fallbackCompanyVertical: CompanyVertical;
-  private readonly fallbackCompanyConfig: Record<string, unknown>;
-  private readonly fallbackPhoneNumberId: string;
 
   constructor(
-    private readonly configService: ConfigService,
     private readonly supabaseService: SupabaseService,
-  ) {
-    this.adminPhone = this.cleanNumber(
-      this.configService.get<string>('WHATSAPP_ADMIN_PHONE', '') ?? '',
-    );
-    this.fallbackCompanyId =
-      this.configService.get<string>('DEFAULT_COMPANY_ID', '') ?? '';
-    this.fallbackCompanyName =
-      this.configService.get<string>('DEFAULT_COMPANY_NAME', 'Optus') ??
-      'Optus';
-    this.fallbackCompanyVertical = this.normalizeVertical(
-      this.configService.get<string>('DEFAULT_COMPANY_VERTICAL', 'general'),
-    );
-    this.fallbackCompanyConfig = this.parseConfig(
-      this.configService.get<string>('DEFAULT_COMPANY_CONFIG'),
-    );
-    this.fallbackPhoneNumberId =
-      this.configService.get<string>('WHATSAPP_PHONE_NUMBER_ID', '') ||
-      this.configService.get<string>('PHONE_NUMBER_ID', '') ||
-      '';
-  }
+  ) {}
 
   async resolveTenantByPhoneId(
     phoneNumberId?: string,
   ): Promise<TenantContext | null> {
     if (!phoneNumberId) {
-      this.logger.warn('phone_number_id no presente en el webhook.');
+      this.logger.error('phone_number_id no presente en la solicitud. Desechando petición.');
       return null;
     }
 
     if (!this.supabaseService.isEnabled()) {
-      return this.buildFallbackTenant(phoneNumberId);
+      this.logger.error('Conexión a Supabase no disponible para resolver tenant por phone_number_id. Desechando petición.');
+      return null;
     }
 
     const rows = await this.supabaseService.query<DbCompanyTenantRow>(
@@ -67,8 +41,8 @@ export class IdentityService {
     );
 
     if (!rows.length) {
-      this.logger.warn(
-        `No se encontró compañía para phone_number_id=${phoneNumberId}.`,
+      this.logger.error(
+        `No se encontró compañía registrada para phone_number_id=${phoneNumberId}. Desechando petición.`,
       );
       return null;
     }
@@ -76,7 +50,7 @@ export class IdentityService {
     const tenant = this.buildTenantFromRow(rows[0], phoneNumberId);
     if (!tenant) {
       this.logger.error(
-        `No se pudo construir el tenant para phone_number_id=${phoneNumberId}.`,
+        `No se pudo construir el tenant para phone_number_id=${phoneNumberId}. Desechando petición.`,
       );
     }
     return tenant;
@@ -86,16 +60,13 @@ export class IdentityService {
     companyId: string,
   ): Promise<TenantContext | null> {
     if (!companyId) {
+      this.logger.error('companyId no especificado para resolver tenant. Desechando petición.');
       return null;
     }
 
     if (!this.supabaseService.isEnabled()) {
-      if (this.fallbackCompanyId === companyId && this.fallbackPhoneNumberId) {
-        return this.buildFallbackTenant(this.fallbackPhoneNumberId);
-      }
-
-      this.logger.warn(
-        `Supabase no disponible y no existe fallback para company_id=${companyId}.`,
+      this.logger.error(
+        `Supabase no disponible para resolver compañía por company_id=${companyId}. Desechando petición.`,
       );
       return null;
     }
@@ -109,14 +80,14 @@ export class IdentityService {
     );
 
     if (!rows.length) {
-      this.logger.warn(`No se encontró compañía para id=${companyId}.`);
+      this.logger.error(`No se encontró compañía registrada para id=${companyId}. Desechando petición.`);
       return null;
     }
 
     const tenant = this.buildTenantFromRow(rows[0], rows[0].whatsapp_phone_id);
     if (!tenant) {
       this.logger.error(
-        `No se pudo construir tenant para company_id=${companyId}.`,
+        `No se pudo construir tenant para company_id=${companyId}. Desechando petición.`,
       );
     }
     return tenant;
@@ -151,13 +122,6 @@ export class IdentityService {
       }
     }
 
-    if (this.adminPhone) {
-      const fallbackAdmin = this.cleanNumber(this.adminPhone);
-      if (fallbackAdmin && candidates.includes(fallbackAdmin)) {
-        return UserRole.ADMIN;
-      }
-    }
-
     return UserRole.CLIENT;
   }
 
@@ -181,10 +145,6 @@ export class IdentityService {
       }
     }
 
-    if (!adminPhones.size && this.adminPhone) {
-      adminPhones.add(this.cleanNumber(this.adminPhone));
-    }
-
     return Array.from(adminPhones);
   }
 
@@ -194,7 +154,7 @@ export class IdentityService {
     role: UserRole,
   ): Promise<string | null> {
     if (!this.supabaseService.isEnabled()) {
-      this.logger.warn('Supabase no habilitado, no se puede registrar usuario');
+      this.logger.error('Supabase no habilitado, no se puede registrar usuario en base de datos');
       return null;
     }
 
@@ -261,25 +221,6 @@ export class IdentityService {
     return {};
   }
 
-  private buildFallbackTenant(phoneNumberId: string): TenantContext | null {
-    if (!this.fallbackCompanyId) {
-      this.logger.error(
-        'No hay conexión a Supabase ni DEFAULT_COMPANY_ID configurado. Ignorando mensaje.',
-      );
-      return null;
-    }
-
-    return {
-      companyId: this.fallbackCompanyId,
-      companyName: this.fallbackCompanyName,
-      vertical: this.fallbackCompanyVertical,
-      companyConfig: this.fallbackCompanyConfig,
-      phoneNumberId,
-      adminPhoneIds: this.getFallbackAdminPhones(),
-      displayPhoneNumber: null,
-    };
-  }
-
   private buildTenantFromRow(
     row: DbCompanyTenantRow,
     explicitPhoneNumberId?: NullableString,
@@ -289,18 +230,13 @@ export class IdentityService {
       row.whatsapp_admin_phone_ids,
     );
 
-    if (!adminPhoneIds.length && this.adminPhone) {
-      adminPhoneIds.push(this.cleanNumber(this.adminPhone));
-    }
-
     const phoneNumberId =
       explicitPhoneNumberId ??
-      row.whatsapp_phone_id ??
-      this.fallbackPhoneNumberId;
+      row.whatsapp_phone_id;
 
     if (!phoneNumberId) {
       this.logger.error(
-        `La compañía ${row.id} no tiene whatsapp_phone_id configurado ni fallback.`,
+        `La compañía ${row.id} no tiene whatsapp_phone_id configurado.`,
       );
       return null;
     }
@@ -339,7 +275,7 @@ export class IdentityService {
 
   private async fetchCompanyAdminPhones(companyId: string): Promise<string[]> {
     if (!this.supabaseService.isEnabled()) {
-      return this.getFallbackAdminPhones();
+      return [];
     }
 
     const rows = await this.supabaseService.query<{
@@ -352,16 +288,7 @@ export class IdentityService {
       [companyId],
     );
 
-    const phones = this.normalizePhoneArray(rows[0]?.whatsapp_admin_phone_ids);
-    if (!phones.length && this.adminPhone) {
-      phones.push(this.cleanNumber(this.adminPhone));
-    }
-
-    return phones;
-  }
-
-  private getFallbackAdminPhones(): string[] {
-    return this.adminPhone ? [this.cleanNumber(this.adminPhone)] : [];
+    return this.normalizePhoneArray(rows[0]?.whatsapp_admin_phone_ids);
   }
 
   private matchesAnyAdminPhone(

@@ -14,12 +14,8 @@ export function buildInitialState(
   timeService: TimeService,
   options: InitialStateBuilderOptions,
 ): Record<string, unknown> {
-  const companyId =
-    context.tenant?.companyId ?? config.get<string>('DEFAULT_COMPANY_ID');
-  const companyName =
-    context.tenant?.companyName ??
-    config.get<string>('DEFAULT_COMPANY_NAME', 'Optus') ??
-    'Optus';
+  const companyId = context.tenant?.companyId;
+  const companyName = context.tenant?.companyName ?? '';
   const userPhone = context.senderId;
   const timezone = timeService.getTimezone(userPhone);
 
@@ -31,9 +27,7 @@ export function buildInitialState(
     'app:companyName': companyName,
     'app:companyConfig': context.tenant?.companyConfig ?? {},
     'app:currency': config.get<string>('DEFAULT_CURRENCY', 'USD') ?? 'USD',
-    'app:companyTone':
-      config.get<string>('DEFAULT_COMPANY_TONE', 'profesional') ??
-      'profesional',
+    'app:companyTone': 'profesional',
     'app:phoneNumberId':
       context.tenant?.phoneNumberId ?? context.phoneNumberId ?? undefined,
     'app:displayPhoneNumber': context.tenant?.displayPhoneNumber ?? undefined,
