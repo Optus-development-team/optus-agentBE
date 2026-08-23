@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { FunctionTool } from '@google/adk';
 import type { ToolContext } from '@google/adk';
 import { EventEmitter2 } from '@nestjs/event-emitter';
@@ -12,6 +12,8 @@ import {
 
 @Injectable()
 export class OrchestratorToolsService {
+  private readonly logger = new Logger(OrchestratorToolsService.name);
+
   constructor(
     private readonly verification: VerificationService,
     private readonly eventEmitter: EventEmitter2,
@@ -31,18 +33,16 @@ export class OrchestratorToolsService {
           .describe('Nombre de WhatsApp si está disponible'),
       }),
       execute: async (args, context?: ToolContext) => {
-        const companyId = context?.state?.get('app:companyId') as
-          | string
-          | undefined;
+        const rawCompanyId = context?.state?.get('app:companyId');
+        const companyId =
+          typeof rawCompanyId === 'string' ? rawCompanyId : undefined;
 
         if (companyId) {
           const event: SystemNotificationEvent = {
             companyId,
             type: SystemEventType.TOOL_ACTION_TRIGGERED,
             timestamp: new Date().toISOString(),
-            payload: {
-              toolName: 'verify_phone_code',
-            },
+            payload: { toolName: 'verify_phone_code' },
           };
 
           this.eventEmitter.emit(SYSTEM_EVENT_CHANNEL, event);
@@ -52,6 +52,26 @@ export class OrchestratorToolsService {
           args.senderPhone,
           args.code,
         );
+
+        // Persistir en DB: marca el teléfono como verificado en company_users
+        // (multi-tenant seguro cuando companyId está disponible).
+        if (verified) {
+          if (companyId) {
+            const persisted =
+              await this.verification.markPhoneVerifiedByCompany(
+                companyId,
+                args.senderPhone,
+              );
+            this.logger.log(
+              `[verify_phone_code] Código válido. phone=${args.senderPhone} company=${companyId} persisted=${persisted}`,
+            );
+          } else {
+            this.logger.warn(
+              '[verify_phone_code] Código válido pero sin companyId en contexto; solo se marcó verification_codes.',
+            );
+          }
+        }
+
         return { verified };
       },
     });

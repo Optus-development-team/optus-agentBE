@@ -1,9 +1,9 @@
 import {
   BadRequestException,
   Injectable,
+  Logger,
   UnauthorizedException,
 } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { SupabaseService } from '../../common/intraestructure/supabase/supabase.service';
 import { TokenService } from '../../common/security/token.service';
 import { VerificationService } from '../login/verification.service';
@@ -21,11 +21,12 @@ export type AuthProvider = 'GOOGLE' | 'FACEBOOK' | 'APPLE';
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private readonly supabase: SupabaseService,
     private readonly tokens: TokenService,
     private readonly verification: VerificationService,
-    private readonly configService: ConfigService,
   ) {}
 
   async getSalt(params: {
@@ -121,7 +122,7 @@ export class AuthService {
       'update company_users set phone = $1, is_phone_verified = true where id = $2',
       [normalizedPhone, userId],
     );
-    await this.verification.markPhoneVerified(normalizedPhone);
+    await this.verification.markPhoneVerified(userId, normalizedPhone);
   }
 
   async setUserPhonePending(userId: string, phone: string): Promise<void> {
@@ -167,47 +168,12 @@ export class AuthService {
   }): Promise<{
     id: string;
   }> {
-    const companyId = this.configService.get<string>('DEFAULT_COMPANY_ID');
-    if (!companyId) {
-      throw new UnauthorizedException(
-        'Falta DEFAULT_COMPANY_ID para registrar usuario',
-      );
-    }
-
-    const rows = await this.supabase.query<{
-      id: string;
-    }>(
-      `insert into company_users (
-         company_id, phone, email, alias, created_at, last_login_at, is_phone_verified, role
-       )
-       values ($1, '', $2, $3, timezone('utc', now()), timezone('utc', now()), false, 'CLIENT')
-       returning id`,
-      [companyId, params.email ?? null, params.alias ?? null],
+    this.logger.error(
+      `Intento de registro de usuario (${params.email ?? params.sub}) sin compañía asignada. Desechando petición.`,
     );
-
-    const created = rows[0];
-    if (!created) {
-      throw new UnauthorizedException('No se pudo crear el usuario');
-    }
-
-    await this.supabase.query(
-      `insert into user_integrations (
-         user_id, provider, encrypted_credentials, metadata, is_active, created_at, updated_at
-       )
-       values ($1, $2, '{}'::jsonb, $3::jsonb, true, timezone('utc', now()), timezone('utc', now()))
-       on conflict (user_id, provider)
-       do update set metadata = excluded.metadata, is_active = true, updated_at = timezone('utc', now())`,
-      [
-        created.id,
-        params.provider,
-        {
-          oauth_sub: params.sub,
-          oauth_aud: params.aud,
-        },
-      ],
+    throw new UnauthorizedException(
+      'No se puede registrar usuario sin una compañía válida asociada.',
     );
-
-    return created;
   }
 
   private decodeJwt(jwt: string): JwtClaims {

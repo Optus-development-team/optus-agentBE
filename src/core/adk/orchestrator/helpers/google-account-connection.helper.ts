@@ -31,8 +31,7 @@ export async function handleGoogleAccountConnectionRequirement(
   const formatted: FormattedResponse = {
     type: 'cta_url',
     body:
-      '⚠️ *Configuración necesaria*\n\nPara gestionar tu empresa, es necesario conectar tu cuenta de Google.\n\nAbre el siguiente enlace para conectar la cuenta:\n' +
-      authUrl,
+      '⚠️ *Configuración necesaria*\n\nPara gestionar tu empresa, es necesario conectar tu cuenta de Google.\n\nPresiona el boton de Conectar Google para continuar.',
     buttonDisplayText: 'Conectar Google',
     buttonUrl: authUrl,
     footerText: 'Cuando termines, vuelve al chat y continúa.',

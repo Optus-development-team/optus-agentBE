@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { EventEmitterModule } from '@nestjs/event-emitter';
+import { DevtoolsModule } from '@nestjs/devtools-integration';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { InfrastructureModule } from './common/intraestructure/infrastructure.module';
@@ -18,6 +19,9 @@ import { CalendarModule } from './features/calendar/calendar.module';
 
 @Module({
   imports: [
+    DevtoolsModule.register({
+      http: process.env.NODE_ENV === 'development',
+    }),
     ConfigModule.forRoot({ isGlobal: true }),
     EventEmitterModule.forRoot(),
     InfrastructureModule,

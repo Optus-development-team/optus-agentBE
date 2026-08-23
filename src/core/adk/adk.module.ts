@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { InfrastructureModule } from '../../common/intraestructure/infrastructure.module';
 import { LoginModule } from '../../features/login/login.module';
+import { AuthModule } from '../../features/auth/auth.module';
 import { CompanyModule } from '../../features/company/company.module';
 import { PaymentsModule } from '../../features/payments/payments.module';
 import { CalendarModule } from '../../features/calendar/calendar.module';
@@ -44,6 +45,7 @@ import { LlmResponseFormatterService } from './formatters/llm-response-formatter
     ConfigModule,
     InfrastructureModule,
     LoginModule,
+    AuthModule,
     CompanyModule,
     PaymentsModule,
     CalendarModule,

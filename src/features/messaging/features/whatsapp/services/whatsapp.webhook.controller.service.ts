@@ -34,7 +34,6 @@ import { WhatsAppMessageBurst } from '../classes/whatsapp-message-burst';
 @Injectable()
 export class WhatsappService {
   private readonly logger = new Logger(WhatsappService.name);
-  private readonly defaultPhoneNumberId: string;
   private readonly sendAgentText: boolean;
   private readonly waitUntilMessageMs: number;
   private readonly processMessagesSynchronously: boolean;
@@ -54,9 +53,6 @@ export class WhatsappService {
     private readonly identity: IdentityService,
     private readonly eventEmitter: EventEmitter2,
   ) {
-    this.defaultPhoneNumberId =
-      this.configService.get<string>('WHATSAPP_PHONE_NUMBER_ID', '') ||
-      this.configService.get<string>('PHONE_NUMBER_ID', '');
     this.sendAgentText =
       this.configService.get<string>('ADK_SEND_AGENT_TEXT', 'false') === 'true';
     this.waitUntilMessageMs = Number(

@@ -37,7 +37,6 @@ export class WhatsAppMessagingService {
   private readonly logger = new Logger(WhatsAppMessagingService.name);
   private readonly apiVersion: string;
   private readonly apiToken: string;
-  private readonly defaultPhoneNumberId: string;
 
   constructor(
     private readonly config: ConfigService,
@@ -47,22 +46,29 @@ export class WhatsAppMessagingService {
   ) {
     this.apiVersion = this.config.get<string>('WHATSAPP_API_VERSION', 'v21.0');
     this.apiToken = this.config.get<string>('META_API_TOKEN', '');
-    this.defaultPhoneNumberId =
-      this.config.get<string>('WHATSAPP_PHONE_NUMBER_ID', '') ||
-      this.config.get<string>('PHONE_NUMBER_ID', '');
   }
 
   /**
    * Construye la URL base para la API de WhatsApp
    */
   private getApiUrl(phoneNumberId?: string): string {
-    const id = phoneNumberId || this.defaultPhoneNumberId;
-    return `https://graph.facebook.com/${this.apiVersion}/${id}/messages`;
+    if (!phoneNumberId) {
+      this.logger.error(
+        'Intento de enviar mensaje sin phoneNumberId configurado. Petición descartada.',
+      );
+      throw new Error('phoneNumberId es requerido para enviar mensajes de WhatsApp.');
+    }
+    return `https://graph.facebook.com/${this.apiVersion}/${phoneNumberId}/messages`;
   }
 
   private getMediaUrl(phoneNumberId?: string): string {
-    const id = phoneNumberId || this.defaultPhoneNumberId;
-    return `https://graph.facebook.com/${this.apiVersion}/${id}/media`;
+    if (!phoneNumberId) {
+      this.logger.error(
+        'Intento de acceder a media sin phoneNumberId configurado. Petición descartada.',
+      );
+      throw new Error('phoneNumberId es requerido para interactuar con media de WhatsApp.');
+    }
+    return `https://graph.facebook.com/${this.apiVersion}/${phoneNumberId}/media`;
   }
 
   /**
