@@ -67,6 +67,26 @@ export class WhatsappService {
   }
 
   /**
+   * Valida si el phone_number_id del webhook entrante está permitido para procesar.
+   * En entorno de desarrollo (NODE_ENV === 'development'), si se define DEV_TENANT_PHONE_NUMBER_ID,
+   * solo se procesarán los mensajes dirigidos a dicho phone_number_id.
+   * En cualquier otro caso (variable no definida/vacía o entorno distinto a development), se procesan todos los mensajes normalmente.
+   */
+  isPhoneNumberAllowed(phoneNumberId: string): boolean {
+    const nodeEnv = this.configService.get<string>('NODE_ENV');
+    const devTenantPhoneId = this.configService
+      .get<string>('DEV_TENANT_PHONE_NUMBER_ID', '')
+      ?.trim();
+
+    // Solo activo si el valor no es nulo/vacío y si y solo si NODE_ENV es 'development'
+    if (nodeEnv === 'development' && devTenantPhoneId) {
+      return phoneNumberId === devTenantPhoneId;
+    }
+
+    return true;
+  }
+
+  /**
    * Verifica el webhook de WhatsApp
    */
   verifyWebhook(mode: string, token: string, challenge: string): string | null {
@@ -102,6 +122,17 @@ export class WhatsappService {
         return;
       }
 
+      if (!this.isPhoneNumberAllowed(incomingContext.phoneNumberId)) {
+        const devTenantPhone = this.configService.get<string>(
+          'DEV_TENANT_PHONE_NUMBER_ID',
+          '',
+        );
+        this.logger.warn(
+          `[DEV FILTER] Mensaje ignorado para phone_number_id=${incomingContext.phoneNumberId}. Solo se aceptan mensajes para phone_number_id=${devTenantPhone} en desarrollo.`,
+        );
+        return;
+      }
+
       this.logger.log('Webhook de mensaje recibido');
       await this.processIncomingMessage(incomingContext);
     } catch (error) {
@@ -113,11 +144,20 @@ export class WhatsappService {
     incomingContext: IncomingWhatsAppWebhookContext,
   ): Promise<void> {
     try {
-      // Log del payload completo para debugging
-      //this.logger.debug('Payload recibido:', JSON.stringify(message, null, 2));
-
       // Extraer datos
       const { message, phoneNumberId, contactProfileName } = incomingContext;
+
+      if (!this.isPhoneNumberAllowed(phoneNumberId)) {
+        const devTenantPhone = this.configService.get<string>(
+          'DEV_TENANT_PHONE_NUMBER_ID',
+          '',
+        );
+        this.logger.warn(
+          `[DEV FILTER] Mensaje ignorado para phone_number_id=${phoneNumberId}. Solo se aceptan mensajes para phone_number_id=${devTenantPhone} en desarrollo.`,
+        );
+        return;
+      }
+
       const contactWaId: string = message.from;
       // Resolver Tenant
       const tenant: TenantContext | null =
