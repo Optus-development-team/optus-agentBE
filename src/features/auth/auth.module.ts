@@ -27,6 +27,7 @@ import { LoginModule } from '../login/login.module';
   exports: [
     IdentityService,
     AuthTokenService,
+    OAuthService,
     CookieJwtAuthGuard,
     FullCookieJwtAuthGuard,
     OAuthService,
