@@ -39,7 +39,7 @@ export class GeneralClientOrchestratorConfig implements OrchestratorConfig {
 AGENTES DISPONIBLES:
 3. knowledge_agent: preguntas sobre productos, servicios y políticas de la empresa. (Ej. horarios, materias, ubicaciones, etc).
 1. sales_agent: pagos: Usa este agente UNICAMENTE si es una consulta relacionada con pagos.
-2. appointment_agent: agenda, cancelación y reprogramación de citas.
+2. appointment_client_agent: agenda, cancelación y reprogramación de citas.
 
 COMPORTAMIENTO:
 - Detecta intención y deriva al agente correcto.
@@ -48,8 +48,6 @@ COMPORTAMIENTO:
 - Toma {app:todayDate} como fecha base para las operaciones.
 `;
   }
-
-  
 
   buildInput(context: RouterMessageContext): OrchestratorInput {
     return buildInput(context);

@@ -395,44 +395,65 @@ export class AppointmentRepository {
     googleUpdatedAt: string | null;
     existingId?: string;
   }): Promise<AppointmentRecord> {
-    const rows = await this.db.query<AppointmentRecord>(
-      params.existingId
-        ? `UPDATE appointments
-              SET title = $4, description = $5, location = $6,
-                  scheduled_start = $7, scheduled_end = $8,
-                  status = $9::appointment_status, google_calendar_link = $10,
-                  google_updated_at = $11, target_calendar_id = $3,
-                  sync_status = 'synced', sync_error_message = NULL,
-                  last_synced_at = NOW(), updated_at = NOW()
-            WHERE id = $12 AND company_id = $1 RETURNING *`
-        : `INSERT INTO appointments (
-              company_id, staff_id, title, description, location,
-              scheduled_start, scheduled_end, status, appointment_type,
-              context_type, source, google_calendar_event_id,
-              google_calendar_link, google_updated_at, target_calendar_id,
-              sync_status, sync_direction, last_synced_at, metadata
-            ) VALUES (
-              $1, $2, $4, $5, $6, $7, $8, $9::appointment_status,
-              'other'::appointment_type, 'general'::appointment_context_type,
-              'google_calendar', $13, $10, $11, $3, 'synced',
-              'bidirectional', NOW(), '{}'::jsonb
-            ) RETURNING *`,
-      [
-        params.companyId,
-        params.staffId,
-        params.calendarId,
-        params.title,
-        params.description,
-        params.location,
-        params.start,
-        params.end,
-        params.status,
-        params.link,
-        params.googleUpdatedAt,
-        params.existingId ?? null,
-        params.eventId,
-      ],
-    );
+    const rows = params.existingId
+      ? await this.db.query<AppointmentRecord>(
+          `UPDATE appointments
+            SET target_calendar_id = $2,
+                title = $3, description = $4, location = $5,
+                scheduled_start = $6, scheduled_end = $7,
+                status = $8::appointment_status,
+                google_calendar_link = $9,
+                google_updated_at = $10,
+                google_calendar_event_id = COALESCE(
+                  google_calendar_event_id,
+                  $11
+                ),
+                sync_status = 'synced', sync_error_message = NULL,
+                last_synced_at = NOW(), updated_at = NOW()
+          WHERE id = $12 AND company_id = $1 RETURNING *`,
+          [
+            params.companyId,
+            params.calendarId,
+            params.title,
+            params.description,
+            params.location,
+            params.start,
+            params.end,
+            params.status,
+            params.link,
+            params.googleUpdatedAt,
+            params.eventId,
+            params.existingId,
+          ],
+        )
+      : await this.db.query<AppointmentRecord>(
+          `INSERT INTO appointments (
+            company_id, staff_id, title, description, location,
+            scheduled_start, scheduled_end, status, appointment_type,
+            context_type, source, google_calendar_event_id,
+            google_calendar_link, google_updated_at, target_calendar_id,
+            sync_status, sync_direction, last_synced_at, metadata
+          ) VALUES (
+            $1, $2, $3, $4, $5, $6, $7, $8::appointment_status,
+            'other'::appointment_type, 'general'::appointment_context_type,
+            'google_calendar', $9, $10, $11, $12, 'synced',
+            'bidirectional', NOW(), '{}'::jsonb
+          ) RETURNING *`,
+          [
+            params.companyId,
+            params.staffId,
+            params.title,
+            params.description,
+            params.location,
+            params.start,
+            params.end,
+            params.status,
+            params.eventId,
+            params.link,
+            params.googleUpdatedAt,
+            params.calendarId,
+          ],
+        );
     if (!rows[0]) throw new Error('No se pudo importar el evento de Google');
     return rows[0];
   }

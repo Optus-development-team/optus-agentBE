@@ -27,6 +27,11 @@ import {
 } from '../interfaces/whatsapp-messaging.interface';
 import type { StickerEventKey } from '../types/sticker-events.types';
 import { getStickerUrlForEvent } from '../helpers/company-sticker.helper';
+import {
+  countInteractiveListRows,
+  limitInteractiveListRows,
+  WHATSAPP_INTERACTIVE_LIST_MAX_ROWS,
+} from '../helpers/interactive-list.helper';
 
 /**
  * Servicio para enviar diferentes tipos de mensajes de WhatsApp.
@@ -347,9 +352,7 @@ export class WhatsAppMessagingService {
     // La API exige que `display_text` tenga como máximo 20 caracteres.
     // Normalizamos y truncamos para evitar errores 400 de validación.
     const displayTextRaw = String(params.buttonDisplayText ?? '').trim();
-    const displayText = displayTextRaw
-      ? displayTextRaw.slice(0, 20)
-      : 'Abrir';
+    const displayText = displayTextRaw ? displayTextRaw.slice(0, 20) : 'Abrir';
 
     const payload: Record<string, unknown> = {
       messaging_product: 'whatsapp',
@@ -431,12 +434,21 @@ export class WhatsAppMessagingService {
     sections: WhatsAppInteractiveListSection[],
     options?: InteractiveOptions,
   ): Promise<WhatsAppMessageResponse> {
+    const totalRows = countInteractiveListRows(sections);
+    const limitedSections = limitInteractiveListRows(sections);
+
+    if (totalRows > WHATSAPP_INTERACTIVE_LIST_MAX_ROWS) {
+      this.logger.warn(
+        `Lista interactiva reducida de ${totalRows} a ${WHATSAPP_INTERACTIVE_LIST_MAX_ROWS} filas para cumplir el limite de Meta.`,
+      );
+    }
+
     const interactive: Record<string, unknown> = {
       type: 'list',
       body: { text: bodyText },
       action: {
         button: buttonText,
-        sections,
+        sections: limitedSections,
       },
     };
 
