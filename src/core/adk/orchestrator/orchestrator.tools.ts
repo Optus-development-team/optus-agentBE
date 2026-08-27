@@ -23,7 +23,7 @@ export class OrchestratorToolsService {
     return new FunctionTool({
       name: 'verify_phone_code',
       description:
-        'Verifica un código OTP de teléfono de 6 caracteres y marca el número como verificado.',
+        'Verifica un código OTP de teléfono de 4 caracteres y marca el número como verificado.',
       parameters: z.object({
         senderPhone: z.string().describe('Número de teléfono del usuario'),
         code: z.string().describe('Código OTP extraído del mensaje'),
@@ -53,26 +53,34 @@ export class OrchestratorToolsService {
           args.code,
         );
 
-        // Persistir en DB: marca el teléfono como verificado en company_users
-        // (multi-tenant seguro cuando companyId está disponible).
-        if (verified) {
-          if (companyId) {
-            const persisted =
-              await this.verification.markPhoneVerifiedByCompany(
-                companyId,
-                args.senderPhone,
-              );
-            this.logger.log(
-              `[verify_phone_code] Código válido. phone=${args.senderPhone} company=${companyId} persisted=${persisted}`,
-            );
-          } else {
-            this.logger.warn(
-              '[verify_phone_code] Código válido pero sin companyId en contexto; solo se marcó verification_codes.',
-            );
-          }
+        if (!verified) {
+          return { verified: false, persisted: false };
         }
 
-        return { verified };
+        if (!companyId) {
+          this.logger.warn(
+            '[verify_phone_code] Código válido pero sin companyId en contexto; no se persistió company_users.',
+          );
+          return {
+            verified: false,
+            persisted: false,
+            reason: 'missing_company_context',
+          };
+        }
+
+        const persisted = await this.verification.markPhoneVerifiedByCompany(
+          companyId,
+          args.senderPhone,
+        );
+        this.logger.log(
+          `[verify_phone_code] Código válido. phone=${args.senderPhone} company=${companyId} persisted=${persisted}`,
+        );
+
+        return {
+          verified: persisted,
+          persisted,
+          reason: persisted ? undefined : 'company_user_not_found',
+        };
       },
     });
   }

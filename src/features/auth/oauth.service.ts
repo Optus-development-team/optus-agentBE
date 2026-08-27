@@ -87,11 +87,6 @@ export class OAuthService {
       'OAuth callback: expectedCompanyId=',
       expectedCompanyId,
       ', session.companyId=',
-      'Ouath companyIDs',
-      expectedCompanyId,
-      '&&',
-      expectedCompanyId,
-      '!=',
       session.companyId,
     );
 
@@ -187,8 +182,7 @@ export class OAuthService {
       throw new Error('Credenciales incompletas');
     }
 
-    const decrypted = await this.encryptionService.decrypt(encrypted);
-    const tokens = JSON.parse(decrypted) as Auth.OAuth2Client['credentials'];
+    const tokens = await this.decryptStoredTokens(companyId, encrypted);
 
     const auth = this.createOAuthClient();
     auth.setCredentials(tokens);
@@ -521,6 +515,23 @@ export class OAuthService {
     }
   }
 
+  private async decryptStoredTokens(
+    companyId: string,
+    encrypted: string,
+  ): Promise<Auth.OAuth2Client['credentials']> {
+    try {
+      const decrypted = await this.encryptionService.decrypt(encrypted);
+      return JSON.parse(decrypted) as Auth.OAuth2Client['credentials'];
+    } catch (error) {
+      this.logger.warn(
+        `Credenciales de Google Calendar inválidas para ${companyId}: ${(error as Error).message}`,
+      );
+      throw new Error(
+        'Credenciales de Google Calendar inválidas o cifradas con otra ENCRYPTION_KEY. Reconecta Google Calendar.',
+      );
+    }
+  }
+
   private createOAuthClient(): Auth.OAuth2Client {
     return new google.auth.OAuth2(
       this.configService.get<string>('GOOGLE_OAUTH_CLIENT_ID'),
@@ -535,9 +546,16 @@ export class OAuthService {
       return explicitUrl.replace(/\/$/, '');
     }
 
-    const baseUrl =
-      this.configService.get<string>('MAIN_PAGE_URL') ||
-      'https://dot-revealable-telescopically.ngrok-free.dev';
+    const baseUrl = this.configService.get<string>('MAIN_PAGE_URL');
+    if (!baseUrl) {
+      if (this.configService.get<string>('NODE_ENV') === 'production') {
+        throw new Error(
+          'GOOGLE_CALLBACK_URL o MAIN_PAGE_URL debe configurarse para OAuth en producción',
+        );
+      }
+
+      return 'http://localhost:3000/v1/auth/google/callback';
+    }
 
     return `${baseUrl.replace(/\/$/, '')}/v1/auth/google/callback`;
   }
