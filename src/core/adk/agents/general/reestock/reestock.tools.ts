@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { FunctionTool } from '@google/adk';
-import type { ToolContext } from '@google/adk';
+import type { Context } from '@google/adk';
 import { z } from 'zod';
 
 @Injectable()
@@ -22,7 +22,7 @@ export class ReestockToolsService {
           .optional()
           .describe('Identificador de la empresa'),
       }),
-      execute: async (_args, _context?: ToolContext) => {
+      execute: async (_args, _context?: Context) => {
         this.logger.warn('list_low_stock_items pendiente de implementación');
         return {
           success: false,
@@ -51,7 +51,7 @@ export class ReestockToolsService {
           .optional()
           .describe('Identificador de la empresa'),
       }),
-      execute: async (_args, _context?: ToolContext) => {
+      execute: async (_args, _context?: Context) => {
         this.logger.warn('create_restock_order pendiente de implementación');
         return {
           success: false,
@@ -73,7 +73,7 @@ export class ReestockToolsService {
           .describe('Identificador de la empresa'),
         source: z.string().optional().describe('Fuente del inventario'),
       }),
-      execute: async (_args, _context?: ToolContext) => {
+      execute: async (_args, _context?: Context) => {
         this.logger.warn('sync_inventory_snapshot pendiente de implementación');
         return {
           success: false,

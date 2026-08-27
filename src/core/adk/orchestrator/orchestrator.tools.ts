@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { FunctionTool } from '@google/adk';
-import type { ToolContext } from '@google/adk';
+import type { Context } from '@google/adk';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { z } from 'zod';
 import { VerificationService } from '../../../features/login/verification.service';
@@ -32,7 +32,7 @@ export class OrchestratorToolsService {
           .optional()
           .describe('Nombre de WhatsApp si está disponible'),
       }),
-      execute: async (args, context?: ToolContext) => {
+      execute: async (args, context?: Context) => {
         const rawCompanyId = context?.state?.get('app:companyId');
         const companyId =
           typeof rawCompanyId === 'string' ? rawCompanyId : undefined;

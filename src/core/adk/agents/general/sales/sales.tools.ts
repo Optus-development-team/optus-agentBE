@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { FunctionTool } from '@google/adk';
-import type { ToolContext } from '@google/adk';
+import type { Context } from '@google/adk';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { z } from 'zod';
 import { SupabaseService } from '../../../../../common/intraestructure/supabase/supabase.service';
@@ -40,7 +40,7 @@ export class SalesToolsService {
           .optional()
           .describe('Número máximo de resultados (default: 5)'),
       }),
-      execute: async (args, context?: ToolContext) => {
+      execute: async (args, context?: Context) => {
         this.logger.debug(`Buscando productos: ${args.query}`);
 
         const state = context?.state;
@@ -73,7 +73,7 @@ export class SalesToolsService {
       parameters: z.object({
         productId: z.string().describe('ID único o SKU del producto'),
       }),
-      execute: async (args, _context?: ToolContext) => {
+      execute: async (args, _context?: Context) => {
         this.logger.debug(`Obteniendo info del producto: ${args.productId}`);
 
         return {
@@ -115,7 +115,7 @@ export class SalesToolsService {
           .optional()
           .describe('Lista de productos (si aplica)'),
       }),
-      execute: async (args, context?: ToolContext) => {
+      execute: async (args, context?: Context) => {
         this.logger.debug(`Creando orden de pago: $${args.amount}`);
 
         const state = context?.state;
@@ -186,7 +186,7 @@ export class SalesToolsService {
             'ID de la orden a verificar. Si no se proporciona, busca la más reciente.',
           ),
       }),
-      execute: async (args, context?: ToolContext) => {
+      execute: async (args, context?: Context) => {
         const state = context?.state;
         const orderId =
           args.orderId || (state?.get('temp:lastOrderId') as string);
@@ -230,7 +230,7 @@ export class SalesToolsService {
           .optional()
           .describe('Forzar regeneración del QR'),
       }),
-      execute: async (args, _context?: ToolContext) => {
+      execute: async (args, _context?: Context) => {
         const companyId = _context?.state?.get('app:companyId') as
           | string
           | undefined;
@@ -261,7 +261,7 @@ export class SalesToolsService {
           .optional()
           .describe('Dirección de sincronización'),
       }),
-      execute: async (args, context?: ToolContext) => {
+      execute: async (args, context?: Context) => {
         const state = context?.state;
         const userRole = state?.get('user:role');
         const companyId = state?.get('app:companyId') as string | undefined;

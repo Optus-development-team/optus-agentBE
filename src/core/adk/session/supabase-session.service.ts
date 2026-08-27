@@ -168,7 +168,13 @@ export class SupabaseSessionService extends BaseSessionService {
       }
     }
 
-    return { sessions };
+    return {
+      sessions,
+      page: 1,
+      limit: sessions.length,
+      totalItems: sessions.length,
+      totalPages: sessions.length === 0 ? 0 : 1,
+    };
   }
 
   /**
@@ -271,7 +277,7 @@ export class SupabaseSessionService extends BaseSessionService {
    */
   private rowToSession(
     row: DbAdkSessionRow,
-    fallbackIds: { appName: string; userId: string },
+    fallbackIds: { appName: string; userId?: string },
   ): Session {
     const context = this.parseJson(row.context_data, {}) as {
       state?: Record<string, unknown>;
@@ -283,7 +289,7 @@ export class SupabaseSessionService extends BaseSessionService {
     return {
       id: row.session_id,
       appName: (context.appName as string) || fallbackIds.appName,
-      userId: (context.userId as string) || fallbackIds.userId,
+      userId: (context.userId as string) || fallbackIds.userId || '',
       events: this.parseJson(context.events, []) as Event[],
       state: this.stripTempState(
         this.parseJson(context.state, {}) as Record<string, unknown>,
