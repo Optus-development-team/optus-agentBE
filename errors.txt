@@ -1,0 +1,616 @@
+
+dependencies:
+- @google/adk 0.1.3
++ @google/adk 2.0.0
+
+devDependencies:
+- @google/adk-devtools 0.3.0
++ @google/adk-devtools 2.0.0 already in devDependencies, was not moved to dependencies.
+
+Done in 36.4s using pnpm v10.33.2
+
+░▒▓   …/optus-agentBE    adk-native-db-session-service $!  ▓▒░ ◦•·········································•◦ ░▒▓   36s535ms ▓▒░
+··• pnpm run build
+
+> optus-agents-backend@0.0.1 build /run/media/nobarasaul/NV3aca/Proyectos/Optus/Optus Repositories/optus-agentBE
+> nest build
+
+src/core/adk/agents/general/appointment/appointment.tools.ts:4:15 - error TS2305: Module '"@google/adk"' has no exported member 'ToolContext'.
+
+4 import type { ToolContext } from '@google/adk';
+                ~~~~~~~~~~~
+src/core/adk/agents/general/appointment/appointment.tools.ts:30:7 - error TS2322: Type 'ZodObject<{ date: ZodString; serviceType: ZodOptional<ZodString>; duration: ZodOptional<ZodNumber>; }, "strip", ZodTypeAny, { ...; }, { ...; }>' is not assignable to type 'ToolInputParameters'.
+  Type 'ZodObject<{ date: ZodString; serviceType: ZodOptional<ZodString>; duration: ZodOptional<ZodNumber>; }, "strip", ZodTypeAny, { ...; }, { ...; }>' is not assignable to type 'Schema | ZodObject<...> | ZodObject<...>'.
+    Type 'ZodObject<{ date: ZodString; serviceType: ZodOptional<ZodString>; duration: ZodOptional<ZodNumber>; }, "strip", ZodTypeAny, { ...; }, { ...; }>' is not assignable to type 'ZodObject<ZodRawShape, UnknownKeysParam, ZodTypeAny, { [x: string]: any; }, { [x: string]: any; }>'.
+      Property '_cached' is private in type 'ZodObject<{ date: ZodString; serviceType: ZodOptional<ZodString>; duration: ZodOptional<ZodNumber>; }, "strip", ZodTypeAny, { ...; }, { ...; }>' but not in type 'ZodObject<ZodRawShape, UnknownKeysParam, ZodTypeAny, { [x: string]: any; }, { [x: string]: any; }>'.
+
+30       parameters: z.object({
+         ~~~~~~~~~~
+
+  node_modules/.pnpm/@google+adk@2.0.0_f48c159eeb836156af2cfede3b305e41/node_modules/@google/adk/dist/types/tools/function_tool.d.ts:41:5
+    41     parameters?: TParameters;
+           ~~~~~~~~~~
+    The expected type comes from property 'parameters' which is declared here on type 'ToolOptions<ToolInputParameters>'
+src/core/adk/agents/general/appointment/appointment.tools.ts:46:63 - error TS18046: 'args' is of type 'unknown'.
+
+46         this.logger.debug(`Consultando disponibilidad para: ${args.date}`);
+                                                                 ~~~~
+src/core/adk/agents/general/appointment/appointment.tools.ts:57:13 - error TS18046: 'args' is of type 'unknown'.
+
+57             args.date,
+               ~~~~
+src/core/adk/agents/general/appointment/appointment.tools.ts:63:30 - error TS18046: 'args' is of type 'unknown'.
+
+63             durationMinutes: args.duration,
+                                ~~~~
+src/core/adk/agents/general/appointment/appointment.tools.ts:98:7 - error TS2322: Type 'ZodObject<{ date: ZodString; time: ZodString; duration: ZodString; serviceType: ZodOptional<ZodString>; notes: ZodOptional<ZodString>; }, "strip", ZodTypeAny, { ...; }, { ...; }>' is not assignable to type 'ToolInputParameters'.
+  Type 'ZodObject<{ date: ZodString; time: ZodString; duration: ZodString; serviceType: ZodOptional<ZodString>; notes: ZodOptional<ZodString>; }, "strip", ZodTypeAny, { ...; }, { ...; }>' is not assignable to type 'Schema | ZodObject<...> | ZodObject<...>'.
+    Type 'ZodObject<{ date: ZodString; time: ZodString; duration: ZodString; serviceType: ZodOptional<ZodString>; notes: ZodOptional<ZodString>; }, "strip", ZodTypeAny, { ...; }, { ...; }>' is not assignable to type 'ZodObject<ZodRawShape, UnknownKeysParam, ZodTypeAny, { [x: string]: any; }, { [x: string]: any; }>'.
+      Property '_cached' is private in type 'ZodObject<{ date: ZodString; time: ZodString; duration: ZodString; serviceType: ZodOptional<ZodString>; notes: ZodOptional<ZodString>; }, "strip", ZodTypeAny, { ...; }, { ...; }>' but not in type 'ZodObject<ZodRawShape, UnknownKeysParam, ZodTypeAny, { [x: string]: any; }, { [x: string]: any; }>'.
+
+98       parameters: z.object({
+         ~~~~~~~~~~
+
+  node_modules/.pnpm/@google+adk@2.0.0_f48c159eeb836156af2cfede3b305e41/node_modules/@google/adk/dist/types/tools/function_tool.d.ts:41:5
+    41     parameters?: TParameters;
+           ~~~~~~~~~~
+    The expected type comes from property 'parameters' which is declared here on type 'ToolOptions<ToolInputParameters>'
+src/core/adk/agents/general/appointment/appointment.tools.ts:111:28 - error TS18046: 'args' is of type 'unknown'.
+
+111           `Creando cita: ${args.date} ${args.time} (${args.duration})`,
+                               ~~~~
+src/core/adk/agents/general/appointment/appointment.tools.ts:111:41 - error TS18046: 'args' is of type 'unknown'.
+
+111           `Creando cita: ${args.date} ${args.time} (${args.duration})`,
+                                            ~~~~
+src/core/adk/agents/general/appointment/appointment.tools.ts:111:55 - error TS18046: 'args' is of type 'unknown'.
+
+111           `Creando cita: ${args.date} ${args.time} (${args.duration})`,
+                                                          ~~~~
+src/core/adk/agents/general/appointment/appointment.tools.ts:124:13 - error TS18046: 'args' is of type 'unknown'.
+
+124             args.duration,
+                ~~~~
+src/core/adk/agents/general/appointment/appointment.tools.ts:127:13 - error TS18046: 'args' is of type 'unknown'.
+
+127             args.date,
+                ~~~~
+src/core/adk/agents/general/appointment/appointment.tools.ts:128:13 - error TS18046: 'args' is of type 'unknown'.
+
+128             args.time,
+                ~~~~
+src/core/adk/agents/general/appointment/appointment.tools.ts:137:74 - error TS18046: 'args' is of type 'unknown'.
+
+137               title: `Cita con ${userName || userPhone || 'cliente'} - ${args.serviceType || 'General'}`,
+                                                                             ~~~~
+src/core/adk/agents/general/appointment/appointment.tools.ts:138:28 - error TS18046: 'args' is of type 'unknown'.
+
+138               description: args.notes || '',
+                               ~~~~
+src/core/adk/agents/general/appointment/appointment.tools.ts:155:21 - error TS18046: 'args' is of type 'unknown'.
+
+155               date: args.date,
+                        ~~~~
+src/core/adk/agents/general/appointment/appointment.tools.ts:156:21 - error TS18046: 'args' is of type 'unknown'.
+
+156               time: args.time,
+                        ~~~~
+src/core/adk/agents/general/appointment/appointment.tools.ts:188:7 - error TS2322: Type 'ZodObject<{ appointmentId: ZodOptional<ZodString>; date: ZodOptional<ZodString>; time: ZodOptional<ZodString>; reason: ZodOptional<...>; }, "strip", ZodTypeAny, { ...; }, { ...; }>' is not assignable to type 'ToolInputParameters'.
+  Type 'ZodObject<{ appointmentId: ZodOptional<ZodString>; date: ZodOptional<ZodString>; time: ZodOptional<ZodString>; reason: ZodOptional<...>; }, "strip", ZodTypeAny, { ...; }, { ...; }>' is not assignable to type 'Schema | ZodObject<...> | ZodObject<...>'.
+    Type 'ZodObject<{ appointmentId: ZodOptional<ZodString>; date: ZodOptional<ZodString>; time: ZodOptional<ZodString>; reason: ZodOptional<...>; }, "strip", ZodTypeAny, { ...; }, { ...; }>' is not assignable to type 'ZodObject<ZodRawShape, UnknownKeysParam, ZodTypeAny, { [x: string]: any; }, { [x: string]: any; }>'.
+      Property '_cached' is private in type 'ZodObject<{ appointmentId: ZodOptional<ZodString>; date: ZodOptional<ZodString>; time: ZodOptional<ZodString>; reason: ZodOptional<...>; }, "strip", ZodTypeAny, { ...; }, { ...; }>' but not in type 'ZodObject<ZodRawShape, UnknownKeysParam, ZodTypeAny, { [x: string]: any; }, { [x: string]: any; }>'.
+
+188       parameters: z.object({
+          ~~~~~~~~~~
+
+  node_modules/.pnpm/@google+adk@2.0.0_f48c159eeb836156af2cfede3b305e41/node_modules/@google/adk/dist/types/tools/function_tool.d.ts:41:5
+    41     parameters?: TParameters;
+           ~~~~~~~~~~
+    The expected type comes from property 'parameters' which is declared here on type 'ToolOptions<ToolInputParameters>'
+src/core/adk/agents/general/appointment/appointment.tools.ts:213:26 - error TS18046: 'args' is of type 'unknown'.
+
+213           const target = args.appointmentId
+                             ~~~~
+src/core/adk/agents/general/appointment/appointment.tools.ts:214:21 - error TS18046: 'args' is of type 'unknown'.
+
+214             ? { id: args.appointmentId }
+                        ~~~~
+src/core/adk/agents/general/appointment/appointment.tools.ts:218:23 - error TS18046: 'args' is of type 'unknown'.
+
+218                 date: args.date,
+                          ~~~~
+src/core/adk/agents/general/appointment/appointment.tools.ts:219:23 - error TS18046: 'args' is of type 'unknown'.
+
+219                 time: args.time,
+                          ~~~~
+src/core/adk/agents/general/appointment/appointment.tools.ts:224:13 - error TS18046: 'args' is of type 'unknown'.
+
+224             args.reason,
+                ~~~~
+src/core/adk/agents/general/appointment/appointment.tools.ts:246:7 - error TS2322: Type 'ZodObject<{ appointmentId: ZodOptional<ZodString>; currentDate: ZodOptional<ZodString>; currentTime: ZodOptional<ZodString>; newDate: ZodString; newTime: ZodString; }, "strip", ZodTypeAny, { ...; }, { ...; }>' is not assignable to type 'ToolInputParameters'.
+  Type 'ZodObject<{ appointmentId: ZodOptional<ZodString>; currentDate: ZodOptional<ZodString>; currentTime: ZodOptional<ZodString>; newDate: ZodString; newTime: ZodString; }, "strip", ZodTypeAny, { ...; }, { ...; }>' is not assignable to type 'Schema | ZodObject<...> | ZodObject<...>'.
+    Type 'ZodObject<{ appointmentId: ZodOptional<ZodString>; currentDate: ZodOptional<ZodString>; currentTime: ZodOptional<ZodString>; newDate: ZodString; newTime: ZodString; }, "strip", ZodTypeAny, { ...; }, { ...; }>' is not assignable to type 'ZodObject<ZodRawShape, UnknownKeysParam, ZodTypeAny, { [x: string]: any; }, { [x: string]: any; }>'.
+      Property '_cached' is private in type 'ZodObject<{ appointmentId: ZodOptional<ZodString>; currentDate: ZodOptional<ZodString>; currentTime: ZodOptional<ZodString>; newDate: ZodString; newTime: ZodString; }, "strip", ZodTypeAny, { ...; }, { ...; }>' but not in type 'ZodObject<ZodRawShape, UnknownKeysParam, ZodTypeAny, { [x: string]: any; }, { [x: string]: any; }>'.
+
+246       parameters: z.object({
+          ~~~~~~~~~~
+
+  node_modules/.pnpm/@google+adk@2.0.0_f48c159eeb836156af2cfede3b305e41/node_modules/@google/adk/dist/types/tools/function_tool.d.ts:41:5
+    41     parameters?: TParameters;
+           ~~~~~~~~~~
+    The expected type comes from property 'parameters' which is declared here on type 'ToolOptions<ToolInputParameters>'
+src/core/adk/agents/general/appointment/appointment.tools.ts:269:33 - error TS18046: 'args' is of type 'unknown'.
+
+269           `Reprogramando cita ${args.appointmentId} a ${args.newDate} ${args.newTime}`,
+                                    ~~~~
+src/core/adk/agents/general/appointment/appointment.tools.ts:269:57 - error TS18046: 'args' is of type 'unknown'.
+
+269           `Reprogramando cita ${args.appointmentId} a ${args.newDate} ${args.newTime}`,
+                                                            ~~~~
+src/core/adk/agents/general/appointment/appointment.tools.ts:269:73 - error TS18046: 'args' is of type 'unknown'.
+
+269           `Reprogramando cita ${args.appointmentId} a ${args.newDate} ${args.newTime}`,
+                                                                            ~~~~
+src/core/adk/agents/general/appointment/appointment.tools.ts:276:26 - error TS18046: 'args' is of type 'unknown'.
+
+276           const target = args.appointmentId
+                             ~~~~
+src/core/adk/agents/general/appointment/appointment.tools.ts:277:21 - error TS18046: 'args' is of type 'unknown'.
+
+277             ? { id: args.appointmentId }
+                        ~~~~
+src/core/adk/agents/general/appointment/appointment.tools.ts:281:23 - error TS18046: 'args' is of type 'unknown'.
+
+281                 date: args.currentDate,
+                          ~~~~
+src/core/adk/agents/general/appointment/appointment.tools.ts:282:23 - error TS18046: 'args' is of type 'unknown'.
+
+282                 time: args.currentTime,
+                          ~~~~
+src/core/adk/agents/general/appointment/appointment.tools.ts:285:13 - error TS18046: 'args' is of type 'unknown'.
+
+285             args.newDate,
+                ~~~~
+src/core/adk/agents/general/appointment/appointment.tools.ts:286:13 - error TS18046: 'args' is of type 'unknown'.
+
+286             args.newTime,
+                ~~~~
+src/core/adk/agents/general/appointment/appointment.tools.ts:299:22 - error TS18046: 'args' is of type 'unknown'.
+
+299             newDate: args.newDate,
+                         ~~~~
+src/core/adk/agents/general/appointment/appointment.tools.ts:300:22 - error TS18046: 'args' is of type 'unknown'.
+
+300             newTime: args.newTime,
+                         ~~~~
+src/core/adk/agents/general/appointment/appointment.tools.ts:302:66 - error TS18046: 'args' is of type 'unknown'.
+
+302             message: `Cita ${appointment.id} reprogramada para ${args.newDate} a las ${args.newTime}.`,
+                                                                     ~~~~
+src/core/adk/agents/general/appointment/appointment.tools.ts:302:88 - error TS18046: 'args' is of type 'unknown'.
+
+302             message: `Cita ${appointment.id} reprogramada para ${args.newDate} a las ${args.newTime}.`,
+                                                                                           ~~~~
+src/core/adk/agents/general/appointment/appointment.tools.ts:315:7 - error TS2322: Type 'ZodObject<{ status: ZodOptional<ZodEnum<["all", "upcoming", "past", "cancelled"]>>; limit: ZodOptional<ZodNumber>; }, "strip", ZodTypeAny, { ...; }, { ...; }>' is not assignable to type 'ToolInputParameters'.
+  Type 'ZodObject<{ status: ZodOptional<ZodEnum<["all", "upcoming", "past", "cancelled"]>>; limit: ZodOptional<ZodNumber>; }, "strip", ZodTypeAny, { ...; }, { ...; }>' is not assignable to type 'Schema | ZodObject<...> | ZodObject<...>'.
+    Type 'ZodObject<{ status: ZodOptional<ZodEnum<["all", "upcoming", "past", "cancelled"]>>; limit: ZodOptional<ZodNumber>; }, "strip", ZodTypeAny, { ...; }, { ...; }>' is not assignable to type 'ZodObject<ZodRawShape, UnknownKeysParam, ZodTypeAny, { [x: string]: any; }, { [x: string]: any; }>'.
+      Property '_cached' is private in type 'ZodObject<{ status: ZodOptional<ZodEnum<["all", "upcoming", "past", "cancelled"]>>; limit: ZodOptional<ZodNumber>; }, "strip", ZodTypeAny, { ...; }, { ...; }>' but not in type 'ZodObject<ZodRawShape, UnknownKeysParam, ZodTypeAny, { [x: string]: any; }, { [x: string]: any; }>'.
+
+315       parameters: z.object({
+          ~~~~~~~~~~
+
+  node_modules/.pnpm/@google+adk@2.0.0_f48c159eeb836156af2cfede3b305e41/node_modules/@google/adk/dist/types/tools/function_tool.d.ts:41:5
+    41     parameters?: TParameters;
+           ~~~~~~~~~~
+    The expected type comes from property 'parameters' which is declared here on type 'ToolOptions<ToolInputParameters>'
+src/core/adk/agents/general/appointment/appointment.tools.ts:340:11 - error TS18046: 'args' is of type 'unknown'.
+
+340           args.status,
+              ~~~~
+src/core/adk/agents/general/appointment/appointment.tools.ts:341:11 - error TS18046: 'args' is of type 'unknown'.
+
+341           args.limit,
+              ~~~~
+src/core/adk/agents/general/appointment/appointment.tools.ts:352:19 - error TS18046: 'args' is of type 'unknown'.
+
+352           filter: args.status || 'upcoming',
+                      ~~~~
+src/core/adk/agents/general/knowledge/knowledge.tools.ts:3:15 - error TS2305: Module '"@google/adk"' has no exported member 'ToolContext'.
+
+3 import type { ToolContext } from '@google/adk';
+                ~~~~~~~~~~~
+src/core/adk/agents/general/knowledge/knowledge.tools.ts:33:7 - error TS2322: Type 'ZodObject<{ query: ZodString; }, "strip", ZodTypeAny, { query: string; }, { query: string; }>' is not assignable to type 'ToolInputParameters'.
+  Type 'ZodObject<{ query: ZodString; }, "strip", ZodTypeAny, { query: string; }, { query: string; }>' is not assignable to type 'Schema | ZodObject<...> | ZodObject<...>'.
+    Type 'ZodObject<{ query: ZodString; }, "strip", ZodTypeAny, { query: string; }, { query: string; }>' is not assignable to type 'ZodObject<ZodRawShape, UnknownKeysParam, ZodTypeAny, { [x: string]: any; }, { [x: string]: any; }>'.
+      Property '_cached' is private in type 'ZodObject<{ query: ZodString; }, "strip", ZodTypeAny, { query: string; }, { query: string; }>' but not in type 'ZodObject<ZodRawShape, UnknownKeysParam, ZodTypeAny, { [x: string]: any; }, { [x: string]: any; }>'.
+
+33       parameters: searchCompanyInformationSchema,
+         ~~~~~~~~~~
+
+  node_modules/.pnpm/@google+adk@2.0.0_f48c159eeb836156af2cfede3b305e41/node_modules/@google/adk/dist/types/tools/function_tool.d.ts:41:5
+    41     parameters?: TParameters;
+           ~~~~~~~~~~
+    The expected type comes from property 'parameters' which is declared here on type 'ToolOptions<ToolInputParameters>'
+src/core/adk/agents/general/reestock/reestock.tools.ts:3:15 - error TS2305: Module '"@google/adk"' has no exported member 'ToolContext'.
+
+3 import type { ToolContext } from '@google/adk';
+                ~~~~~~~~~~~
+src/core/adk/agents/general/reestock/reestock.tools.ts:15:7 - error TS2322: Type 'ZodObject<{ threshold: ZodOptional<ZodNumber>; companyId: ZodOptional<ZodString>; }, "strip", ZodTypeAny, { companyId?: string | undefined; threshold?: number | undefined; }, { ...; }>' is not assignable to type 'ToolInputParameters'.
+  Type 'ZodObject<{ threshold: ZodOptional<ZodNumber>; companyId: ZodOptional<ZodString>; }, "strip", ZodTypeAny, { companyId?: string | undefined; threshold?: number | undefined; }, { ...; }>' is not assignable to type 'Schema | ZodObject<...> | ZodObject<...>'.
+    Type 'ZodObject<{ threshold: ZodOptional<ZodNumber>; companyId: ZodOptional<ZodString>; }, "strip", ZodTypeAny, { companyId?: string | undefined; threshold?: number | undefined; }, { ...; }>' is not assignable to type 'ZodObject<ZodRawShape, UnknownKeysParam, ZodTypeAny, { [x: string]: any; }, { [x: string]: any; }>'.
+      Property '_cached' is private in type 'ZodObject<{ threshold: ZodOptional<ZodNumber>; companyId: ZodOptional<ZodString>; }, "strip", ZodTypeAny, { companyId?: string | undefined; threshold?: number | undefined; }, { ...; }>' but not in type 'ZodObject<ZodRawShape, UnknownKeysParam, ZodTypeAny, { [x: string]: any; }, { [x: string]: any; }>'.
+
+15       parameters: z.object({
+         ~~~~~~~~~~
+
+  node_modules/.pnpm/@google+adk@2.0.0_f48c159eeb836156af2cfede3b305e41/node_modules/@google/adk/dist/types/tools/function_tool.d.ts:41:5
+    41     parameters?: TParameters;
+           ~~~~~~~~~~
+    The expected type comes from property 'parameters' which is declared here on type 'ToolOptions<ToolInputParameters>'
+src/core/adk/agents/general/reestock/reestock.tools.ts:40:7 - error TS2322: Type 'ZodObject<{ items: ZodArray<ZodObject<{ productId: ZodString; quantity: ZodNumber; }, "strip", ZodTypeAny, { productId: string; quantity: number; }, { productId: string; quantity: number; }>, "many">; companyId: ZodOptional<...>; }, "strip", ZodTypeAny, { ...; }, { ...; }>' is not assignable to type 'ToolInputParameters'.
+  Type 'ZodObject<{ items: ZodArray<ZodObject<{ productId: ZodString; quantity: ZodNumber; }, "strip", ZodTypeAny, { productId: string; quantity: number; }, { productId: string; quantity: number; }>, "many">; companyId: ZodOptional<...>; }, "strip", ZodTypeAny, { ...; }, { ...; }>' is not assignable to type 'Schema | ZodObject<...> | ZodObject<...>'.
+    Type 'ZodObject<{ items: ZodArray<ZodObject<{ productId: ZodString; quantity: ZodNumber; }, "strip", ZodTypeAny, { productId: string; quantity: number; }, { productId: string; quantity: number; }>, "many">; companyId: ZodOptional<...>; }, "strip", ZodTypeAny, { ...; }, { ...; }>' is not assignable to type 'ZodObject<ZodRawShape, UnknownKeysParam, ZodTypeAny, { [x: string]: any; }, { [x: string]: any; }>'.
+      Property '_cached' is private in type 'ZodObject<{ items: ZodArray<ZodObject<{ productId: ZodString; quantity: ZodNumber; }, "strip", ZodTypeAny, { productId: string; quantity: number; }, { productId: string; quantity: number; }>, "many">; companyId: ZodOptional<...>; }, "strip", ZodTypeAny, { ...; }, { ...; }>' but not in type 'ZodObject<ZodRawShape, UnknownKeysParam, ZodTypeAny, { [x: string]: any; }, { [x: string]: any; }>'.
+
+40       parameters: z.object({
+         ~~~~~~~~~~
+
+  node_modules/.pnpm/@google+adk@2.0.0_f48c159eeb836156af2cfede3b305e41/node_modules/@google/adk/dist/types/tools/function_tool.d.ts:41:5
+    41     parameters?: TParameters;
+           ~~~~~~~~~~
+    The expected type comes from property 'parameters' which is declared here on type 'ToolOptions<ToolInputParameters>'
+src/core/adk/agents/general/reestock/reestock.tools.ts:69:7 - error TS2322: Type 'ZodObject<{ companyId: ZodOptional<ZodString>; source: ZodOptional<ZodString>; }, "strip", ZodTypeAny, { companyId?: string | undefined; source?: string | undefined; }, { ...; }>' is not assignable to type 'ToolInputParameters'.
+  Type 'ZodObject<{ companyId: ZodOptional<ZodString>; source: ZodOptional<ZodString>; }, "strip", ZodTypeAny, { companyId?: string | undefined; source?: string | undefined; }, { ...; }>' is not assignable to type 'Schema | ZodObject<...> | ZodObject<...>'.
+    Type 'ZodObject<{ companyId: ZodOptional<ZodString>; source: ZodOptional<ZodString>; }, "strip", ZodTypeAny, { companyId?: string | undefined; source?: string | undefined; }, { ...; }>' is not assignable to type 'ZodObject<ZodRawShape, UnknownKeysParam, ZodTypeAny, { [x: string]: any; }, { [x: string]: any; }>'.
+      Property '_cached' is private in type 'ZodObject<{ companyId: ZodOptional<ZodString>; source: ZodOptional<ZodString>; }, "strip", ZodTypeAny, { companyId?: string | undefined; source?: string | undefined; }, { ...; }>' but not in type 'ZodObject<ZodRawShape, UnknownKeysParam, ZodTypeAny, { [x: string]: any; }, { [x: string]: any; }>'.
+
+69       parameters: z.object({
+         ~~~~~~~~~~
+
+  node_modules/.pnpm/@google+adk@2.0.0_f48c159eeb836156af2cfede3b305e41/node_modules/@google/adk/dist/types/tools/function_tool.d.ts:41:5
+    41     parameters?: TParameters;
+           ~~~~~~~~~~
+    The expected type comes from property 'parameters' which is declared here on type 'ToolOptions<ToolInputParameters>'
+src/core/adk/agents/general/reporting/reporting.tools.ts:3:15 - error TS2305: Module '"@google/adk"' has no exported member 'ToolContext'.
+
+3 import type { ToolContext } from '@google/adk';
+                ~~~~~~~~~~~
+src/core/adk/agents/general/reporting/reporting.tools.ts:19:7 - error TS2322: Type 'ZodObject<{ date: ZodOptional<ZodString>; compareWithPrevious: ZodOptional<ZodBoolean>; }, "strip", ZodTypeAny, { date?: string | undefined; compareWithPrevious?: boolean | undefined; }, { ...; }>' is not assignable to type 'ToolInputParameters'.
+  Type 'ZodObject<{ date: ZodOptional<ZodString>; compareWithPrevious: ZodOptional<ZodBoolean>; }, "strip", ZodTypeAny, { date?: string | undefined; compareWithPrevious?: boolean | undefined; }, { ...; }>' is not assignable to type 'Schema | ZodObject<...> | ZodObject<...>'.
+    Type 'ZodObject<{ date: ZodOptional<ZodString>; compareWithPrevious: ZodOptional<ZodBoolean>; }, "strip", ZodTypeAny, { date?: string | undefined; compareWithPrevious?: boolean | undefined; }, { ...; }>' is not assignable to type 'ZodObject<ZodRawShape, UnknownKeysParam, ZodTypeAny, { [x: string]: any; }, { [x: string]: any; }>'.
+      Property '_cached' is private in type 'ZodObject<{ date: ZodOptional<ZodString>; compareWithPrevious: ZodOptional<ZodBoolean>; }, "strip", ZodTypeAny, { date?: string | undefined; compareWithPrevious?: boolean | undefined; }, { ...; }>' but not in type 'ZodObject<ZodRawShape, UnknownKeysParam, ZodTypeAny, { [x: string]: any; }, { [x: string]: any; }>'.
+
+19       parameters: z.object({
+         ~~~~~~~~~~
+
+  node_modules/.pnpm/@google+adk@2.0.0_f48c159eeb836156af2cfede3b305e41/node_modules/@google/adk/dist/types/tools/function_tool.d.ts:41:5
+    41     parameters?: TParameters;
+           ~~~~~~~~~~
+    The expected type comes from property 'parameters' which is declared here on type 'ToolOptions<ToolInputParameters>'
+src/core/adk/agents/general/reporting/reporting.tools.ts:42:56 - error TS18046: 'args' is of type 'unknown'.
+
+42         this.logger.debug(`Obteniendo métricas para: ${args.date || 'hoy'}`);
+                                                          ~~~~
+src/core/adk/agents/general/reporting/reporting.tools.ts:46:17 - error TS18046: 'args' is of type 'unknown'.
+
+46           date: args.date || this.timeService.getTodayDate(userPhone),
+                   ~~~~
+src/core/adk/agents/general/reporting/reporting.tools.ts:54:23 - error TS18046: 'args' is of type 'unknown'.
+
+54           comparison: args.compareWithPrevious
+                         ~~~~
+src/core/adk/agents/general/reporting/reporting.tools.ts:74:7 - error TS2322: Type 'ZodObject<{ period: ZodEnum<["today", "yesterday", "week", "month", "quarter", "custom"]>; startDate: ZodOptional<ZodString>; endDate: ZodOptional<ZodString>; groupBy: ZodOptional<...>; }, "strip", ZodTypeAny, { ...; }, { ...; }>' is not assignable to type 'ToolInputParameters'.
+  Type 'ZodObject<{ period: ZodEnum<["today", "yesterday", "week", "month", "quarter", "custom"]>; startDate: ZodOptional<ZodString>; endDate: ZodOptional<ZodString>; groupBy: ZodOptional<...>; }, "strip", ZodTypeAny, { ...; }, { ...; }>' is not assignable to type 'Schema | ZodObject<...> | ZodObject<...>'.
+    Type 'ZodObject<{ period: ZodEnum<["today", "yesterday", "week", "month", "quarter", "custom"]>; startDate: ZodOptional<ZodString>; endDate: ZodOptional<ZodString>; groupBy: ZodOptional<...>; }, "strip", ZodTypeAny, { ...; }, { ...; }>' is not assignable to type 'ZodObject<ZodRawShape, UnknownKeysParam, ZodTypeAny, { [x: string]: any; }, { [x: string]: any; }>'.
+      Property '_cached' is private in type 'ZodObject<{ period: ZodEnum<["today", "yesterday", "week", "month", "quarter", "custom"]>; startDate: ZodOptional<ZodString>; endDate: ZodOptional<ZodString>; groupBy: ZodOptional<...>; }, "strip", ZodTypeAny, { ...; }, { ...; }>' but not in type 'ZodObject<ZodRawShape, UnknownKeysParam, ZodTypeAny, { [x: string]: any; }, { [x: string]: any; }>'.
+
+74       parameters: z.object({
+         ~~~~~~~~~~
+
+  node_modules/.pnpm/@google+adk@2.0.0_f48c159eeb836156af2cfede3b305e41/node_modules/@google/adk/dist/types/tools/function_tool.d.ts:41:5
+    41     parameters?: TParameters;
+           ~~~~~~~~~~
+    The expected type comes from property 'parameters' which is declared here on type 'ToolOptions<ToolInputParameters>'
+src/core/adk/agents/general/reporting/reporting.tools.ts:103:59 - error TS18046: 'args' is of type 'unknown'.
+
+103         this.logger.debug(`Generando reporte de ventas: ${args.period}`);
+                                                              ~~~~
+src/core/adk/agents/general/reporting/reporting.tools.ts:107:19 - error TS18046: 'args' is of type 'unknown'.
+
+107           period: args.period,
+                      ~~~~
+src/core/adk/agents/general/reporting/reporting.tools.ts:122:45 - error TS18046: 'args' is of type 'unknown'.
+
+122           message: `📈 Reporte de ventas (${args.period}): $87,650 total, 156 órdenes, ticket promedio $562.`,
+                                                ~~~~
+src/core/adk/agents/general/reporting/reporting.tools.ts:132:7 - error TS2322: Type 'ZodObject<{ threshold: ZodOptional<ZodNumber>; includeOutOfStock: ZodOptional<ZodBoolean>; }, "strip", ZodTypeAny, { ...; }, { ...; }>' is not assignable to type 'ToolInputParameters'.
+  Type 'ZodObject<{ threshold: ZodOptional<ZodNumber>; includeOutOfStock: ZodOptional<ZodBoolean>; }, "strip", ZodTypeAny, { ...; }, { ...; }>' is not assignable to type 'Schema | ZodObject<...> | ZodObject<...>'.
+    Type 'ZodObject<{ threshold: ZodOptional<ZodNumber>; includeOutOfStock: ZodOptional<ZodBoolean>; }, "strip", ZodTypeAny, { ...; }, { ...; }>' is not assignable to type 'ZodObject<ZodRawShape, UnknownKeysParam, ZodTypeAny, { [x: string]: any; }, { [x: string]: any; }>'.
+      Property '_cached' is private in type 'ZodObject<{ threshold: ZodOptional<ZodNumber>; includeOutOfStock: ZodOptional<ZodBoolean>; }, "strip", ZodTypeAny, { ...; }, { ...; }>' but not in type 'ZodObject<ZodRawShape, UnknownKeysParam, ZodTypeAny, { [x: string]: any; }, { [x: string]: any; }>'.
+
+132       parameters: z.object({
+          ~~~~~~~~~~
+
+  node_modules/.pnpm/@google+adk@2.0.0_f48c159eeb836156af2cfede3b305e41/node_modules/@google/adk/dist/types/tools/function_tool.d.ts:41:5
+    41     parameters?: TParameters;
+           ~~~~~~~~~~
+    The expected type comes from property 'parameters' which is declared here on type 'ToolOptions<ToolInputParameters>'
+src/core/adk/agents/general/reporting/reporting.tools.ts:153:27 - error TS18046: 'args' is of type 'unknown'.
+
+153         const threshold = args.threshold ?? 10;
+                              ~~~~
+src/core/adk/agents/general/reporting/reporting.tools.ts:194:7 - error TS2322: Type 'ZodObject<{ period: ZodEnum<["today", "week", "month"]>; includeNoShows: ZodOptional<ZodBoolean>; }, "strip", ZodTypeAny, { period: "month" | "week" | "today"; includeNoShows?: boolean | undefined; }, { ...; }>' is not assignable to type 'ToolInputParameters'.
+  Type 'ZodObject<{ period: ZodEnum<["today", "week", "month"]>; includeNoShows: ZodOptional<ZodBoolean>; }, "strip", ZodTypeAny, { period: "month" | "week" | "today"; includeNoShows?: boolean | undefined; }, { ...; }>' is not assignable to type 'Schema | ZodObject<...> | ZodObject<...>'.
+    Type 'ZodObject<{ period: ZodEnum<["today", "week", "month"]>; includeNoShows: ZodOptional<ZodBoolean>; }, "strip", ZodTypeAny, { period: "month" | "week" | "today"; includeNoShows?: boolean | undefined; }, { ...; }>' is not assignable to type 'ZodObject<ZodRawShape, UnknownKeysParam, ZodTypeAny, { [x: string]: any; }, { [x: string]: any; }>'.
+      Property '_cached' is private in type 'ZodObject<{ period: ZodEnum<["today", "week", "month"]>; includeNoShows: ZodOptional<ZodBoolean>; }, "strip", ZodTypeAny, { period: "month" | "week" | "today"; includeNoShows?: boolean | undefined; }, { ...; }>' but not in type 'ZodObject<ZodRawShape, UnknownKeysParam, ZodTypeAny, { [x: string]: any; }, { [x: string]: any; }>'.
+
+194       parameters: z.object({
+          ~~~~~~~~~~
+
+  node_modules/.pnpm/@google+adk@2.0.0_f48c159eeb836156af2cfede3b305e41/node_modules/@google/adk/dist/types/tools/function_tool.d.ts:41:5
+    41     parameters?: TParameters;
+           ~~~~~~~~~~
+    The expected type comes from property 'parameters' which is declared here on type 'ToolOptions<ToolInputParameters>'
+src/core/adk/agents/general/reporting/reporting.tools.ts:215:58 - error TS18046: 'args' is of type 'unknown'.
+
+215         this.logger.debug(`Generando reporte de citas: ${args.period}`);
+                                                             ~~~~
+src/core/adk/agents/general/reporting/reporting.tools.ts:219:19 - error TS18046: 'args' is of type 'unknown'.
+
+219           period: args.period,
+                      ~~~~
+src/core/adk/agents/general/reporting/reporting.tools.ts:224:22 - error TS18046: 'args' is of type 'unknown'.
+
+224             noShows: args.includeNoShows ? 1 : 0,
+                         ~~~~
+src/core/adk/agents/general/reporting/reporting.tools.ts:228:33 - error TS18046: 'args' is of type 'unknown'.
+
+228           message: `📅 Citas (${args.period}): 42 total, 38 completadas, tasa de ocupación 78%.`,
+                                    ~~~~
+src/core/adk/agents/general/reporting/reporting.tools.ts:240:7 - error TS2322: Type 'ZodObject<{ period: ZodEnum<["week", "month", "quarter"]>; }, "strip", ZodTypeAny, { period: "month" | "week" | "quarter"; }, { period: "month" | "week" | "quarter"; }>' is not assignable to type 'ToolInputParameters'.
+  Type 'ZodObject<{ period: ZodEnum<["week", "month", "quarter"]>; }, "strip", ZodTypeAny, { period: "month" | "week" | "quarter"; }, { period: "month" | "week" | "quarter"; }>' is not assignable to type 'Schema | ZodObject<...> | ZodObject<...>'.
+    Type 'ZodObject<{ period: ZodEnum<["week", "month", "quarter"]>; }, "strip", ZodTypeAny, { period: "month" | "week" | "quarter"; }, { period: "month" | "week" | "quarter"; }>' is not assignable to type 'ZodObject<ZodRawShape, UnknownKeysParam, ZodTypeAny, { [x: string]: any; }, { [x: string]: any; }>'.
+      Property '_cached' is private in type 'ZodObject<{ period: ZodEnum<["week", "month", "quarter"]>; }, "strip", ZodTypeAny, { period: "month" | "week" | "quarter"; }, { period: "month" | "week" | "quarter"; }>' but not in type 'ZodObject<ZodRawShape, UnknownKeysParam, ZodTypeAny, { [x: string]: any; }, { [x: string]: any; }>'.
+
+240       parameters: z.object({
+          ~~~~~~~~~~
+
+  node_modules/.pnpm/@google+adk@2.0.0_f48c159eeb836156af2cfede3b305e41/node_modules/@google/adk/dist/types/tools/function_tool.d.ts:41:5
+    41     parameters?: TParameters;
+           ~~~~~~~~~~
+    The expected type comes from property 'parameters' which is declared here on type 'ToolOptions<ToolInputParameters>'
+src/core/adk/agents/general/reporting/reporting.tools.ts:256:47 - error TS18046: 'args' is of type 'unknown'.
+
+256         this.logger.debug(`Calculando KPIs: ${args.period}`);
+                                                  ~~~~
+src/core/adk/agents/general/reporting/reporting.tools.ts:260:19 - error TS18046: 'args' is of type 'unknown'.
+
+260           period: args.period,
+                      ~~~~
+src/core/adk/agents/general/reporting/reporting.tools.ts:274:32 - error TS18046: 'args' is of type 'unknown'.
+
+274           message: `🎯 KPIs (${args.period}): Retención 85%, Conversión 23%, Satisfacción 4.7/5`,
+                                   ~~~~
+src/core/adk/agents/general/sales/sales.tools.ts:3:15 - error TS2305: Module '"@google/adk"' has no exported member 'ToolContext'.
+
+3 import type { ToolContext } from '@google/adk';
+                ~~~~~~~~~~~
+src/core/adk/agents/general/sales/sales.tools.ts:102:7 - error TS2322: Type 'ZodObject<{ amount: ZodNumber; description: ZodOptional<ZodString>; products: ZodOptional<ZodArray<ZodObject<{ productId: ZodString; quantity: ZodNumber; }, "strip", ZodTypeAny, { ...; }, { ...; }>, "many">>; }, "strip", ZodTypeAny, { ...; }, { ...; }>' is not assignable to type 'ToolInputParameters'.
+  Type 'ZodObject<{ amount: ZodNumber; description: ZodOptional<ZodString>; products: ZodOptional<ZodArray<ZodObject<{ productId: ZodString; quantity: ZodNumber; }, "strip", ZodTypeAny, { ...; }, { ...; }>, "many">>; }, "strip", ZodTypeAny, { ...; }, { ...; }>' is not assignable to type 'Schema | ZodObject<...> | ZodObject<...>'.
+    Type 'ZodObject<{ amount: ZodNumber; description: ZodOptional<ZodString>; products: ZodOptional<ZodArray<ZodObject<{ productId: ZodString; quantity: ZodNumber; }, "strip", ZodTypeAny, { ...; }, { ...; }>, "many">>; }, "strip", ZodTypeAny, { ...; }, { ...; }>' is not assignable to type 'ZodObject<ZodRawShape, UnknownKeysParam, ZodTypeAny, { [x: string]: any; }, { [x: string]: any; }>'.
+      Property '_cached' is private in type 'ZodObject<{ amount: ZodNumber; description: ZodOptional<ZodString>; products: ZodOptional<ZodArray<ZodObject<{ productId: ZodString; quantity: ZodNumber; }, "strip", ZodTypeAny, { ...; }, { ...; }>, "many">>; }, "strip", ZodTypeAny, { ...; }, { ...; }>' but not in type 'ZodObject<ZodRawShape, UnknownKeysParam, ZodTypeAny, { [x: string]: any; }, { [x: string]: any; }>'.
+
+102       parameters: z.object({
+          ~~~~~~~~~~
+
+  node_modules/.pnpm/@google+adk@2.0.0_f48c159eeb836156af2cfede3b305e41/node_modules/@google/adk/dist/types/tools/function_tool.d.ts:41:5
+    41     parameters?: TParameters;
+           ~~~~~~~~~~
+    The expected type comes from property 'parameters' which is declared here on type 'ToolOptions<ToolInputParameters>'
+src/core/adk/agents/general/sales/sales.tools.ts:119:54 - error TS18046: 'args' is of type 'unknown'.
+
+119         this.logger.debug(`Creando orden de pago: $${args.amount}`);
+                                                         ~~~~
+src/core/adk/agents/general/sales/sales.tools.ts:139:15 - error TS18046: 'args' is of type 'unknown'.
+
+139               args.amount,
+                  ~~~~
+src/core/adk/agents/general/sales/sales.tools.ts:141:15 - error TS18046: 'args' is of type 'unknown'.
+
+141               args.description ?? 'Orden creada por sales tool',
+                  ~~~~
+src/core/adk/agents/general/sales/sales.tools.ts:144:27 - error TS18046: 'args' is of type 'unknown'.
+
+144                 products: args.products ?? [],
+                              ~~~~
+src/core/adk/agents/general/sales/sales.tools.ts:155:25 - error TS18046: 'args' is of type 'unknown'.
+
+155                 amount: args.amount,
+                            ~~~~
+src/core/adk/agents/general/sales/sales.tools.ts:164:19 - error TS18046: 'args' is of type 'unknown'.
+
+164           amount: args.amount,
+                      ~~~~
+src/core/adk/agents/general/sales/sales.tools.ts:169:60 - error TS18046: 'args' is of type 'unknown'.
+
+169           message: `Orden de pago ${orderId} creada por $${args.amount}. Escanea el QR o usa el link para pagar.`,
+                                                               ~~~~
+src/core/adk/agents/general/sales/sales.tools.ts:181:7 - error TS2322: Type 'ZodObject<{ orderId: ZodOptional<ZodString>; }, "strip", ZodTypeAny, { orderId?: string | undefined; }, { orderId?: string | undefined; }>' is not assignable to type 'ToolInputParameters'.
+  Type 'ZodObject<{ orderId: ZodOptional<ZodString>; }, "strip", ZodTypeAny, { orderId?: string | undefined; }, { orderId?: string | undefined; }>' is not assignable to type 'Schema | ZodObject<...> | ZodObject<...>'.
+    Type 'ZodObject<{ orderId: ZodOptional<ZodString>; }, "strip", ZodTypeAny, { orderId?: string | undefined; }, { orderId?: string | undefined; }>' is not assignable to type 'ZodObject<ZodRawShape, UnknownKeysParam, ZodTypeAny, { [x: string]: any; }, { [x: string]: any; }>'.
+      Property '_cached' is private in type 'ZodObject<{ orderId: ZodOptional<ZodString>; }, "strip", ZodTypeAny, { orderId?: string | undefined; }, { orderId?: string | undefined; }>' but not in type 'ZodObject<ZodRawShape, UnknownKeysParam, ZodTypeAny, { [x: string]: any; }, { [x: string]: any; }>'.
+
+181       parameters: z.object({
+          ~~~~~~~~~~
+
+  node_modules/.pnpm/@google+adk@2.0.0_f48c159eeb836156af2cfede3b305e41/node_modules/@google/adk/dist/types/tools/function_tool.d.ts:41:5
+    41     parameters?: TParameters;
+           ~~~~~~~~~~
+    The expected type comes from property 'parameters' which is declared here on type 'ToolOptions<ToolInputParameters>'
+src/core/adk/agents/general/sales/sales.tools.ts:192:11 - error TS18046: 'args' is of type 'unknown'.
+
+192           args.orderId || (state?.get('temp:lastOrderId') as string);
+              ~~~~
+src/core/adk/agents/general/sales/sales.tools.ts:226:7 - error TS2322: Type 'ZodObject<{ orderId: ZodString; regenerate: ZodOptional<ZodBoolean>; }, "strip", ZodTypeAny, { orderId: string; regenerate?: boolean | undefined; }, { ...; }>' is not assignable to type 'ToolInputParameters'.
+  Type 'ZodObject<{ orderId: ZodString; regenerate: ZodOptional<ZodBoolean>; }, "strip", ZodTypeAny, { orderId: string; regenerate?: boolean | undefined; }, { ...; }>' is not assignable to type 'Schema | ZodObject<...> | ZodObject<...>'.
+    Type 'ZodObject<{ orderId: ZodString; regenerate: ZodOptional<ZodBoolean>; }, "strip", ZodTypeAny, { orderId: string; regenerate?: boolean | undefined; }, { ...; }>' is not assignable to type 'ZodObject<ZodRawShape, UnknownKeysParam, ZodTypeAny, { [x: string]: any; }, { [x: string]: any; }>'.
+      Property '_cached' is private in type 'ZodObject<{ orderId: ZodString; regenerate: ZodOptional<ZodBoolean>; }, "strip", ZodTypeAny, { orderId: string; regenerate?: boolean | undefined; }, { ...; }>' but not in type 'ZodObject<ZodRawShape, UnknownKeysParam, ZodTypeAny, { [x: string]: any; }, { [x: string]: any; }>'.
+
+226       parameters: z.object({
+          ~~~~~~~~~~
+
+  node_modules/.pnpm/@google+adk@2.0.0_f48c159eeb836156af2cfede3b305e41/node_modules/@google/adk/dist/types/tools/function_tool.d.ts:41:5
+    41     parameters?: TParameters;
+           ~~~~~~~~~~
+    The expected type comes from property 'parameters' which is declared here on type 'ToolOptions<ToolInputParameters>'
+src/core/adk/agents/general/sales/sales.tools.ts:239:55 - error TS18046: 'args' is of type 'unknown'.
+
+239         this.logger.debug(`Generando QR para orden: ${args.orderId}`);
+                                                          ~~~~
+src/core/adk/agents/general/sales/sales.tools.ts:243:20 - error TS18046: 'args' is of type 'unknown'.
+
+243           orderId: args.orderId,
+                       ~~~~
+src/core/adk/agents/general/sales/sales.tools.ts:244:49 - error TS18046: 'args' is of type 'unknown'.
+
+244           qrUrl: `https://ipfs.example.com/qr/${args.orderId}.png`,
+                                                    ~~~~
+src/core/adk/agents/general/sales/sales.tools.ts:246:49 - error TS18046: 'args' is of type 'unknown'.
+
+246           message: `QR generado para la orden ${args.orderId}. Válido por 30 minutos.`,
+                                                    ~~~~
+src/core/adk/agents/general/sales/sales.tools.ts:258:7 - error TS2322: Type 'ZodObject<{ direction: ZodOptional<ZodEnum<["to_meta", "from_meta", "both"]>>; }, "strip", ZodTypeAny, { direction?: "to_meta" | "from_meta" | "both" | undefined; }, { ...; }>' is not assignable to type 'ToolInputParameters'.
+  Type 'ZodObject<{ direction: ZodOptional<ZodEnum<["to_meta", "from_meta", "both"]>>; }, "strip", ZodTypeAny, { direction?: "to_meta" | "from_meta" | "both" | undefined; }, { ...; }>' is not assignable to type 'Schema | ZodObject<...> | ZodObject<...>'.
+    Type 'ZodObject<{ direction: ZodOptional<ZodEnum<["to_meta", "from_meta", "both"]>>; }, "strip", ZodTypeAny, { direction?: "to_meta" | "from_meta" | "both" | undefined; }, { ...; }>' is not assignable to type 'ZodObject<ZodRawShape, UnknownKeysParam, ZodTypeAny, { [x: string]: any; }, { [x: string]: any; }>'.
+      Property '_cached' is private in type 'ZodObject<{ direction: ZodOptional<ZodEnum<["to_meta", "from_meta", "both"]>>; }, "strip", ZodTypeAny, { direction?: "to_meta" | "from_meta" | "both" | undefined; }, { ...; }>' but not in type 'ZodObject<ZodRawShape, UnknownKeysParam, ZodTypeAny, { [x: string]: any; }, { [x: string]: any; }>'.
+
+258       parameters: z.object({
+          ~~~~~~~~~~
+
+  node_modules/.pnpm/@google+adk@2.0.0_f48c159eeb836156af2cfede3b305e41/node_modules/@google/adk/dist/types/tools/function_tool.d.ts:41:5
+    41     parameters?: TParameters;
+           ~~~~~~~~~~
+    The expected type comes from property 'parameters' which is declared here on type 'ToolOptions<ToolInputParameters>'
+src/core/adk/agents/general/sales/sales.tools.ts:278:27 - error TS18046: 'args' is of type 'unknown'.
+
+278         const direction = args.direction || 'from_meta';
+                              ~~~~
+src/core/adk/agents/verticals/academy/academy.tools.ts:14:7 - error TS2322: Type 'ZodObject<{ studentId: ZodString; period: ZodOptional<ZodString>; }, "strip", ZodTypeAny, { studentId: string; period?: string | undefined; }, { ...; }>' is not assignable to type 'ToolInputParameters'.
+  Type 'ZodObject<{ studentId: ZodString; period: ZodOptional<ZodString>; }, "strip", ZodTypeAny, { studentId: string; period?: string | undefined; }, { ...; }>' is not assignable to type 'Schema | ZodObject<...> | ZodObject<...>'.
+    Type 'ZodObject<{ studentId: ZodString; period: ZodOptional<ZodString>; }, "strip", ZodTypeAny, { studentId: string; period?: string | undefined; }, { ...; }>' is not assignable to type 'ZodObject<ZodRawShape, UnknownKeysParam, ZodTypeAny, { [x: string]: any; }, { [x: string]: any; }>'.
+      Property '_cached' is private in type 'ZodObject<{ studentId: ZodString; period: ZodOptional<ZodString>; }, "strip", ZodTypeAny, { studentId: string; period?: string | undefined; }, { ...; }>' but not in type 'ZodObject<ZodRawShape, UnknownKeysParam, ZodTypeAny, { [x: string]: any; }, { [x: string]: any; }>'.
+
+14       parameters: z.object({
+         ~~~~~~~~~~
+
+  node_modules/.pnpm/@google+adk@2.0.0_f48c159eeb836156af2cfede3b305e41/node_modules/@google/adk/dist/types/tools/function_tool.d.ts:41:5
+    41     parameters?: TParameters;
+           ~~~~~~~~~~
+    The expected type comes from property 'parameters' which is declared here on type 'ToolOptions<ToolInputParameters>'
+src/core/adk/agents/verticals/academy/academy.tools.ts:33:7 - error TS2322: Type 'ZodObject<{ studentId: ZodString; }, "strip", ZodTypeAny, { studentId: string; }, { studentId: string; }>' is not assignable to type 'ToolInputParameters'.
+  Type 'ZodObject<{ studentId: ZodString; }, "strip", ZodTypeAny, { studentId: string; }, { studentId: string; }>' is not assignable to type 'Schema | ZodObject<...> | ZodObject<...>'.
+    Type 'ZodObject<{ studentId: ZodString; }, "strip", ZodTypeAny, { studentId: string; }, { studentId: string; }>' is not assignable to type 'ZodObject<ZodRawShape, UnknownKeysParam, ZodTypeAny, { [x: string]: any; }, { [x: string]: any; }>'.
+      Property '_cached' is private in type 'ZodObject<{ studentId: ZodString; }, "strip", ZodTypeAny, { studentId: string; }, { studentId: string; }>' but not in type 'ZodObject<ZodRawShape, UnknownKeysParam, ZodTypeAny, { [x: string]: any; }, { [x: string]: any; }>'.
+
+33       parameters: z.object({
+         ~~~~~~~~~~
+
+  node_modules/.pnpm/@google+adk@2.0.0_f48c159eeb836156af2cfede3b305e41/node_modules/@google/adk/dist/types/tools/function_tool.d.ts:41:5
+    41     parameters?: TParameters;
+           ~~~~~~~~~~
+    The expected type comes from property 'parameters' which is declared here on type 'ToolOptions<ToolInputParameters>'
+src/core/adk/agents/verticals/salon/salon.tools.ts:14:7 - error TS2322: Type 'ZodObject<{ stylistId: ZodString; chairId: ZodString; shiftDate: ZodString; }, "strip", ZodTypeAny, { stylistId: string; chairId: string; shiftDate: string; }, { ...; }>' is not assignable to type 'ToolInputParameters'.
+  Type 'ZodObject<{ stylistId: ZodString; chairId: ZodString; shiftDate: ZodString; }, "strip", ZodTypeAny, { stylistId: string; chairId: string; shiftDate: string; }, { ...; }>' is not assignable to type 'Schema | ZodObject<...> | ZodObject<...>'.
+    Type 'ZodObject<{ stylistId: ZodString; chairId: ZodString; shiftDate: ZodString; }, "strip", ZodTypeAny, { stylistId: string; chairId: string; shiftDate: string; }, { ...; }>' is not assignable to type 'ZodObject<ZodRawShape, UnknownKeysParam, ZodTypeAny, { [x: string]: any; }, { [x: string]: any; }>'.
+      Property '_cached' is private in type 'ZodObject<{ stylistId: ZodString; chairId: ZodString; shiftDate: ZodString; }, "strip", ZodTypeAny, { stylistId: string; chairId: string; shiftDate: string; }, { ...; }>' but not in type 'ZodObject<ZodRawShape, UnknownKeysParam, ZodTypeAny, { [x: string]: any; }, { [x: string]: any; }>'.
+
+14       parameters: z.object({
+         ~~~~~~~~~~
+
+  node_modules/.pnpm/@google+adk@2.0.0_f48c159eeb836156af2cfede3b305e41/node_modules/@google/adk/dist/types/tools/function_tool.d.ts:41:5
+    41     parameters?: TParameters;
+           ~~~~~~~~~~
+    The expected type comes from property 'parameters' which is declared here on type 'ToolOptions<ToolInputParameters>'
+src/core/adk/agents/verticals/salon/salon.tools.ts:34:7 - error TS2322: Type 'ZodObject<{ stylistId: ZodString; action: ZodEnum<["create", "update", "cancel"]>; shiftDate: ZodString; startTime: ZodOptional<ZodString>; endTime: ZodOptional<...>; }, "strip", ZodTypeAny, { ...; }, { ...; }>' is not assignable to type 'ToolInputParameters'.
+  Type 'ZodObject<{ stylistId: ZodString; action: ZodEnum<["create", "update", "cancel"]>; shiftDate: ZodString; startTime: ZodOptional<ZodString>; endTime: ZodOptional<...>; }, "strip", ZodTypeAny, { ...; }, { ...; }>' is not assignable to type 'Schema | ZodObject<...> | ZodObject<...>'.
+    Type 'ZodObject<{ stylistId: ZodString; action: ZodEnum<["create", "update", "cancel"]>; shiftDate: ZodString; startTime: ZodOptional<ZodString>; endTime: ZodOptional<...>; }, "strip", ZodTypeAny, { ...; }, { ...; }>' is not assignable to type 'ZodObject<ZodRawShape, UnknownKeysParam, ZodTypeAny, { [x: string]: any; }, { [x: string]: any; }>'.
+      Property '_cached' is private in type 'ZodObject<{ stylistId: ZodString; action: ZodEnum<["create", "update", "cancel"]>; shiftDate: ZodString; startTime: ZodOptional<ZodString>; endTime: ZodOptional<...>; }, "strip", ZodTypeAny, { ...; }, { ...; }>' but not in type 'ZodObject<ZodRawShape, UnknownKeysParam, ZodTypeAny, { [x: string]: any; }, { [x: string]: any; }>'.
+
+34       parameters: z.object({
+         ~~~~~~~~~~
+
+  node_modules/.pnpm/@google+adk@2.0.0_f48c159eeb836156af2cfede3b305e41/node_modules/@google/adk/dist/types/tools/function_tool.d.ts:41:5
+    41     parameters?: TParameters;
+           ~~~~~~~~~~
+    The expected type comes from property 'parameters' which is declared here on type 'ToolOptions<ToolInputParameters>'
+src/core/adk/formatters/types/llm-response.types.ts:77:3 - error TS2345: Argument of type 'ZodObject<{ responseText: ZodString; intent: ZodOptional<ZodString>; agentUsed: ZodOptional<ZodString>; }, "strip", ZodTypeAny, { ...; }, { ...; }>' is not assignable to parameter of type 'ZodObject<...> | ZodObject<...>'.
+  Type 'ZodObject<{ responseText: ZodString; intent: ZodOptional<ZodString>; agentUsed: ZodOptional<ZodString>; }, "strip", ZodTypeAny, { ...; }, { ...; }>' is not assignable to type 'ZodObject<ZodRawShape, UnknownKeysParam, ZodTypeAny, { [x: string]: any; }, { [x: string]: any; }>'.
+    Property '_cached' is private in type 'ZodObject<{ responseText: ZodString; intent: ZodOptional<ZodString>; agentUsed: ZodOptional<ZodString>; }, "strip", ZodTypeAny, { ...; }, { ...; }>' but not in type 'ZodObject<ZodRawShape, UnknownKeysParam, ZodTypeAny, { [x: string]: any; }, { [x: string]: any; }>'.
+
+77   ResponseFormatInputSchema,
+     ~~~~~~~~~~~~~~~~~~~~~~~~~
+src/core/adk/formatters/types/llm-response.types.ts:112:3 - error TS2345: Argument of type 'ZodObject<{ type: ZodEnum<["binary_question", "list", "buttons", "cta_url"]>; question: ZodOptional<ZodString>; options: ZodOptional<ZodArray<ZodObject<{ id: ZodString; title: ZodString; }, "strip", ZodTypeAny, { ...; }, { ...; }>, "many">>; ... 8 more ...; stickerEventType: ZodOptional<...>; }, "strip", ZodTypeAny,...' is not assignable to parameter of type 'ZodObject<...> | ZodObject<...>'.
+  Type 'ZodObject<{ type: ZodEnum<["binary_question", "list", "buttons", "cta_url"]>; question: ZodOptional<ZodString>; options: ZodOptional<ZodArray<ZodObject<{ id: ZodString; title: ZodString; }, "strip", ZodTypeAny, { ...; }, { ...; }>, "many">>; ... 8 more ...; stickerEventType: ZodOptional<...>; }, "strip", ZodTypeAny,...' is not assignable to type 'ZodObject<ZodRawShape, UnknownKeysParam, ZodTypeAny, { [x: string]: any; }, { [x: string]: any; }>'.
+    Property '_cached' is private in type 'ZodObject<{ type: ZodEnum<["binary_question", "list", "buttons", "cta_url"]>; question: ZodOptional<ZodString>; options: ZodOptional<ZodArray<ZodObject<{ id: ZodString; title: ZodString; }, "strip", ZodTypeAny, { ...; }, { ...; }>, "many">>; ... 8 more ...; stickerEventType: ZodOptional<...>; }, "strip", ZodTypeAny,...' but not in type 'ZodObject<ZodRawShape, UnknownKeysParam, ZodTypeAny, { [x: string]: any; }, { [x: string]: any; }>'.
+
+112   FormattedResponseSchema,
+      ~~~~~~~~~~~~~~~~~~~~~~~
+src/core/adk/orchestrator/orchestrator.tools.ts:3:15 - error TS2305: Module '"@google/adk"' has no exported member 'ToolContext'.
+
+3 import type { ToolContext } from '@google/adk';
+                ~~~~~~~~~~~
+src/core/adk/orchestrator/orchestrator.tools.ts:27:7 - error TS2322: Type 'ZodObject<{ senderPhone: ZodString; code: ZodString; whatsappUsername: ZodOptional<ZodString>; }, "strip", ZodTypeAny, { code: string; senderPhone: string; whatsappUsername?: string | undefined; }, { ...; }>' is not assignable to type 'ToolInputParameters'.
+  Type 'ZodObject<{ senderPhone: ZodString; code: ZodString; whatsappUsername: ZodOptional<ZodString>; }, "strip", ZodTypeAny, { code: string; senderPhone: string; whatsappUsername?: string | undefined; }, { ...; }>' is not assignable to type 'Schema | ZodObject<...> | ZodObject<...>'.
+    Type 'ZodObject<{ senderPhone: ZodString; code: ZodString; whatsappUsername: ZodOptional<ZodString>; }, "strip", ZodTypeAny, { code: string; senderPhone: string; whatsappUsername?: string | undefined; }, { ...; }>' is not assignable to type 'ZodObject<ZodRawShape, UnknownKeysParam, ZodTypeAny, { [x: string]: any; }, { [x: string]: any; }>'.
+      Property '_cached' is private in type 'ZodObject<{ senderPhone: ZodString; code: ZodString; whatsappUsername: ZodOptional<ZodString>; }, "strip", ZodTypeAny, { code: string; senderPhone: string; whatsappUsername?: string | undefined; }, { ...; }>' but not in type 'ZodObject<ZodRawShape, UnknownKeysParam, ZodTypeAny, { [x: string]: any; }, { [x: string]: any; }>'.
+
+27       parameters: z.object({
+         ~~~~~~~~~~
+
+  node_modules/.pnpm/@google+adk@2.0.0_f48c159eeb836156af2cfede3b305e41/node_modules/@google/adk/dist/types/tools/function_tool.d.ts:41:5
+    41     parameters?: TParameters;
+           ~~~~~~~~~~
+    The expected type comes from property 'parameters' which is declared here on type 'ToolOptions<ToolInputParameters>'
+src/core/adk/orchestrator/orchestrator.tools.ts:52:11 - error TS18046: 'args' is of type 'unknown'.
+
+52           args.senderPhone,
+             ~~~~
+src/core/adk/orchestrator/orchestrator.tools.ts:53:11 - error TS18046: 'args' is of type 'unknown'.
+
+53           args.code,
+             ~~~~
+src/core/adk/orchestrator/orchestrator.tools.ts:63:17 - error TS18046: 'args' is of type 'unknown'.
+
+63                 args.senderPhone,
+                   ~~~~
+src/core/adk/orchestrator/orchestrator.tools.ts:66:59 - error TS18046: 'args' is of type 'unknown'.
+
+66               `[verify_phone_code] Código válido. phone=${args.senderPhone} company=${companyId} persisted=${persisted}`,
+                                                             ~~~~
+src/core/adk/orchestrator/types/orchestrator-io.types.ts:53:3 - error TS2345: Argument of type 'ZodObject<{ message: ZodObject<{ text: ZodString; referredProduct: ZodOptional<ZodObject<{ catalogId: ZodString; productRetailerId: ZodString; }, "strip", ZodTypeAny, { ...; }, { ...; }>>; }, "strip", ZodTypeAny, { ...; }, { ...; }>; sender: ZodObject<...>; tenant: ZodObject<...>; }, "strip", ZodTypeAny, { ...; }, {...' is not assignable to parameter of type 'ZodObject<...> | ZodObject<...>'.
+  Type 'ZodObject<{ message: ZodObject<{ text: ZodString; referredProduct: ZodOptional<ZodObject<{ catalogId: ZodString; productRetailerId: ZodString; }, "strip", ZodTypeAny, { ...; }, { ...; }>>; }, "strip", ZodTypeAny, { ...; }, { ...; }>; sender: ZodObject<...>; tenant: ZodObject<...>; }, "strip", ZodTypeAny, { ...; }, {...' is not assignable to type 'ZodObject<ZodRawShape, UnknownKeysParam, ZodTypeAny, { [x: string]: any; }, { [x: string]: any; }>'.
+    Property '_cached' is private in type 'ZodObject<{ message: ZodObject<{ text: ZodString; referredProduct: ZodOptional<ZodObject<{ catalogId: ZodString; productRetailerId: ZodString; }, "strip", ZodTypeAny, { ...; }, { ...; }>>; }, "strip", ZodTypeAny, { ...; }, { ...; }>; sender: ZodObject<...>; tenant: ZodObject<...>; }, "strip", ZodTypeAny, { ...; }, {...' but not in type 'ZodObject<ZodRawShape, UnknownKeysParam, ZodTypeAny, { [x: string]: any; }, { [x: string]: any; }>'.
+
+53   OrchestratorInputSchema,
+     ~~~~~~~~~~~~~~~~~~~~~~~
+src/core/adk/session/supabase-session.service.ts:138:58 - error TS2322: Type 'string | undefined' is not assignable to type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+
+138           const full = this.rowToSession(row, { appName, userId });
+                                                             ~~~~~~
+
+  src/core/adk/session/supabase-session.service.ts:274:37
+    274     fallbackIds: { appName: string; userId: string },
+                                            ~~~~~~
+    The expected type comes from property 'userId' which is declared here on type '{ appName: string; userId: string; }'
+src/core/adk/session/supabase-session.service.ts:171:5 - error TS2739: Type '{ sessions: Session[]; }' is missing the following properties from type 'ListSessionsResponse': page, limit, totalItems, totalPages
+
+171     return { sessions };
+        ~~~~~~
+
+Found 99 error(s).
+
+ ELIFECYCLE  Command failed with exit code 1.
+
+░▒▓   …/optus-agentBE    adk-native-db-session-service $!?  ▓▒░ ◦•·········································•◦ ░▒▓   6s666ms ▓▒░
+··• 

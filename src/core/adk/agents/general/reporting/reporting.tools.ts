@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { FunctionTool } from '@google/adk';
-import type { ToolContext } from '@google/adk';
+import type { Context } from '@google/adk';
 import { z } from 'zod';
 import { TimeService } from '../../../../../common/time/time.service';
 
@@ -26,7 +26,7 @@ export class ReportingToolsService {
           .optional()
           .describe('Comparar con día anterior'),
       }),
-      execute: async (args, context?: ToolContext) => {
+      execute: async (args, context?: Context) => {
         const state = context?.state;
         const userRole = state?.get('user:role');
         const userPhone = state?.get('user:phone') as string | undefined;
@@ -88,7 +88,7 @@ export class ReportingToolsService {
           .optional()
           .describe('Agrupar por'),
       }),
-      execute: async (args, context?: ToolContext) => {
+      execute: async (args, context?: Context) => {
         const state = context?.state;
         const userRole = state?.get('user:role');
 
@@ -139,7 +139,7 @@ export class ReportingToolsService {
           .optional()
           .describe('Incluir productos agotados'),
       }),
-      execute: async (args, context?: ToolContext) => {
+      execute: async (args, context?: Context) => {
         const state = context?.state;
         const userRole = state?.get('user:role');
 
@@ -200,7 +200,7 @@ export class ReportingToolsService {
           .optional()
           .describe('Incluir citas sin asistir'),
       }),
-      execute: async (args, context?: ToolContext) => {
+      execute: async (args, context?: Context) => {
         const state = context?.state;
         const userRole = state?.get('user:role');
 
@@ -242,7 +242,7 @@ export class ReportingToolsService {
           .enum(['week', 'month', 'quarter'])
           .describe('Período para calcular KPIs'),
       }),
-      execute: async (args, context?: ToolContext) => {
+      execute: async (args, context?: Context) => {
         const state = context?.state;
         const userRole = state?.get('user:role');
 

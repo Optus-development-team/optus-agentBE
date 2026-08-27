@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { AppointmentsService } from '../../../../../features/calendar/appointments.service';
 import { FunctionTool } from '@google/adk';
-import type { ToolContext } from '@google/adk';
+import type { Context } from '@google/adk';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { z } from 'zod';
 import { TimeService } from '../../../../../common/time/time.service';
@@ -42,7 +42,7 @@ export class AppointmentToolsService {
           .optional()
           .describe('Duración estimada en minutos'),
       }),
-      execute: async (args, context?: ToolContext) => {
+      execute: async (args, context?: Context) => {
         this.logger.debug(`Consultando disponibilidad para: ${args.date}`);
 
         const state = context?.state;
@@ -106,7 +106,7 @@ export class AppointmentToolsService {
         serviceType: z.string().optional().describe('Tipo de servicio'),
         notes: z.string().optional().describe('Notas adicionales'),
       }),
-      execute: async (args, context?: ToolContext) => {
+      execute: async (args, context?: Context) => {
         this.logger.debug(
           `Creando cita: ${args.date} ${args.time} (${args.duration})`,
         );
@@ -200,7 +200,7 @@ export class AppointmentToolsService {
           .describe('Hora de la cita si no se conoce su ID'),
         reason: z.string().optional().describe('Motivo de la cancelación'),
       }),
-      execute: async (args, _context?: ToolContext) => {
+      execute: async (args, _context?: Context) => {
         const companyId = this.stateString(
           _context?.state?.get('app:companyId'),
         );
@@ -259,7 +259,7 @@ export class AppointmentToolsService {
         newDate: z.string().describe('Nueva fecha'),
         newTime: z.string().describe('Nueva hora'),
       }),
-      execute: async (args, _context?: ToolContext) => {
+      execute: async (args, _context?: Context) => {
         const companyId = this.stateString(
           _context?.state?.get('app:companyId'),
         );
@@ -322,7 +322,7 @@ export class AppointmentToolsService {
           .optional()
           .describe('Número máximo de citas a mostrar'),
       }),
-      execute: async (args, context?: ToolContext) => {
+      execute: async (args, context?: Context) => {
         const state = context?.state;
         const userPhone = this.stateString(state?.get('user:phone'));
         const companyId = this.stateString(state?.get('app:companyId'));
