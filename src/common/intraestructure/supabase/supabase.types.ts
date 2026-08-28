@@ -27,6 +27,7 @@ export interface DbCompanyRow {
   business_hours: DbJson;
   vertical: DbCompanyVertical;
   config: DbJson;
+  config_updated_at: DbTimestamptz;
   whatsapp_admin_phone_ids: string[];
   whatsapp_display_phone_number: string | null;
   whatsapp_phone_id: string | null;
@@ -38,9 +39,15 @@ export type DbCompanyTenantRow = Pick<
   | 'name'
   | 'vertical'
   | 'config'
+  | 'config_updated_at'
   | 'whatsapp_admin_phone_ids'
   | 'whatsapp_display_phone_number'
   | 'whatsapp_phone_id'
+>;
+
+export type DbCompanyConfigVersionRow = Pick<
+  DbCompanyRow,
+  'config' | 'config_updated_at'
 >;
 
 export type DbUserRole = 'ADMIN' | 'CLIENT';

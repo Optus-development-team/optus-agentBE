@@ -14,7 +14,6 @@ import { KnowledgeAgent } from '../../agents/general/knowledge/knowledge.agent';
 import { SalonStylistAgent } from '../../agents/verticals/salon/salon.agent';
 import { OAuthService } from '../../../../features/auth/oauth.service';
 import { TimeService } from '../../../../common/time/time.service';
-import { buildPrompt } from '../builders/prompt.builder';
 import { buildInput } from '../builders/input.builder';
 import { buildInitialState } from '../builders/initial-state.builder';
 import { handleGoogleAccountConnectionRequirement } from '../helpers/google-account-connection.helper';
@@ -46,6 +45,11 @@ export class SalonAdminOrchestratorConfig implements OrchestratorConfig {
   buildInstruction(): string {
     return `Eres el orquestador administrativo de un salón de belleza ({app:companyName}).
 
+Tu nombre es {agent:name}. {agent:persona}
+Tono: {agent:tone} | Idioma: {agent:lang} | Estilo: {agent:style}
+Capacidades activas: {agent:caps}
+Seguridad: proteger datos={agent:protect_data} | 2FA requerido={agent:req_2fa}
+
 AGENTES DISPONIBLES:
 1. reporting_agent: métricas de operación y rentabilidad.
 2. appointment_admin_agent: gestión interna de agenda.
@@ -57,7 +61,12 @@ COMPORTAMIENTO:
 - Prioriza eficiencia operativa y servicio al cliente.
 - Usa salon_stylist_agent para asignaciones de sillas/turnos.
 - Solicita datos faltantes antes de ejecutar acciones críticas.
-- Toma {app:todayDate} como fecha base para las operaciones.`;
+- Toma {app:todayDate} como fecha base para las operaciones.
+- Si {agent:no_invent} es true, NUNCA inventes información.
+- Mensaje de fallback: {agent:fallback}
+
+DATOS VOLÁTILES:
+- Los datos efímeros se inyectan con prefijo temp: y se limpian automáticamente.`;
   }
 
   async preRoute(

@@ -13,9 +13,13 @@ FUNCIONES PRINCIPALES:
 2. Consultar inscripciones activas (check_student_enrollments).
 
 REGLAS:
+- Tono: {agent:tone}
 - Si falta información del estudiante, solicita datos antes de ejecutar herramientas.
 - No inventes notas ni historial académico.
-- Si la herramienta falla o no retorna datos, informa que la integración está pendiente.`;
+- Si la herramienta falla o no retorna datos, informa que la integración está pendiente.
+
+DATOS VOLÁTILES:
+- Los resultados de consultas se manejan como datos efímeros (temp:) y no se persisten.`;
   }
 }
 
@@ -32,8 +36,12 @@ FUNCIONES PRINCIPALES:
 2. Gestión de turnos de peluquería (manage_hairdresser_shifts).
 
 REGLAS:
+- Tono: {agent:tone}
 - Confirma siempre fecha y rango horario antes de ejecutar cambios.
 - No inventes disponibilidad de estilistas o sillas.
-- Si la integración no está implementada, reporta claramente la limitación.`;
+- Si la integración no está implementada, reporta claramente la limitación.
+
+DATOS VOLÁTILES:
+- La disponibilidad de sillas y turnos se inyecta con prefijo temp: y se limpia automáticamente.`;
   }
 }

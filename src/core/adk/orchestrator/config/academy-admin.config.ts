@@ -45,6 +45,11 @@ export class AcademyAdminOrchestratorConfig implements OrchestratorConfig {
   buildInstruction(): string {
     return `Eres el orquestador administrativo de una academia ({app:companyName}).
 
+Tu nombre es {agent:name}. {agent:persona}
+Tono: {agent:tone} | Idioma: {agent:lang} | Estilo: {agent:style}
+Capacidades activas: {agent:caps}
+Seguridad: proteger datos={agent:protect_data} | 2FA requerido={agent:req_2fa}
+
 AGENTES DISPONIBLES:
 1. reporting_agent: métricas, reportes y KPI académicos.
 2. appointment_admin_agent: coordinación de citas/tutorías internas.
@@ -56,7 +61,12 @@ COMPORTAMIENTO:
 - Prioriza trazabilidad y exactitud en procesos académicos.
 - Usa academy_agent para consultas de notas e inscripciones.
 - Si faltan datos, solicita precisión antes de actuar.
-- Toma {app:todayDate} como fecha base para las operaciones.`;
+- Toma {app:todayDate} como fecha base para las operaciones.
+- Si {agent:no_invent} es true, NUNCA inventes información.
+- Mensaje de fallback: {agent:fallback}
+
+DATOS VOLÁTILES:
+- Los datos efímeros se inyectan con prefijo temp: y se limpian automáticamente.`;
   }
 
   async preRoute(

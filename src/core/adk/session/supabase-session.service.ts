@@ -11,11 +11,19 @@ import type {
   Session,
 } from '@google/adk';
 import { SupabaseService } from '../../../common/intraestructure/supabase/supabase.service';
-import type { DbAdkSessionRow } from '../../../common/intraestructure/supabase/supabase.types';
+import type {
+  DbAdkSessionRow,
+  DbCompanyConfigVersionRow,
+} from '../../../common/intraestructure/supabase/supabase.types';
+import { flattenCompanyConfig } from './config-flattener';
 
 /**
  * Implementación de BaseSessionService de ADK usando Supabase como backend.
  * Permite persistir las sesiones de los agentes entre invocaciones.
+ *
+ * Incluye control de versiones de la config de companies:
+ * compara `config_updated_at` contra `app:configVersion` del estado
+ * para re-cargar la configuración solo cuando cambia.
  */
 @Injectable()
 export class SupabaseSessionService extends BaseSessionService {
@@ -78,7 +86,8 @@ export class SupabaseSessionService extends BaseSessionService {
   }
 
   /**
-   * Obtiene una sesión existente
+   * Obtiene una sesión existente.
+   * Intercepta para comparar la versión del config y actualizar si es necesario.
    */
   async getSession({
     appName,
@@ -99,6 +108,10 @@ export class SupabaseSessionService extends BaseSessionService {
         if (rows.length > 0) {
           const row = rows[0];
           const loadedSession = this.rowToSession(row, { appName, userId });
+
+          // --- Control de versiones de config ---
+          await this.refreshConfigIfStale(loadedSession, row.company_id);
+
           const filteredSession = this.applyGetConfig(loadedSession, config);
           this.fallbackSessions.set(sessionId, filteredSession);
           return filteredSession;
@@ -239,6 +252,95 @@ export class SupabaseSessionService extends BaseSessionService {
 
     return event;
   }
+
+  // ─── Config version control ────────────────────────────────────────
+
+  /**
+   * Compara la marca de tiempo de config_updated_at en la DB contra
+   * app:configVersion almacenado en el estado de la sesión.
+   * Si la DB tiene una fecha más reciente, recarga y aplana el config.
+   */
+  private async refreshConfigIfStale(
+    session: Session,
+    companyId: string,
+  ): Promise<void> {
+    if (!this.supabase.isEnabled() || !companyId) return;
+
+    try {
+      const rows = await this.supabase.query<DbCompanyConfigVersionRow>(
+        `SELECT config, config_updated_at
+         FROM public.companies
+         WHERE id = $1
+         LIMIT 1`,
+        [companyId],
+      );
+
+      if (!rows.length) return;
+
+      const row = rows[0];
+      const dbTimestamp = row.config_updated_at;
+      const sessionTimestamp = session.state['app:configVersion'] as
+        | string
+        | undefined;
+
+      // Si la versión almacenada coincide, no hay nada que hacer
+      if (sessionTimestamp && dbTimestamp && sessionTimestamp === dbTimestamp) {
+        return;
+      }
+
+      this.logger.debug(
+        `Config desactualizado para company=${companyId}. ` +
+          `Session=${sessionTimestamp ?? 'null'} → DB=${dbTimestamp}. Recargando...`,
+      );
+
+      // Determinar el rol del usuario para filtrar claves
+      const role =
+        (session.state['user:role'] as string | undefined) ?? 'CLIENT';
+
+      // Parsear el config crudo
+      const rawConfig = this.parseJson(row.config, {}) as Record<
+        string,
+        unknown
+      >;
+
+      // Aplana y filtra
+      const flatConfig = flattenCompanyConfig(rawConfig, role);
+
+      // Eliminar claves agent:* previas del estado
+      for (const key of Object.keys(session.state)) {
+        if (key.startsWith('agent:')) {
+          delete session.state[key];
+        }
+      }
+
+      // Inyectar nuevas claves aplanadas
+      Object.assign(session.state, flatConfig);
+
+      // Actualizar marca de versión
+      session.state['app:configVersion'] = dbTimestamp;
+
+      // Persistir el estado actualizado
+      await this.supabase.query(
+        `UPDATE adk_sessions
+         SET context_data = $1::jsonb, updated_at = NOW()
+         WHERE session_id = $2`,
+        [
+          JSON.stringify({ state: session.state, events: session.events }),
+          session.id,
+        ],
+      );
+
+      this.logger.debug(
+        `Config actualizado en sesión para company=${companyId}`,
+      );
+    } catch (error) {
+      this.logger.error(
+        `Error refrescando config para company=${companyId}: ${(error as Error).message}`,
+      );
+    }
+  }
+
+  // ─── Helpers ───────────────────────────────────────────────────────
 
   private applyGetConfig(
     session: Session,

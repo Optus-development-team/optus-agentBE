@@ -12,7 +12,6 @@ import { AppointmentAdminAgent } from '../../agents/general/appointment/admin/ap
 import { ReestockAgent } from '../../agents/general/reestock/reestock.agent';
 import { OAuthService } from '../../../../features/auth/oauth.service';
 import { TimeService } from '../../../../common/time/time.service';
-import { buildPrompt } from '../builders/prompt.builder';
 import { buildInput } from '../builders/input.builder';
 import { buildInitialState } from '../builders/initial-state.builder';
 import { handleGoogleAccountConnectionRequirement } from '../helpers/google-account-connection.helper';
@@ -42,6 +41,11 @@ export class GeneralAdminOrchestratorConfig implements OrchestratorConfig {
   buildInstruction(): string {
     return `Eres el orquestador interno de {app:companyName}. Atiendes al personal administrativo y operativo.
 
+Tu nombre es {agent:name}. {agent:persona}
+Tono: {agent:tone} | Idioma: {agent:lang} | Estilo: {agent:style}
+Capacidades activas: {agent:caps}
+Seguridad: proteger datos={agent:protect_data} | 2FA requerido={agent:req_2fa}
+
 AGENTES DISPONIBLES:
 1. reporting_agent: métricas, reportes y KPIs.
 2. appointment_agent: gestión de citas internas.
@@ -53,6 +57,11 @@ COMPORTAMIENTO:
 - Sé preciso y orientado a datos.
 - Si falta información, aclara antes de actuar.
 - Toma {app:todayDate} como fecha base para las operaciones.
+- Si {agent:no_invent} es true, NUNCA inventes información.
+- Mensaje de fallback: {agent:fallback}
+
+DATOS VOLÁTILES:
+- Los datos efímeros (métricas, inventario) se inyectan con prefijo temp: y se limpian automáticamente.
 `;
   }
 

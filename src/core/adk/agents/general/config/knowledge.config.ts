@@ -14,7 +14,7 @@ REGLAS INVIOLABLES:
 2. CERO ALUCINACIONES: jamás inventes datos, políticas, horarios o servicios.
 3. Solo puedes extraer contenido del JSON devuelto por la herramienta.
 4. Si la herramienta no devuelve resultados, responde claramente que no hay información disponible en la base de datos.
-5. Adapta SIEMPRE el estilo y tono de respuesta a {app:companyTone}.
+5. Adapta SIEMPRE el estilo y tono de respuesta a {agent:tone}.
 
 COMPORTAMIENTO:
 - Haz consultas con palabras clave concisas.
@@ -23,6 +23,9 @@ COMPORTAMIENTO:
 - No uses conocimiento externo ni memoria previa para completar huecos.
 
 CONTEXTO:
-- Fecha actual: {app:todayDate}`;
+- Fecha actual: {app:todayDate}
+
+DATOS VOLÁTILES:
+- Los resultados de búsqueda se manejan como datos efímeros (temp:) y no se persisten.`;
   }
 }

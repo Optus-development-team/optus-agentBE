@@ -17,6 +17,7 @@ export interface TenantContext {
   companyName: string;
   vertical: CompanyVertical;
   companyConfig: Record<string, unknown>;
+  configUpdatedAt: string | null;
   phoneNumberId: string;
   adminPhoneIds: string[];
   displayPhoneNumber: string | null;

@@ -104,6 +104,7 @@ export abstract class BaseOrchestratorService implements OnModuleInit {
             appName: tenantAppName,
             userId,
             sessionId,
+            config: { numRecentEvents: 6 },
           })
         )?.state as Record<string, unknown>,
       };
@@ -168,6 +169,7 @@ export abstract class BaseOrchestratorService implements OnModuleInit {
       appName: tenantAppName,
       userId,
       sessionId,
+      config: { numRecentEvents: 6 },
     });
 
     if (!session) {

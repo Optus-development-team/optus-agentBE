@@ -23,7 +23,6 @@ export function buildInput(context: RouterMessageContext): OrchestratorInput {
       id: context.tenant.companyId,
       name: context.tenant.companyName,
       vertical: context.tenant.vertical,
-      config: context.tenant.companyConfig ?? {},
     },
   };
 }
