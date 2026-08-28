@@ -17,9 +17,7 @@ export class OAuthService {
     private readonly supabase: SupabaseService,
     private readonly encryptionService: EncryptionService,
   ) {
-    this.registrationCompanyId =
-      this.configService.get<string>('GOOGLE_REGISTRATION_COMPANY_ID') ??
-      TEST_REGISTRATION_COMPANY_ID;
+    this.registrationCompanyId = this.resolveRegistrationCompanyId();
   }
 
   getLoginAuthUrl(): string {
@@ -81,22 +79,27 @@ export class OAuthService {
 
     const session = this.isFullAccessUser(user)
       ? await this.buildFullSession(user, email)
-      : await this.buildPendingRegistrationSession(email, data.name ?? null);
+      : await this.buildPendingRegistrationSession(
+          email,
+          data.name ?? null,
+          expectedCompanyId,
+        );
 
     this.logger.log(
       'OAuth callback: expectedCompanyId=',
       expectedCompanyId,
       ', session.companyId=',
-      'Ouath companyIDs',
-      expectedCompanyId,
-      '&&',
-      expectedCompanyId,
-      '!=',
       session.companyId,
     );
 
     if (expectedCompanyId && expectedCompanyId !== session.companyId) {
       throw new Error('La empresa autenticada no coincide con el estado OAuth');
+    }
+
+    if (expectedCompanyId && !this.isAdminRole(session.role)) {
+      throw new Error(
+        'La cuenta autenticada no tiene permisos de administrador',
+      );
     }
 
     await this.upsertUserIntegration({
@@ -137,13 +140,33 @@ export class OAuthService {
   }
 
   async checkCredentials(companyId: string): Promise<boolean> {
-    const rows = await this.supabase.query(
-      `SELECT id FROM company_integrations
-        WHERE company_id = $1 AND provider = 'GOOGLE_CALENDAR' AND is_active = true`,
+    const rows = await this.supabase.query<{
+      encrypted_credentials: { token?: string } | null;
+    }>(
+      `SELECT encrypted_credentials FROM company_integrations
+        WHERE company_id = $1
+          AND provider = 'GOOGLE_CALENDAR'
+          AND is_active = true
+          AND COALESCE(encrypted_credentials->>'token', '') <> ''
+        LIMIT 1`,
       [companyId],
     );
 
-    return rows.length > 0;
+    const encrypted = rows[0]?.encrypted_credentials?.token;
+    if (!encrypted) {
+      return false;
+    }
+
+    try {
+      const decrypted = await this.encryptionService.decrypt(encrypted);
+      JSON.parse(decrypted);
+      return true;
+    } catch (error) {
+      this.logger.warn(
+        `Credenciales de Google Calendar invalidas para ${companyId}: ${(error as Error).message}`,
+      );
+      return false;
+    }
   }
 
   async disconnectCalendar(companyId: string): Promise<void> {
@@ -187,8 +210,7 @@ export class OAuthService {
       throw new Error('Credenciales incompletas');
     }
 
-    const decrypted = await this.encryptionService.decrypt(encrypted);
-    const tokens = JSON.parse(decrypted) as Auth.OAuth2Client['credentials'];
+    const tokens = await this.decryptStoredTokens(companyId, encrypted);
 
     const auth = this.createOAuthClient();
     auth.setCredentials(tokens);
@@ -215,7 +237,7 @@ export class OAuthService {
 
     const existingCredentials = await this.loadStoredTokens(companyId);
     const finalTokens: Auth.OAuth2Client['credentials'] = {
-      ...existingCredentials,
+      ...(existingCredentials ?? {}),
       ...tokens,
       refresh_token: tokens.refresh_token ?? existingCredentials?.refresh_token,
     };
@@ -249,16 +271,37 @@ export class OAuthService {
     tokens: Auth.OAuth2Client['credentials'];
     metadata: Record<string, unknown>;
   }): Promise<void> {
-    const encrypted = await this.encryptionService.encrypt(
-      JSON.stringify(params.tokens),
-    );
-
-    const existing = await this.supabase.query<{ id: string }>(
-      `SELECT id FROM user_integrations
+    const existing = await this.supabase.query<{
+      id: string;
+      encrypted_credentials: { token?: string } | null;
+    }>(
+      `SELECT id, encrypted_credentials FROM user_integrations
         WHERE user_id = $1 AND provider = $2
         ORDER BY updated_at DESC LIMIT 1`,
       [params.userId, params.provider],
     );
+    const previousTokens = await this.loadStoredUserTokens(
+      params.userId,
+      params.provider,
+      existing[0]?.encrypted_credentials,
+    );
+    const finalTokens: Auth.OAuth2Client['credentials'] = {
+      ...(previousTokens ?? {}),
+      ...params.tokens,
+      refresh_token:
+        params.tokens.refresh_token ?? previousTokens?.refresh_token,
+    };
+
+    if (!finalTokens.refresh_token) {
+      this.logger.warn(
+        `Google no devolvio refresh token para user ${params.userId}. Se guardaran credenciales sin refresh_token.`,
+      );
+    }
+
+    const encrypted = await this.encryptionService.encrypt(
+      JSON.stringify(finalTokens),
+    );
+
     if (existing[0]) {
       await this.supabase.query(
         `UPDATE user_integrations
@@ -360,6 +403,7 @@ export class OAuthService {
   private async buildPendingRegistrationSession(
     email: string,
     alias: string | null,
+    requestedCompanyId?: string,
   ): Promise<{
     userId: string;
     companyId: string;
@@ -369,6 +413,7 @@ export class OAuthService {
   }> {
     this.logger.log('Building pending registration session for email', email);
     const existing = await this.findCompanyUserByEmail(email);
+    const targetCompanyId = requestedCompanyId ?? this.registrationCompanyId;
 
     if (existing?.userId) {
       const rows = await this.supabase.query<{ id: string }>(
@@ -384,7 +429,7 @@ export class OAuthService {
                 last_login_at = timezone('utc', now())
           WHERE id = $4
           RETURNING id`,
-        [this.registrationCompanyId, email, alias, existing.userId],
+        [targetCompanyId, email, alias, existing.userId],
       );
 
       const userId = rows[0]?.id;
@@ -394,7 +439,7 @@ export class OAuthService {
 
       return {
         userId,
-        companyId: existing.companyId ?? this.registrationCompanyId,
+        companyId: existing.companyId ?? targetCompanyId,
         role: this.normalizeRole(existing.role, 'ADMIN'),
         authState: 'PENDING_WHATSAPP',
         phoneVerified: Boolean(existing.isPhoneVerified),
@@ -411,7 +456,7 @@ export class OAuthService {
        )
        VALUES ($1, $2, $3, '', 'ADMIN'::user_role, false, timezone('utc', now()), timezone('utc', now()))
        RETURNING id, company_id, role`,
-      [this.registrationCompanyId, email, alias],
+      [targetCompanyId, email, alias],
     );
 
     const user = created[0];
@@ -442,6 +487,11 @@ export class OAuthService {
     isPhoneVerified: true;
   } {
     return Boolean(user?.companyId && user.isPhoneVerified);
+  }
+
+  private isAdminRole(role: string | null | undefined): boolean {
+    const normalized = this.normalizeRole(role, '');
+    return normalized === 'ADMIN' || normalized === 'OWNER';
   }
 
   private normalizeRole(
@@ -521,6 +571,44 @@ export class OAuthService {
     }
   }
 
+  private async loadStoredUserTokens(
+    userId: string,
+    provider: string,
+    credentials: { token?: string } | null | undefined,
+  ): Promise<Auth.OAuth2Client['credentials'] | null> {
+    const encrypted = credentials?.token;
+    if (!encrypted) {
+      return null;
+    }
+
+    try {
+      const decrypted = await this.encryptionService.decrypt(encrypted);
+      return JSON.parse(decrypted) as Auth.OAuth2Client['credentials'];
+    } catch (error) {
+      this.logger.warn(
+        `No se pudieron leer credenciales previas de user ${userId} provider ${provider}: ${(error as Error).message}`,
+      );
+      return null;
+    }
+  }
+
+  private async decryptStoredTokens(
+    companyId: string,
+    encrypted: string,
+  ): Promise<Auth.OAuth2Client['credentials']> {
+    try {
+      const decrypted = await this.encryptionService.decrypt(encrypted);
+      return JSON.parse(decrypted) as Auth.OAuth2Client['credentials'];
+    } catch (error) {
+      this.logger.warn(
+        `Credenciales de Google Calendar invalidas para ${companyId}: ${(error as Error).message}`,
+      );
+      throw new Error(
+        'Credenciales de Google Calendar invalidas o cifradas con otra ENCRYPTION_KEY. Reconecta Google Calendar.',
+      );
+    }
+  }
+
   private createOAuthClient(): Auth.OAuth2Client {
     return new google.auth.OAuth2(
       this.configService.get<string>('GOOGLE_OAUTH_CLIENT_ID'),
@@ -535,10 +623,35 @@ export class OAuthService {
       return explicitUrl.replace(/\/$/, '');
     }
 
-    const baseUrl =
-      this.configService.get<string>('MAIN_PAGE_URL') ||
-      'https://dot-revealable-telescopically.ngrok-free.dev';
+    const baseUrl = this.configService.get<string>('MAIN_PAGE_URL');
+    if (!baseUrl) {
+      if (this.configService.get<string>('NODE_ENV') === 'production') {
+        throw new Error(
+          'GOOGLE_CALLBACK_URL o MAIN_PAGE_URL debe configurarse para OAuth en produccion',
+        );
+      }
+
+      return 'http://localhost:3000/v1/auth/google/callback';
+    }
 
     return `${baseUrl.replace(/\/$/, '')}/v1/auth/google/callback`;
+  }
+
+  private resolveRegistrationCompanyId(): string {
+    const configured = this.configService.get<string>(
+      'GOOGLE_REGISTRATION_COMPANY_ID',
+    );
+
+    if (configured) {
+      return configured;
+    }
+
+    if (this.configService.get<string>('NODE_ENV') === 'production') {
+      throw new Error(
+        'GOOGLE_REGISTRATION_COMPANY_ID debe configurarse para OAuth en produccion',
+      );
+    }
+
+    return TEST_REGISTRATION_COMPANY_ID;
   }
 }

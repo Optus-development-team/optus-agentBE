@@ -1,6 +1,14 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+
+jest.mock(
+  '../../../../../core/adk/orchestrator/adk-orchestrator.service',
+  () => ({
+    AdkOrchestratorService: class AdkOrchestratorService {},
+  }),
+);
+
 import { WhatsappService } from './whatsapp.webhook.controller.service';
 import { AdkOrchestratorService } from '../../../../../core/adk/orchestrator/adk-orchestrator.service';
 import { WhatsAppMessagingService } from './whatsapp.messaging.service';
@@ -98,7 +106,9 @@ describe('WhatsappService - Dev Tenant Phone Filter', () => {
       configMap['NODE_ENV'] = 'development';
       configMap['DEV_TENANT_PHONE_NUMBER_ID'] = 'allowed-tenant-phone-id';
 
-      expect(service.isPhoneNumberAllowed('allowed-tenant-phone-id')).toBe(true);
+      expect(service.isPhoneNumberAllowed('allowed-tenant-phone-id')).toBe(
+        true,
+      );
       expect(service.isPhoneNumberAllowed('other-tenant-phone-id')).toBe(false);
     });
 
@@ -106,7 +116,9 @@ describe('WhatsappService - Dev Tenant Phone Filter', () => {
       configMap['NODE_ENV'] = 'production';
       configMap['DEV_TENANT_PHONE_NUMBER_ID'] = 'allowed-tenant-phone-id';
 
-      expect(service.isPhoneNumberAllowed('allowed-tenant-phone-id')).toBe(true);
+      expect(service.isPhoneNumberAllowed('allowed-tenant-phone-id')).toBe(
+        true,
+      );
       expect(service.isPhoneNumberAllowed('other-tenant-phone-id')).toBe(true);
     });
 
@@ -114,7 +126,9 @@ describe('WhatsappService - Dev Tenant Phone Filter', () => {
       configMap['NODE_ENV'] = 'test';
       configMap['DEV_TENANT_PHONE_NUMBER_ID'] = 'allowed-tenant-phone-id';
 
-      expect(service.isPhoneNumberAllowed('allowed-tenant-phone-id')).toBe(true);
+      expect(service.isPhoneNumberAllowed('allowed-tenant-phone-id')).toBe(
+        true,
+      );
       expect(service.isPhoneNumberAllowed('other-tenant-phone-id')).toBe(true);
     });
   });
