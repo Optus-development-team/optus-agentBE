@@ -107,23 +107,14 @@ report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 .github.rar
 
 # Archivos locales de desarrollo/documentación
-sql/
-!sql/
-sql/*
-!sql/calendar_sync_migration.sql
-!sql/calendar_sync_hardening.sql
-!sql/calendar_operational_completion.sql
-!sql/calendar_functional_seed.sql
-!sql/barbershop_test_seed.sql
-!sql/barbershop_test_rollback.sql
-!sql/company_agent_config_standardization.sql
-!sql/company_agent_config_standardization_rollback.sql
-!sql/company_agent_config_v2.sql
-!sql/company_agent_config_v2_rollback.sql
-!sql/calendar_timestamp_timezone_migration.sql
-!sql/calendar_timestamp_timezone_rollback.sql
-!sql/whatsapp_calendar_conversation_hardening.sql
-!sql/whatsapp_calendar_conversation_hardening_rollback.sql
-!sql/calendar_registry_canonicalization.sql
-!sql/calendar_registry_canonicalization_rollback.sql
+/sql/
 /.github/docs/calendar/
+/backups/
+
+# Herramientas locales que dependen de SQL o binarios del equipo
+/scripts/calendar-db-seed.js
+/scripts/calendar-registry-canonicalization.js
+/scripts/calendar-timezone-migration-apply.js
+/scripts/calendar-timezone-migration-check.js
+/scripts/supabase-backup.js
+/scripts/whatsapp-conversation-migration.js
