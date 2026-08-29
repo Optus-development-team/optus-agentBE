@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { FunctionTool } from '@google/adk';
-import type { ToolContext } from '@google/adk';
+import type { Context } from '@google/adk';
 import { z } from 'zod';
 import { SupabaseService } from '../../../../../common/intraestructure/supabase/supabase.service';
 import type { DbSearchPublicKnowledgeRow } from '../../../../../common/intraestructure/supabase/supabase.types';
@@ -31,7 +31,7 @@ export class KnowledgeBaseToolsService {
       description:
         'Busca información pública de la empresa (horarios, servicios y políticas) usando palabras clave concisas.',
       parameters: searchCompanyInformationSchema,
-      execute: async (args, context?: ToolContext) => {
+      execute: async (args, context?: Context) => {
         const parsedArgs = searchCompanyInformationSchema.parse(args);
 
         const companyId = context?.state?.get('app:companyId');
