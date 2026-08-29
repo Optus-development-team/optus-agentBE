@@ -116,4 +116,8 @@ sql/*
 !sql/calendar_functional_seed.sql
 !sql/barbershop_test_seed.sql
 !sql/barbershop_test_rollback.sql
+!sql/company_agent_config_standardization.sql
+!sql/company_agent_config_standardization_rollback.sql
+!sql/company_agent_config_v2.sql
+!sql/company_agent_config_v2_rollback.sql
 /.github/docs/calendar/

@@ -19,6 +19,7 @@
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "calendar:db:check": "node scripts/calendar-db-check.js",
+    "company:config:db:check": "node scripts/company-agent-config-check.js",
     "calendar:db:seed": "node scripts/calendar-db-seed.js --apply",
     "calendar:google:check": "node scripts/calendar-google-check.js",
     "calendar:e2e": "npm run build && node scripts/calendar-e2e-test.js",
