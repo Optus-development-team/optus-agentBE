@@ -1,6 +1,12 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+
+jest.mock(
+  '../../../../../core/adk/orchestrator/adk-orchestrator.service',
+  () => ({ AdkOrchestratorService: class {} }),
+);
+
 import { WhatsappService } from './whatsapp.webhook.controller.service';
 import { AdkOrchestratorService } from '../../../../../core/adk/orchestrator/adk-orchestrator.service';
 import { WhatsAppMessagingService } from './whatsapp.messaging.service';

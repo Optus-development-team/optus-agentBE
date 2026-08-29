@@ -36,7 +36,7 @@ export class IdentityService {
     }
 
     const rows = await this.supabaseService.query<DbCompanyTenantRow>(
-      `SELECT id, name, vertical, config, whatsapp_admin_phone_ids, whatsapp_display_phone_number, whatsapp_phone_id
+      `SELECT id, name, vertical, timezone, config, whatsapp_admin_phone_ids, whatsapp_display_phone_number, whatsapp_phone_id
        FROM public.companies
        WHERE whatsapp_phone_id = $1
        LIMIT 1`,
@@ -77,7 +77,7 @@ export class IdentityService {
     }
 
     const rows = await this.supabaseService.query<DbCompanyTenantRow>(
-      `SELECT id, name, vertical, config, whatsapp_admin_phone_ids, whatsapp_display_phone_number, whatsapp_phone_id
+      `SELECT id, name, vertical, timezone, config, whatsapp_admin_phone_ids, whatsapp_display_phone_number, whatsapp_phone_id
        FROM public.companies
        WHERE id = $1
        LIMIT 1`,
@@ -255,6 +255,7 @@ export class IdentityService {
       companyId: row.id,
       companyName: row.name,
       vertical: this.normalizeVertical(row.vertical),
+      timezone: row.timezone?.trim() || 'America/La_Paz',
       companyConfig: companyConfig as unknown as Record<string, unknown>,
       phoneNumberId,
       adminPhoneIds,

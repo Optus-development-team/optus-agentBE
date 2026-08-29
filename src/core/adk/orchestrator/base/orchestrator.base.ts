@@ -176,14 +176,18 @@ export abstract class BaseOrchestratorService implements OnModuleInit {
       sessionId,
     });
 
+    const freshState = this.orchestratorConfig.buildInitialState(context);
     if (!session) {
       await this.sessionService.createSession({
         appName: this.appName,
         userId,
         sessionId,
-        state: this.orchestratorConfig.buildInitialState(context),
+        state: freshState,
       });
+      return;
     }
+
+    await this.sessionService.refreshSessionState(session, freshState);
   }
 
   private normalizePhone(phone: string): string {

@@ -22,6 +22,9 @@
     "company:config:db:check": "node scripts/company-agent-config-check.js",
     "calendar:db:seed": "node scripts/calendar-db-seed.js --apply",
     "calendar:google:check": "node scripts/calendar-google-check.js",
+    "calendar:timezone:migration:check": "node scripts/calendar-timezone-migration-check.js",
+    "calendar:timezone:google:check": "node scripts/calendar-google-time-reconciliation.js",
+    "db:backup": "node scripts/supabase-backup.js",
     "calendar:e2e": "npm run build && node scripts/calendar-e2e-test.js",
     "calendar:webhooks:setup": "npm run build && node scripts/calendar-webhook-setup.js",
     "calendar:bidirectional": "npm run build && node scripts/calendar-bidirectional-test.js"

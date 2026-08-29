@@ -10,6 +10,12 @@ import {
   SystemEventType,
   type SystemNotificationEvent,
 } from '../../../../../common/events/system-events.types';
+import {
+  createPendingAvailability,
+  findPendingCalendarSlot,
+  PENDING_AVAILABILITY_STATE_KEY,
+  readPendingAvailability,
+} from '../../../../../features/calendar/calendar-slot-selection';
 
 @Injectable()
 export class AppointmentToolsService {
@@ -47,7 +53,7 @@ export class AppointmentToolsService {
 
         const state = context?.state;
         const companyId = this.stateString(state?.get('app:companyId'));
-        const userPhone = this.stateString(state?.get('user:phone'));
+        const timezone = this.stateString(state?.get('app:timezone'));
 
         this.emitToolTriggered(companyId, 'check_availability');
 
@@ -55,17 +61,37 @@ export class AppointmentToolsService {
           if (!companyId) throw new Error('Empresa no identificada');
           const resolvedDate = this.timeService.resolveDateBounds(
             args.date,
-            userPhone,
+            timezone,
           );
+          const service = args.serviceType
+            ? await this.appointmentsService.resolveBookableService(
+                companyId,
+                args.serviceType,
+              )
+            : null;
           const available = await this.appointmentsService.availability({
             companyId,
             date: resolvedDate.date,
-            durationMinutes: args.duration,
+            serviceId: service?.id,
+            durationMinutes:
+              args.duration ?? service?.durationMinutes ?? undefined,
           });
+          const pending = createPendingAvailability({
+            requestTime:
+              this.stateString(state?.get('app:currentDateTime')) ??
+              new Date().toISOString(),
+            date: resolvedDate.date,
+            timezone: resolvedDate.timezone,
+            serviceName: service?.name,
+            slots: available,
+          });
+          state?.set(PENDING_AVAILABILITY_STATE_KEY, pending);
           return {
             success: true,
             date: resolvedDate.date,
-            available: available.map((slot) => ({
+            timezone: resolvedDate.timezone,
+            available: pending.slots.map((slot) => ({
+              slotToken: slot.token,
               start: slot.start,
               end: slot.end,
               staffId: slot.staffId,
@@ -96,10 +122,18 @@ export class AppointmentToolsService {
         'Agenda una nueva cita en el horario especificado. ' +
         'Requiere fecha, hora y duración; opcionalmente el tipo de servicio.',
       parameters: z.object({
-        date: z.string().describe('Fecha de la cita'),
-        time: z.string().describe('Hora de la cita (formato 24h, ej: "14:00")'),
+        slotToken: z
+          .string()
+          .optional()
+          .describe('Token exacto devuelto por check_availability'),
+        date: z.string().optional().describe('Fecha de la cita'),
+        time: z
+          .string()
+          .optional()
+          .describe('Hora de la cita (formato 24h, ej: "14:00")'),
         duration: z
           .string()
+          .optional()
           .describe(
             'Duración obligatoria de la cita (ej: "1 hora", "15 minutos")',
           ),
@@ -115,45 +149,81 @@ export class AppointmentToolsService {
         const userPhone = this.stateString(state?.get('user:phone'));
         const userName = this.stateString(state?.get('user:name'));
         const companyId = this.stateString(state?.get('app:companyId'));
+        const timezone = this.stateString(state?.get('app:timezone'));
 
         this.emitToolTriggered(companyId, 'create_appointment');
 
         try {
           if (!companyId) throw new Error('Empresa no identificada');
-          const durationMinutes = this.timeService.parseDurationToMinutes(
-            args.duration,
+          const pending = readPendingAvailability(
+            state?.get(PENDING_AVAILABILITY_STATE_KEY),
           );
-          const appointmentStart = this.timeService.buildAppointmentStart(
-            args.date,
-            args.time,
-            userPhone,
-          );
+          const selectedSlot = args.slotToken
+            ? findPendingCalendarSlot(pending, args.slotToken)
+            : null;
+          if (args.slotToken && !selectedSlot) {
+            throw new Error(
+              'El horario seleccionado expiró. Consulta nuevamente la disponibilidad.',
+            );
+          }
+          if (!selectedSlot && (!args.date || !args.time || !args.duration)) {
+            throw new Error(
+              'Faltan fecha, hora o duración para crear la cita.',
+            );
+          }
+          const appointmentStart = selectedSlot
+            ? {
+                startIso: selectedSlot.start,
+                date: pending!.date,
+                timezone: pending!.timezone,
+              }
+            : this.timeService.buildAppointmentStart(
+                args.date!,
+                args.time!,
+                timezone,
+              );
+          const durationMinutes = selectedSlot
+            ? Math.max(
+                1,
+                Math.round(
+                  (Date.parse(selectedSlot.end) -
+                    Date.parse(selectedSlot.start)) /
+                    60_000,
+                ),
+              )
+            : this.timeService.parseDurationToMinutes(args.duration!);
+          const appointmentEnd = selectedSlot
+            ? selectedSlot.end
+            : new Date(
+                Date.parse(appointmentStart.startIso) +
+                  durationMinutes * 60_000,
+              ).toISOString();
 
           const appointment = await this.appointmentsService.create(
             {
               companyId,
               customerPhone: userPhone,
               customerName: userName,
-              title: `Cita con ${userName || userPhone || 'cliente'} - ${args.serviceType || 'General'}`,
+              title: `Cita con ${userName || userPhone || 'cliente'} - ${args.serviceType || pending?.serviceName || 'General'}`,
               description: args.notes || '',
               start: appointmentStart.startIso,
-              end: new Date(
-                new Date(appointmentStart.startIso).getTime() +
-                  durationMinutes * 60_000,
-              ).toISOString(),
+              end: appointmentEnd,
+              staffId: selectedSlot?.staffId ?? undefined,
+              serviceId: selectedSlot?.serviceId ?? undefined,
               appointmentType: 'service',
               contextType: 'service',
             },
             { kind: 'customer', companyId, phone: userPhone },
           );
           this.logger.debug(`Cita creada en DB: ${appointment.id}`);
+          state?.set(PENDING_AVAILABILITY_STATE_KEY, null);
 
           this.emitCompanyEvent(companyId, {
             type: SystemEventType.APPOINTMENT_CREATED,
             payload: {
               appointmentId: appointment.id,
-              date: args.date,
-              time: args.time,
+              date: appointmentStart.date,
+              time: args.time ?? appointmentStart.startIso,
               durationMinutes,
             },
           });
@@ -263,6 +333,7 @@ export class AppointmentToolsService {
         const companyId = this.stateString(
           _context?.state?.get('app:companyId'),
         );
+        const timezone = this.stateString(_context?.state?.get('app:timezone'));
         this.emitToolTriggered(companyId, 'reschedule_appointment');
 
         this.logger.debug(
@@ -284,7 +355,7 @@ export class AppointmentToolsService {
           const start = this.timeService.buildAppointmentStart(
             args.newDate,
             args.newTime,
-            phone,
+            timezone,
           );
           const appointment =
             await this.appointmentsService.rescheduleKeepingDuration(
@@ -296,10 +367,10 @@ export class AppointmentToolsService {
           return {
             success: true,
             appointmentId: appointment.id,
-            newDate: args.newDate,
+            newDate: start.date,
             newTime: args.newTime,
             syncStatus: appointment.sync_status,
-            message: `Cita ${appointment.id} reprogramada para ${args.newDate} a las ${args.newTime}.`,
+            message: `Cita ${appointment.id} reprogramada para ${start.date} a las ${args.newTime}.`,
           };
         } catch (error) {
           return { success: false, message: (error as Error).message };

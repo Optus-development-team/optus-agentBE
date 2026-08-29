@@ -22,7 +22,7 @@ export function buildInitialState(
   const capabilities = asObject(companyConfig.capabilities);
   const configurationState = asObject(companyConfig.configuration);
   const userPhone = context.senderId;
-  const timezone = timeService.getTimezone(userPhone);
+  const timezone = timeService.getTimezone(context.tenant.timezone);
 
   return {
     'user:phone': userPhone,
@@ -74,8 +74,8 @@ export function buildInitialState(
     'app:phoneNumberId':
       context.tenant?.phoneNumberId ?? context.phoneNumberId ?? undefined,
     'app:displayPhoneNumber': context.tenant?.displayPhoneNumber ?? undefined,
-    'app:todayDate': timeService.getTodayDate(userPhone),
-    'app:currentDateTime': timeService.getCurrentDateTime(userPhone),
+    'app:todayDate': timeService.getTodayDate(timezone),
+    'app:currentDateTime': timeService.getCurrentDateTime(timezone),
     'app:timezone': timezone,
     ...(options.extraState ?? {}),
   };

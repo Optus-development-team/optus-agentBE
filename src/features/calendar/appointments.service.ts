@@ -322,6 +322,42 @@ export class AppointmentsService {
     return this.availabilityService.list(params);
   }
 
+  async resolveBookableService(
+    companyId: string,
+    serviceName: string,
+  ): Promise<{ id: string; name: string; durationMinutes: number | null }> {
+    const requested = this.normalizeSearchText(serviceName);
+    const services = await this.appointments.listBookableServices(companyId);
+    const exact = services.find(
+      (service) => this.normalizeSearchText(service.name) === requested,
+    );
+    if (exact) {
+      return {
+        id: exact.id,
+        name: exact.name,
+        durationMinutes: exact.duration_minutes,
+      };
+    }
+
+    const partial = services.filter((service) => {
+      const candidate = this.normalizeSearchText(service.name);
+      return candidate.includes(requested) || requested.includes(candidate);
+    });
+    if (partial.length === 1) {
+      return {
+        id: partial[0].id,
+        name: partial[0].name,
+        durationMinutes: partial[0].duration_minutes,
+      };
+    }
+    if (partial.length > 1) {
+      throw new BadRequestException(
+        `El servicio es ambiguo. Opciones: ${partial.map((item) => item.name).join(', ')}`,
+      );
+    }
+    throw new NotFoundException(`Servicio no disponible: ${serviceName}`);
+  }
+
   async findForCustomer(params: {
     companyId: string;
     phone: string;
@@ -398,5 +434,14 @@ export class AppointmentsService {
         )) ?? appointment
       );
     }
+  }
+
+  private normalizeSearchText(value: string): string {
+    return value
+      .trim()
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/\s+/g, ' ');
   }
 }

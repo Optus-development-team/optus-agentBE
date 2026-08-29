@@ -120,4 +120,6 @@ sql/*
 !sql/company_agent_config_standardization_rollback.sql
 !sql/company_agent_config_v2.sql
 !sql/company_agent_config_v2_rollback.sql
+!sql/calendar_timestamp_timezone_migration.sql
+!sql/calendar_timestamp_timezone_rollback.sql
 /.github/docs/calendar/

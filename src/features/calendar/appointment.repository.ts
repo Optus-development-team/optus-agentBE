@@ -35,8 +35,8 @@ export class AppointmentRepository {
           `SELECT id FROM appointments
             WHERE company_id = $1 AND staff_id = $2
               AND status IN ('pending', 'confirmed')
-              AND scheduled_start < ($4::timestamp + make_interval(mins => $5))
-              AND scheduled_end > ($3::timestamp - make_interval(mins => $5))
+              AND scheduled_start < ($4::timestamptz + make_interval(mins => $5))
+              AND scheduled_end > ($3::timestamptz - make_interval(mins => $5))
             LIMIT 1`,
           [
             input.companyId,
@@ -93,6 +93,22 @@ export class AppointmentRepository {
       [appointmentId, companyId],
     );
     return rows[0] ?? null;
+  }
+
+  listBookableServices(companyId: string): Promise<
+    Array<{
+      id: string;
+      name: string;
+      duration_minutes: number | null;
+    }>
+  > {
+    return this.db.query(
+      `SELECT id, name, duration_minutes
+         FROM catalog_items
+        WHERE company_id = $1 AND is_active = TRUE AND is_bookable = TRUE
+        ORDER BY name`,
+      [companyId],
+    );
   }
 
   async listForCustomer(
@@ -188,8 +204,8 @@ export class AppointmentRepository {
           `SELECT id FROM appointments
             WHERE company_id = $1 AND staff_id = $2 AND id <> $3
               AND status IN ('pending', 'confirmed')
-              AND scheduled_start < ($5::timestamp + make_interval(mins => $6))
-              AND scheduled_end > ($4::timestamp - make_interval(mins => $6))
+              AND scheduled_start < ($5::timestamptz + make_interval(mins => $6))
+              AND scheduled_end > ($4::timestamptz - make_interval(mins => $6))
             LIMIT 1`,
           [
             companyId,
@@ -287,11 +303,14 @@ export class AppointmentRepository {
     const rows = await this.db.query<AppointmentRecord>(
       `SELECT a.* FROM appointments a
          JOIN customers c ON c.id = a.customer_id
+         JOIN companies company ON company.id = a.company_id
         WHERE a.company_id = $1
           AND regexp_replace(c.phone, '\\D', '', 'g') = regexp_replace($2, '\\D', '', 'g')
           AND a.status IN ('pending', 'confirmed')
-          AND ($3::date IS NULL OR a.scheduled_start::date = $3::date)
-          AND ($4::time IS NULL OR a.scheduled_start::time BETWEEN
+          AND ($3::date IS NULL OR
+               (a.scheduled_start AT TIME ZONE COALESCE(company.timezone, 'UTC'))::date = $3::date)
+          AND ($4::time IS NULL OR
+               (a.scheduled_start AT TIME ZONE COALESCE(company.timezone, 'UTC'))::time BETWEEN
                 ($4::time - interval '15 minutes') AND ($4::time + interval '15 minutes'))
         ORDER BY a.scheduled_start ASC LIMIT 1`,
       [

@@ -16,6 +16,12 @@ import {
   type SystemNotificationEvent,
 } from '../../../common/events/system-events.types';
 import { LlmResponseFormatterService } from '../formatters/llm-response-formatter.service';
+import {
+  isCalendarSlotToken,
+  PENDING_AVAILABILITY_STATE_KEY,
+  readPendingAvailability,
+} from '../../../features/calendar/calendar-slot-selection';
+import type { FormattedResponse } from '../formatters/types/llm-response.types';
 
 @Injectable()
 export class AdkOrchestratorService {
@@ -34,7 +40,7 @@ export class AdkOrchestratorService {
 
   async route(context: RouterMessageContext): Promise<OrchestrationResult> {
     const role = context.role ?? UserRole.CLIENT;
-    this.logger.debug("Role", role, "for sender", context.senderId);
+    this.logger.debug('Role', role, 'for sender', context.senderId);
     const vertical = this.normalizeVertical(context.tenant.vertical);
     const orchestrator = this.resolveOrchestrator(role, vertical);
     const companyId = context.tenant?.companyId;
@@ -75,6 +81,14 @@ export class AdkOrchestratorService {
       return result;
     }
 
+    const availabilityResponse = this.buildAvailabilityResponse(
+      result.sessionState,
+      result.responseText,
+    );
+    if (availabilityResponse && !isCalendarSlotToken(context.originalText)) {
+      return { ...result, formattedResponse: availabilityResponse };
+    }
+
     try {
       return {
         ...result,
@@ -90,7 +104,9 @@ export class AdkOrchestratorService {
         ...result,
         formattedResponse: {
           type: 'buttons',
-          body: result.responseText ?? 'No se pudo generar una respuesta estructurada.',
+          body:
+            result.responseText ??
+            'No se pudo generar una respuesta estructurada.',
           options: [
             {
               id: 'acknowledge',
@@ -143,5 +159,46 @@ export class AdkOrchestratorService {
     }
 
     return 'general';
+  }
+
+  private buildAvailabilityResponse(
+    sessionState: Record<string, unknown> | undefined,
+    responseText: string | undefined,
+  ): FormattedResponse | null {
+    const pending = readPendingAvailability(
+      sessionState?.[PENDING_AVAILABILITY_STATE_KEY],
+    );
+    if (
+      !pending?.slots.length ||
+      pending.requestTime !== sessionState?.['app:currentDateTime']
+    ) {
+      return null;
+    }
+
+    const formatter = new Intl.DateTimeFormat('es-BO', {
+      timeZone: pending.timezone,
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    });
+    return {
+      type: 'list',
+      body:
+        responseText?.trim() ||
+        `Selecciona un horario disponible para el ${pending.date}.`,
+      buttonText: 'Ver horarios',
+      sections: [
+        {
+          title: pending.date,
+          items: pending.slots.map((slot) => ({
+            id: slot.token,
+            title: `${formatter.format(new Date(slot.start))}${
+              slot.staffName ? ` · ${slot.staffName}` : ''
+            }`.slice(0, 24),
+            description: `${slot.durationMinutes} min`,
+          })),
+        },
+      ],
+    };
   }
 }
