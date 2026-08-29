@@ -100,14 +100,45 @@ export class AppointmentRepository {
       id: string;
       name: string;
       duration_minutes: number | null;
+      description: string | null;
+      sale_price: number | null;
+      currency: string | null;
     }>
   > {
     return this.db.query(
-      `SELECT id, name, duration_minutes
+      `SELECT id, name, duration_minutes, description, sale_price, currency
          FROM catalog_items
-        WHERE company_id = $1 AND is_active = TRUE AND is_bookable = TRUE
+        WHERE company_id = $1 AND item_type = 'service'
+          AND is_active = TRUE AND is_bookable = TRUE
         ORDER BY name`,
       [companyId],
+    );
+  }
+
+  listActiveStaff(
+    companyId: string,
+    serviceId?: string,
+  ): Promise<Array<{ id: string; name: string; specialty: string | null }>> {
+    return this.db.query(
+      `SELECT cs.id,
+              TRIM(cs.first_name || ' ' || COALESCE(cs.last_name, '')) AS name,
+              cs.specialty
+         FROM company_staff cs
+         LEFT JOIN staff_catalog_services scs
+           ON scs.staff_id = cs.id AND scs.catalog_item_id = $2::uuid
+          AND scs.is_active = TRUE
+        WHERE cs.company_id = $1 AND cs.is_active = TRUE
+          AND COALESCE(cs.calendar_sync_enabled, TRUE) = TRUE
+          AND (
+            $2::uuid IS NULL OR scs.id IS NOT NULL OR NOT EXISTS (
+              SELECT 1 FROM staff_catalog_services configured
+               WHERE configured.company_id = $1
+                 AND configured.catalog_item_id = $2
+                 AND configured.is_active = TRUE
+            )
+          )
+        ORDER BY (scs.id IS NOT NULL) DESC, cs.first_name, cs.last_name`,
+      [companyId, serviceId ?? null],
     );
   }
 
@@ -175,7 +206,14 @@ export class AppointmentRepository {
                AND a.scheduled_start < $3
                AND a.scheduled_end > $2
           )
-        ORDER BY (cs.google_calendar_id IS NOT NULL) DESC, cs.created_at ASC
+        ORDER BY EXISTS (
+                   SELECT 1
+                     FROM google_calendar_registry registry
+                    WHERE registry.company_id = cs.company_id
+                      AND registry.assigned_to_staff_id = cs.id
+                      AND registry.is_active = TRUE
+                 ) DESC,
+                 cs.created_at ASC
         LIMIT 1`,
       [companyId, start, end],
     );

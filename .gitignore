@@ -122,4 +122,8 @@ sql/*
 !sql/company_agent_config_v2_rollback.sql
 !sql/calendar_timestamp_timezone_migration.sql
 !sql/calendar_timestamp_timezone_rollback.sql
+!sql/whatsapp_calendar_conversation_hardening.sql
+!sql/whatsapp_calendar_conversation_hardening_rollback.sql
+!sql/calendar_registry_canonicalization.sql
+!sql/calendar_registry_canonicalization_rollback.sql
 /.github/docs/calendar/

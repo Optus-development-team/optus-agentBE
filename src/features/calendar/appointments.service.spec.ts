@@ -42,6 +42,7 @@ describe('AppointmentsService', () => {
     updateStatus: jest.fn(),
     listForCustomer: jest.fn(),
     listBookableServices: jest.fn(),
+    listActiveStaff: jest.fn(),
   };
   const sync = { syncAppointmentToGoogle: jest.fn() };
   const availability = { selectStaffForRange: jest.fn() };
@@ -225,6 +226,28 @@ describe('AppointmentsService', () => {
 
     await expect(
       service.resolveBookableService('c1', 'corte'),
+    ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('resuelve un profesional por nombre parcial sin confundir empresas', async () => {
+    repository.listActiveStaff.mockResolvedValue([
+      { id: 'staff-1', name: 'Fernando Silva', specialty: 'Barbería' },
+    ]);
+
+    await expect(service.resolveActiveStaff('c1', 'Fernando')).resolves.toEqual(
+      { id: 'staff-1', name: 'Fernando Silva', specialty: 'Barbería' },
+    );
+    expect(repository.listActiveStaff).toHaveBeenCalledWith('c1', undefined);
+  });
+
+  it('pide aclaración cuando el nombre del profesional es ambiguo', async () => {
+    repository.listActiveStaff.mockResolvedValue([
+      { id: 'staff-1', name: 'Fernando Silva', specialty: null },
+      { id: 'staff-2', name: 'Fernando Pérez', specialty: null },
+    ]);
+
+    await expect(
+      service.resolveActiveStaff('c1', 'Fernando'),
     ).rejects.toBeInstanceOf(BadRequestException);
   });
 });

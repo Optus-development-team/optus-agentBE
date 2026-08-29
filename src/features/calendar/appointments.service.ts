@@ -318,8 +318,41 @@ export class AppointmentsService {
     serviceId?: string;
     staffId?: string;
     durationMinutes?: number;
+    excludeAppointmentId?: string;
   }): Promise<AvailabilitySlot[]> {
     return this.availabilityService.list(params);
+  }
+
+  listBookableServices(companyId: string) {
+    return this.appointments.listBookableServices(companyId);
+  }
+
+  listActiveStaff(companyId: string, serviceId?: string) {
+    return this.appointments.listActiveStaff(companyId, serviceId);
+  }
+
+  async resolveActiveStaff(
+    companyId: string,
+    staffName: string,
+    serviceId?: string,
+  ): Promise<{ id: string; name: string; specialty: string | null }> {
+    const requested = this.normalizeSearchText(staffName);
+    const staff = await this.appointments.listActiveStaff(companyId, serviceId);
+    const exact = staff.find(
+      (candidate) => this.normalizeSearchText(candidate.name) === requested,
+    );
+    if (exact) return exact;
+    const partial = staff.filter((candidate) => {
+      const name = this.normalizeSearchText(candidate.name);
+      return name.includes(requested) || requested.includes(name);
+    });
+    if (partial.length === 1) return partial[0];
+    if (partial.length > 1) {
+      throw new BadRequestException(
+        `El profesional es ambiguo. Opciones: ${partial.map((item) => item.name).join(', ')}`,
+      );
+    }
+    throw new NotFoundException(`Profesional no disponible: ${staffName}`);
   }
 
   async resolveBookableService(

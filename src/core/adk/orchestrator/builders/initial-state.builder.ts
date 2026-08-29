@@ -30,6 +30,7 @@ export function buildInitialState(
     'user:name': context.senderName,
     'app:companyId': companyId ?? undefined,
     'app:companyName': companyName,
+    'app:vertical': context.tenant.vertical,
     'app:companyConfig': companyConfig,
     'app:currency': config.get<string>('DEFAULT_CURRENCY', 'USD') ?? 'USD',
     'app:companyTone': nonEmpty(profile.tone, 'Profesional, amable y claro'),
