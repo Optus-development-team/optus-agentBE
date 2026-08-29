@@ -8,7 +8,7 @@ import type {
 
 const MAX_BODY_LENGTH = 320;
 const APPOINTMENT_FALLBACK_BODY =
-  'Claro. Dime fecha, hora y duracion. Ej: manana 10:00 por 45 min.';
+  'Para agendar, dime fecha y hora. Ej: manana 10:00.';
 
 export function normalizeFormattedResponse(
   candidate: FormattedResponse | null | undefined,
@@ -66,20 +66,23 @@ export function normalizeFormattedResponse(
       break;
   }
 
-  return buildCompactFallback(input);
+  return buildCompactFallback(input, candidate);
 }
 
 function buildCompactFallback(
   input: LlmResponseFormatInput,
+  candidate?: FormattedResponse,
 ): ButtonsFormattedResponse {
+  const fallbackBody =
+    extractCandidateBody(candidate) ||
+    input.responseText ||
+    (isAppointmentContext(input)
+      ? APPOINTMENT_FALLBACK_BODY
+      : 'No pude preparar las opciones. Escribe tu solicitud en texto.');
+
   return {
     type: 'buttons',
-    body: isAppointmentContext(input)
-      ? APPOINTMENT_FALLBACK_BODY
-      : compactText(
-          input.responseText ||
-            'No pude preparar las opciones. Escribe tu solicitud en texto.',
-        ),
+    body: compactBody(fallbackBody, input),
     options: [
       {
         id: 'acknowledge',
@@ -90,11 +93,29 @@ function buildCompactFallback(
 }
 
 function compactBody(text: string, input: LlmResponseFormatInput): string {
-  if (isAppointmentContext(input) && text.trim().length > MAX_BODY_LENGTH) {
-    return APPOINTMENT_FALLBACK_BODY;
+  if (!text.trim()) {
+    return isAppointmentContext(input)
+      ? APPOINTMENT_FALLBACK_BODY
+      : 'No pude preparar las opciones. Escribe tu solicitud en texto.';
   }
 
   return compactText(text);
+}
+
+function extractCandidateBody(candidate?: FormattedResponse): string | null {
+  if (!candidate) {
+    return null;
+  }
+
+  const maybeText = candidate as { body?: unknown; question?: unknown };
+  const value =
+    typeof maybeText.body === 'string'
+      ? maybeText.body
+      : typeof maybeText.question === 'string'
+        ? maybeText.question
+        : null;
+
+  return value?.trim() || null;
 }
 
 function compactText(text: string): string {

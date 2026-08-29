@@ -23,9 +23,7 @@ describe('normalizeFormattedResponse', () => {
 
     expect(result.type).toBe('buttons');
     if (result.type === 'buttons') {
-      expect(result.body).toBe(
-        'Claro. Dime fecha, hora y duracion. Ej: manana 10:00 por 45 min.',
-      );
+      expect(result.body).toBe('Elige una opcion para continuar');
       expect(result.options).toEqual([
         {
           id: 'acknowledge',
@@ -57,9 +55,8 @@ describe('normalizeFormattedResponse', () => {
 
     expect(result.type).toBe('buttons');
     if (result.type === 'buttons') {
-      expect(result.body).toBe(
-        'Claro. Dime fecha, hora y duracion. Ej: manana 10:00 por 45 min.',
-      );
+      expect(result.body.length).toBeLessThanOrEqual(323);
+      expect(result.body).toContain('Para agendar una cita');
       expect(result.options).toEqual([
         {
           id: 'continue',

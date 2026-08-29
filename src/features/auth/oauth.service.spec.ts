@@ -200,6 +200,131 @@ describe('OAuthService', () => {
     });
   });
 
+  it('incluye el telefono del admin de WhatsApp en el state de OAuth Calendar', () => {
+    const service = new OAuthService(
+      makeConfig() as never,
+      { query: jest.fn() } as never,
+      { encrypt: jest.fn(), decrypt: jest.fn() } as never,
+    );
+
+    service.getAuthUrl('company-1', '+591 600 00000');
+
+    expect(mockGenerateAuthUrl).toHaveBeenCalledWith(
+      expect.objectContaining({
+        state: 'calendar:company-1:59160000000',
+      }),
+    );
+  });
+
+  it('vincula credenciales personales al usuario encontrado por telefono de WhatsApp', async () => {
+    let savedUserCredentials: { token?: string } | undefined;
+    let updatedCompanyUserParams: unknown[] | undefined;
+
+    mockGetToken.mockResolvedValueOnce({
+      tokens: {
+        access_token: 'phone-linked-access-token',
+        refresh_token: 'phone-linked-refresh-token',
+        id_token: makeIdToken({ aud: 'google-client-id' }),
+        expiry_date: 123456,
+      },
+    });
+
+    const db = {
+      query: jest.fn((sql: string, params: unknown[]) => {
+        const normalized = sql.replace(/\s+/g, ' ').trim();
+
+        if (
+          normalized.includes('FROM company_users cu') &&
+          normalized.includes('LOWER(cu.email)')
+        ) {
+          return Promise.resolve([]);
+        }
+
+        if (
+          normalized.includes('FROM company_users cu') &&
+          normalized.includes('regexp_replace(cu.phone')
+        ) {
+          return Promise.resolve([
+            {
+              user_id: 'user-by-phone',
+              company_id: 'company-1',
+              role: 'ADMIN',
+              is_phone_verified: true,
+            },
+          ]);
+        }
+
+        if (normalized.startsWith('UPDATE company_users')) {
+          updatedCompanyUserParams = params;
+          return Promise.resolve([]);
+        }
+
+        if (normalized.includes('FROM user_integrations')) {
+          return Promise.resolve([]);
+        }
+
+        if (normalized.startsWith('INSERT INTO user_integrations')) {
+          savedUserCredentials = params[2] as { token?: string };
+          return Promise.resolve([]);
+        }
+
+        if (normalized.startsWith('UPDATE companies')) {
+          return Promise.resolve([]);
+        }
+
+        if (
+          normalized.includes('FROM company_integrations') &&
+          normalized.includes('encrypted_credentials')
+        ) {
+          return Promise.resolve([]);
+        }
+
+        if (normalized.includes('SELECT id FROM company_integrations')) {
+          return Promise.resolve([]);
+        }
+
+        if (normalized.startsWith('INSERT INTO company_integrations')) {
+          return Promise.resolve([]);
+        }
+
+        return Promise.resolve([]);
+      }),
+    };
+
+    const encryption = {
+      encrypt: jest.fn((text: string) => Promise.resolve(`enc:${text}`)),
+      decrypt: jest.fn(),
+    };
+
+    const service = new OAuthService(
+      makeConfig() as never,
+      db as never,
+      encryption as never,
+    );
+
+    const session = await service.handleGoogleLoginCallback(
+      'oauth-code',
+      'calendar:company-1:59160000000',
+    );
+
+    expect(session).toMatchObject({
+      userId: 'user-by-phone',
+      companyId: 'company-1',
+      role: 'ADMIN',
+      email: 'admin@example.com',
+      authState: 'FULL',
+    });
+    expect(updatedCompanyUserParams).toEqual([
+      'admin@example.com',
+      'user-by-phone',
+      '59160000000',
+    ]);
+    expect(decryptStored(savedUserCredentials)).toMatchObject({
+      access_token: 'phone-linked-access-token',
+      refresh_token: 'phone-linked-refresh-token',
+    });
+  });
+
   it('no considera conectada una integracion Calendar sin token valido', async () => {
     const db = {
       query: jest.fn().mockResolvedValue([
