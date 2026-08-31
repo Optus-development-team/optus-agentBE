@@ -1,294 +1,548 @@
 Project optus_agentbe_db {
   database_type: "PostgreSQL"
-  Note: "Schema público de Supabase refactorizado para arquitectura multi-tenant con verticales academy/salon/general"
+  Note: "Schema público de Supabase refactorizado para arquitectura multi-tenant con verticales academy/salon/general, Google Calendar multi-staff y schema_v3"
 }
 
 Table adk_sessions {
   session_id text [pk, not null]
   company_id uuid [not null]
-  context_data json [not null]
-  updated_at timestamp [not null]
+  context_data jsonb [not null, default: "'{}'::jsonb"]
+  updated_at timestamptz [not null, default: "now()"]
+}
+
+Table appointment_audit_logs {
+  id uuid [pk, not null, default: "gen_random_uuid()"]
+  company_id uuid [not null]
+  appointment_id uuid
+  action text [not null]
+  actor_type text [not null]
+  actor_user_id uuid
+  actor_staff_id uuid
+  actor_phone text
+  previous_state jsonb
+  new_state jsonb
+  metadata jsonb [not null, default: "'{}'::jsonb"]
+  created_at timestamptz [not null, default: "now()"]
+}
+
+Table appointment_notifications {
+  id uuid [pk, not null, default: "gen_random_uuid()"]
+  company_id uuid [not null]
+  appointment_id uuid [not null]
+  notification_type text [not null]
+  channel text [not null, default: "'whatsapp'::text"]
+  recipient text [not null]
+  scheduled_at timestamptz [not null]
+  status text [not null, default: "'pending'::text"]
+  attempts integer [not null, default: 0]
+  max_attempts integer [not null, default: 5]
+  sent_at timestamptz
+  last_error text
+  dedupe_key text [unique, not null]
+  payload jsonb [not null, default: "'{}'::jsonb"]
+  created_at timestamptz [not null, default: "now()"]
+  updated_at timestamptz [not null, default: "now()"]
 }
 
 Table appointments {
-  id uuid [pk, not null]
+  id uuid [pk, not null, default: "gen_random_uuid()"]
   company_id uuid [not null]
   customer_id uuid
   staff_id uuid
-  appointment_type text [not null]
-  context_type text [not null]
+  appointment_type text [not null, default: "'other'::appointment_type"]
+  context_type text [not null, default: "'general'::appointment_context_type"]
   catalog_item_id uuid
   title varchar
   description text
-  scheduled_start timestamp [not null]
-  scheduled_end timestamp [not null]
+  scheduled_start timestamptz [not null]
+  scheduled_end timestamptz [not null]
   location text
   meeting_link text
-  status text [not null]
+  status text [not null, default: "'pending'::appointment_status"]
   source varchar
   created_by_staff_id uuid
-  metadata json [not null]
-  created_at timestamp [not null]
-  updated_at timestamp [not null]
+  metadata jsonb [not null, default: "'{}'::jsonb"]
+  created_at timestamp [not null, default: "now()"]
+  updated_at timestamp [not null, default: "now()"]
+  notes text
+  google_calendar_event_id text
+  google_calendar_link text
+  external_event_id text
+  external_provider text
+  sync_status text [default: "'pending'::text"]
+  sync_error_message text
+  last_synced_at timestamptz
+  google_updated_at timestamptz
+  db_updated_at timestamptz [default: "now()"]
+  sync_direction text [default: "'bidirectional'::text"]
+  conflict_resolution text
+  target_calendar_id text
+  created_by_user_id uuid
+  cancelled_by_user_id uuid
+  cancellation_reason text
+  cancelled_at timestamptz
+  completed_at timestamptz
+  no_show_at timestamptz
+  booking_version integer [not null, default: 1]
+}
+
+Table calendar_registry_canonicalization_snapshots {
+  staff_id uuid [pk, not null]
+  google_calendar_id text
+  google_calendar_name text
+  calendar_color text
+  captured_at timestamptz [not null, default: "now()"]
+}
+
+Table calendar_sync_conflicts {
+  id uuid [pk, not null, default: "gen_random_uuid()"]
+  company_id uuid [not null]
+  appointment_id uuid
+  google_calendar_event_id text [not null]
+  conflict_type text [not null]
+  db_state jsonb [not null]
+  google_state jsonb [not null]
+  resolution_strategy text
+  resolution_status text [default: "'pending'::text"]
+  resolved_at timestamptz
+  resolved_by text
+  resolution_notes text
+  created_at timestamptz [not null, default: "now()"]
+  updated_at timestamptz [not null, default: "now()"]
+}
+
+Table calendar_sync_jobs {
+  id uuid [pk, not null, default: "gen_random_uuid()"]
+  company_id uuid [not null]
+  calendar_id text
+  job_type text [not null]
+  status text [not null, default: "'pending'::text"]
+  run_after timestamptz [not null, default: "now()"]
+  attempts integer [not null, default: 0]
+  max_attempts integer [not null, default: 5]
+  dedupe_key text [unique, not null]
+  payload jsonb [not null, default: "'{}'::jsonb"]
+  locked_at timestamptz
+  completed_at timestamptz
+  last_error text
+  created_at timestamptz [not null, default: "now()"]
+  updated_at timestamptz [not null, default: "now()"]
+}
+
+Table calendar_sync_logs {
+  id uuid [pk, not null, default: "gen_random_uuid()"]
+  company_id uuid [not null]
+  appointment_id uuid
+  sync_type text [not null]
+  sync_direction text [not null]
+  status text [not null]
+  events_processed integer [default: 0]
+  events_created integer [default: 0]
+  events_updated integer [default: 0]
+  events_deleted integer [default: 0]
+  events_skipped integer [default: 0]
+  errors_count integer [default: 0]
+  error_details jsonb [default: "'[]'::jsonb"]
+  started_at timestamptz [not null, default: "now()"]
+  completed_at timestamptz
+  duration_ms integer
+  triggered_by text
+  metadata jsonb [default: "'{}'::jsonb"]
+  created_at timestamptz [not null, default: "now()"]
+}
+
+Table catalog_inventory {
+  id uuid [pk, not null, default: "gen_random_uuid()"]
+  company_id uuid [not null]
+  catalog_item_id uuid [not null]
+  current_stock decimal [not null, default: 0]
+  reorder_point decimal [not null, default: 0]
+  safety_stock decimal [not null, default: 0]
+  notify jsonb [not null, default: "'{\"to\": [], \"channels\": [\"whatsapp\"]}'::jsonb"]
+  updated_at timestamptz [not null, default: "now()"]
 }
 
 Table catalog_items {
-  id uuid [pk, not null]
+  id uuid [pk, not null, default: "gen_random_uuid()"]
   company_id uuid [not null]
   item_type text [not null]
   name text [not null]
   description text
   category text
-  sale_price decimal [not null]
-  cost_price decimal [not null]
-  currency text [not null]
+  sale_price decimal [not null, default: 0]
+  cost_price decimal [not null, default: 0]
+  currency text [not null, default: "'BOB'::text"]
   sku text
   barcode text
   stock_on_hand decimal
-  duration_minutes int
-  capacity int
-  sessions_count int
-  is_active boolean [not null]
-  is_bookable boolean [not null]
-  is_sellable boolean [not null]
-  metadata json [not null]
-  created_at timestamp [not null]
-  updated_at timestamp [not null]
+  duration_minutes integer
+  capacity integer
+  sessions_count integer
+  is_active boolean [not null, default: true]
+  is_bookable boolean [not null, default: false]
+  is_sellable boolean [not null, default: true]
+  metadata jsonb [not null, default: "'{}'::jsonb"]
+  created_at timestamptz [not null, default: "now()"]
+  updated_at timestamptz [not null, default: "now()"]
 }
 
 Table companies {
-  id uuid [pk, not null]
+  id uuid [pk, not null, default: "gen_random_uuid()"]
   name varchar [not null]
-  company_type text [not null]
+  company_type text [not null, default: "'hybrid'::company_type"]
   email varchar
   phone varchar
   address text
   city varchar
   country varchar
-  timezone varchar
-  currency_code varchar
-  currency text [not null]
-  vertical text [not null]
-  settings json [not null]
-  is_active boolean [not null]
-  created_at timestamp [not null]
-  updated_at timestamp [not null]
+  timezone varchar [default: "'America/La_Paz'::character varying"]
+  currency_code varchar [default: "'BOB'::character varying"]
+  settings jsonb [not null, default: "'{}'::jsonb"]
+  academy_json jsonb [not null, default: "'{}'::jsonb"]
+  branding jsonb [not null, default: "'{}'::jsonb"]
+  payment_settings jsonb [not null, default: "'{}'::jsonb"]
+  business_hours jsonb [not null, default: "'{}'::jsonb"]
+  vertical text [not null, default: "'general'::text"]
+  config jsonb [not null, default: "'{}'::jsonb", note: "Validado bajo schema_v3"]
+  config_updated_at timestamptz [default: "now()"]
+  whatsapp_admin_phone_ids text_array [not null, default: "'{}'::text[]"]
+  whatsapp_display_phone_number text
+  whatsapp_phone_id text
+  is_active boolean [not null, default: true]
+  created_at timestamp [not null, default: "now()"]
+  updated_at timestamp [not null, default: "now()"]
+  currency text [not null, default: "'BOB'::text"]
+}
+
+Table company_config_migration_snapshots {
+  company_id uuid [not null]
+  schema_version integer [not null]
+  original_config jsonb [not null]
+  original_vertical text
+  created_at timestamptz [not null, default: "now()"]
 }
 
 Table company_integrations {
-  id uuid [pk, not null]
+  id uuid [pk, not null, default: "gen_random_uuid()"]
   company_id uuid [not null]
   provider text [not null]
   integration_name text
-  encrypted_credentials json [not null]
-  config_json json [not null]
-  status text [not null]
-  is_active boolean [not null]
-  last_sync_at timestamp
-  created_at timestamp [not null]
-  updated_at timestamp [not null]
-}
-
-Table company_users {
-  id uuid [pk, not null]
-  company_id uuid [not null]
-  phone text
-  role text [not null]
-  email text
-  alias text
-  permissions json [not null]
-  embedding vector(1536)
-  is_phone_verified boolean [not null]
-  last_login_at timestamp
-  created_at timestamp [not null]
-  updated_at timestamp [not null]
+  encrypted_credentials jsonb [not null, default: "'{}'::jsonb"]
+  config_json jsonb [not null, default: "'{}'::jsonb"]
+  status text [not null, default: "'active'::text"]
+  sync_enabled boolean [default: true]
+  sync_frequency_minutes integer [default: 15]
+  sync_direction text [default: "'bidirectional'::text"]
+  webhook_configured boolean [default: false]
+  webhook_channel_id text
+  webhook_resource_id text
+  webhook_expiration timestamptz
+  webhook_url text
+  last_sync_at timestamptz
+  last_full_sync_at timestamptz
+  sync_settings jsonb [default: "'{}'::jsonb"]
+  is_active boolean [not null, default: true]
+  created_at timestamptz [not null, default: "now()"]
+  updated_at timestamptz [not null, default: "now()"]
 }
 
 Table company_staff {
-  id uuid [pk, not null]
+  id uuid [pk, not null, default: "gen_random_uuid()"]
   company_id uuid [not null]
   user_id uuid
   first_name varchar [not null]
   last_name varchar
+  email varchar
+  phone varchar
   role text [not null]
   specialty varchar
   hire_date date
   end_date date
   salary decimal
-  commission_config json [not null]
-  is_active boolean [not null]
-  created_at timestamp [not null]
-  updated_at timestamp [not null]
+  commission_config jsonb [not null, default: "'{}'::jsonb"]
+  google_calendar_id text
+  google_calendar_name text
+  calendar_color text
+  calendar_sync_enabled boolean [default: true]
+  is_active boolean [not null, default: true]
+  created_at timestamp [not null, default: "now()"]
+  updated_at timestamp [not null, default: "now()"]
 }
 
-Table customers {
-  id uuid [pk, not null]
+Table company_users {
+  id uuid [pk, not null, default: "gen_random_uuid()"]
   company_id uuid [not null]
-  user_id uuid
-  customer_type text [not null]
-  first_name varchar
-  last_name varchar
-  company_name varchar
-  notes text
-  extra_data json [not null]
-  is_active boolean [not null]
-  created_at timestamp [not null]
-  updated_at timestamp [not null]
+  phone text
+  role text [not null, default: "'CLIENT'::user_role"]
+  email text
+  alias text
+  permissions jsonb [not null, default: "'{}'::jsonb"]
+  embedding vector(1536)
+  is_phone_verified boolean [not null, default: false]
+  last_login_at timestamptz
+  created_at timestamptz [not null, default: "now()"]
+  updated_at timestamptz [not null, default: "now()"]
 }
 
 Table company_whatsapp_stickers {
-  id uuid [pk, not null]
+  id uuid [pk, not null, default: "gen_random_uuid()"]
   company_id uuid [not null]
   name text [not null]
   sticker_url text [not null]
   trigger_type text
   trigger_value text
-  is_active boolean [not null]
-  metadata json [not null]
-  event_key text
-  created_at timestamp [not null]
-  updated_at timestamp [not null]
+  event_key text [default: "'error_or_unauthorized_action'::text"]
+  metadata jsonb [not null, default: "'{}'::jsonb"]
+  is_active boolean [not null, default: true]
+  created_at timestamptz [not null, default: "now()"]
+  updated_at timestamptz [not null, default: "now()"]
 }
 
 Table course_enrollments {
-  id uuid [pk, not null]
+  id uuid [pk, not null, default: "gen_random_uuid()"]
   company_id uuid [not null]
   customer_id uuid
   catalog_item_id uuid [not null]
-  status text [not null]
-  enrolled_at timestamp [not null]
+  status text [not null, default: "'active'::enrollment_status"]
+  enrolled_at timestamp [not null, default: "now()"]
   notes text
 }
 
-Table catalog_inventory {
-  id uuid [pk, not null]
+Table customers {
+  id uuid [pk, not null, default: "gen_random_uuid()"]
   company_id uuid [not null]
-  catalog_item_id uuid [not null]
-  current_stock decimal [not null]
-  reorder_point decimal [not null]
-  safety_stock decimal [not null]
-  notify json [not null]
-  updated_at timestamp [not null]
+  user_id uuid
+  customer_type text [not null, default: "'person'::customer_type"]
+  first_name varchar
+  last_name varchar
+  company_name varchar
+  email varchar
+  phone varchar
+  notes text
+  extra_data jsonb [not null, default: "'{}'::jsonb"]
+  is_active boolean [not null, default: true]
+  created_at timestamp [not null, default: "now()"]
+  updated_at timestamp [not null, default: "now()"]
+}
+
+Table google_calendar_registry {
+  id uuid [pk, not null, default: "gen_random_uuid()"]
+  company_id uuid [not null]
+  calendar_id text [not null]
+  calendar_name text [not null]
+  calendar_description text
+  calendar_type text [not null, default: "'secondary'::text"]
+  calendar_color text
+  is_primary boolean [default: false]
+  assigned_to_staff_id uuid
+  last_synced_at timestamptz
+  metadata jsonb [default: "'{}'::jsonb"]
+  is_active boolean [default: true]
+  created_at timestamptz [not null, default: "now()"]
+  updated_at timestamptz [not null, default: "now()"]
+}
+
+Table google_calendar_webhook_channels {
+  id uuid [pk, not null, default: "gen_random_uuid()"]
+  company_id uuid [not null]
+  calendar_id text [not null]
+  channel_id text [not null, unique]
+  resource_id text [not null]
+  webhook_url text [not null]
+  expiration timestamptz [not null]
+  is_active boolean [not null, default: true]
+  created_at timestamptz [not null, default: "now()"]
+  updated_at timestamptz [not null, default: "now()"]
 }
 
 Table order_items {
-  id uuid [pk, not null]
+  id uuid [pk, not null, default: "gen_random_uuid()"]
   order_id uuid [not null]
   company_id uuid [not null]
-  item_type text [not null]
   catalog_item_id uuid
+  item_type text [not null]
   item_name text [not null]
-  quantity decimal [not null]
-  unit_price decimal [not null]
-  unit_cost decimal [not null]
-  line_total decimal [not null]
-  created_at timestamp [not null]
+  quantity decimal [not null, default: 1]
+  unit_price decimal [not null, default: 0]
+  unit_cost decimal [not null, default: 0]
+  line_total decimal [not null, default: 0]
+  created_at timestamptz [not null, default: "now()"]
 }
 
 Table orders {
-  id uuid [pk, not null]
+  id uuid [pk, not null, default: "gen_random_uuid()"]
   company_id uuid [not null]
   customer_id uuid
   staff_id uuid
   user_id uuid
   order_number text
-  status text [not null]
-  subtotal decimal [not null]
-  discount decimal [not null]
-  total_amount decimal [not null]
-  currency text [not null]
-  payment_status text [not null]
+  status text [not null, default: "'pending'::text"]
+  subtotal decimal [not null, default: 0]
+  discount decimal [not null, default: 0]
+  total_amount decimal [not null, default: 0]
+  currency text [not null, default: "'BOB'::text"]
+  payment_status text [not null, default: "'pending'::text"]
   qr_payment_link text
   details text
-  metadata json [not null]
-  created_at timestamp [not null]
-  updated_at timestamp [not null]
+  metadata jsonb [not null, default: "'{}'::jsonb"]
+  created_at timestamptz [not null, default: "now()"]
+  updated_at timestamptz [not null, default: "now()"]
 }
 
 Table payments {
-  id uuid [pk, not null]
+  id uuid [pk, not null, default: "gen_random_uuid()"]
   company_id uuid [not null]
   order_id uuid
   customer_id uuid
   amount decimal [not null]
-  currency text [not null]
+  currency text [not null, default: "'BOB'::text"]
   method text [not null]
   provider text
   qr_reference text
-  qr_payload json
-  status text [not null]
-  paid_at timestamp
-  metadata json [not null]
-  created_at timestamp [not null]
+  qr_payload jsonb
+  status text [not null, default: "'pending'::text"]
+  paid_at timestamptz
+  metadata jsonb [not null, default: "'{}'::jsonb"]
+  created_at timestamptz [not null, default: "now()"]
 }
 
 Table public_knowledge_entries {
-  id uuid [pk, not null]
+  id uuid [pk, not null, default: "gen_random_uuid()"]
   company_id uuid [not null]
   entity_name text [not null]
   text_content text [not null]
-  data json [not null]
-  is_active boolean [not null]
+  data jsonb [not null, default: "'{}'::jsonb"]
+  is_active boolean [not null, default: true]
   search_vector tsvector
   semantic_embedding vector(1536)
-  created_at timestamp [not null]
-  updated_at timestamp [not null]
+  created_at timestamptz [not null, default: "now()"]
+  updated_at timestamptz [not null, default: "now()"]
 }
 
 Table staff_availability {
-  id uuid [pk, not null]
+  id uuid [pk, not null, default: "gen_random_uuid()"]
   company_id uuid [not null]
   staff_id uuid [not null]
-  day_of_week int [not null]
+  day_of_week smallint [not null]
   start_time time [not null]
   end_time time [not null]
-  is_available boolean [not null]
-  created_at timestamp [not null]
+  is_available boolean [not null, default: true]
+  created_at timestamp [not null, default: "now()"]
+}
+
+Table staff_catalog_services {
+  id uuid [pk, not null, default: "gen_random_uuid()"]
+  company_id uuid [not null]
+  staff_id uuid [not null]
+  catalog_item_id uuid [not null]
+  custom_duration_minutes integer
+  is_active boolean [not null, default: true]
+  created_at timestamptz [not null, default: "now()"]
+  updated_at timestamptz [not null, default: "now()"]
+}
+
+Table staff_time_off {
+  id uuid [pk, not null, default: "gen_random_uuid()"]
+  company_id uuid [not null]
+  staff_id uuid [not null]
+  starts_at timestamptz [not null]
+  ends_at timestamptz [not null]
+  reason text
+  status text [not null, default: "'approved'::text"]
+  created_by_user_id uuid
+  created_at timestamptz [not null, default: "now()"]
+  updated_at timestamptz [not null, default: "now()"]
+}
+
+Table staff_working_hours {
+  id uuid [pk, not null, default: "gen_random_uuid()"]
+  company_id uuid [not null]
+  staff_id uuid [not null]
+  day_of_week smallint [not null]
+  start_time time [not null]
+  end_time time [not null]
+  effective_from date
+  effective_to date
+  is_active boolean [not null, default: true]
+  created_at timestamptz [not null, default: "now()"]
+  updated_at timestamptz [not null, default: "now()"]
 }
 
 Table user_integrations {
-  id uuid [pk, not null]
+  id uuid [pk, not null, default: "gen_random_uuid()"]
   user_id uuid [not null]
   provider text [not null]
   integration_name text
-  encrypted_credentials json [not null]
-  config_json json [not null]
-  status text [not null]
-  is_active boolean [not null]
-  last_sync_at timestamp
-  metadata json [not null]
-  created_at timestamp [not null]
-  updated_at timestamp [not null]
+  encrypted_credentials jsonb [not null, default: "'{}'::jsonb"]
+  config_json jsonb [not null, default: "'{}'::jsonb"]
+  status text [not null, default: "'active'::text"]
+  sync_enabled boolean [default: true]
+  sync_frequency_minutes integer [default: 30]
+  auto_accept_company_appointments boolean [default: true]
+  notification_preferences jsonb [default: "'{}'::jsonb"]
+  metadata jsonb [not null, default: "'{}'::jsonb"]
+  is_active boolean [not null, default: true]
+  last_sync_at timestamptz
+  created_at timestamptz [not null, default: "now()"]
+  updated_at timestamptz [not null, default: "now()"]
 }
 
 Table verification_codes {
-  id uuid [pk, not null]
+  id uuid [pk, not null, default: "gen_random_uuid()"]
   phone text [not null]
   code text [not null]
-  expires_at timestamp [not null]
-  verified boolean [not null]
-  created_at timestamp [not null]
+  expires_at timestamptz [not null]
+  verified boolean [not null, default: false]
+  created_at timestamptz [not null, default: "now()"]
 }
 
+Table whatsapp_inbound_message_receipts {
+  message_id text [pk, not null]
+  company_id uuid [not null]
+  phone_number_id text [not null]
+  sender_phone text [not null]
+  received_at timestamptz [not null, default: "now()"]
+  expires_at timestamptz [not null, default: "(now() + '30 days'::interval)"]
+}
+
+// Relationships (Foreign Keys)
 Ref: adk_sessions.company_id > companies.id
+Ref: appointment_audit_logs.company_id > companies.id
+Ref: appointment_audit_logs.appointment_id > appointments.id
+Ref: appointment_audit_logs.actor_user_id > company_users.id
+Ref: appointment_audit_logs.actor_staff_id > company_staff.id
+Ref: appointment_notifications.company_id > companies.id
+Ref: appointment_notifications.appointment_id > appointments.id
 Ref: appointments.company_id > companies.id
-Ref: appointments.catalog_item_id > catalog_items.id
-Ref: appointments.created_by_staff_id > company_staff.id
 Ref: appointments.customer_id > customers.id
 Ref: appointments.staff_id > company_staff.id
-Ref: catalog_items.company_id > companies.id
+Ref: appointments.catalog_item_id > catalog_items.id
+Ref: appointments.created_by_staff_id > company_staff.id
+Ref: appointments.created_by_user_id > company_users.id
+Ref: appointments.cancelled_by_user_id > company_users.id
+Ref: calendar_registry_canonicalization_snapshots.staff_id > company_staff.id
+Ref: calendar_sync_conflicts.company_id > companies.id
+Ref: calendar_sync_conflicts.appointment_id > appointments.id
+Ref: calendar_sync_jobs.company_id > companies.id
+Ref: calendar_sync_logs.company_id > companies.id
+Ref: calendar_sync_logs.appointment_id > appointments.id
 Ref: catalog_inventory.company_id > companies.id
 Ref: catalog_inventory.catalog_item_id > catalog_items.id
+Ref: catalog_items.company_id > companies.id
+Ref: company_config_migration_snapshots.company_id > companies.id
 Ref: company_integrations.company_id > companies.id
-Ref: company_users.company_id > companies.id
 Ref: company_staff.company_id > companies.id
 Ref: company_staff.user_id > company_users.id
-Ref: customers.company_id > companies.id
-Ref: customers.user_id > company_users.id
+Ref: company_users.company_id > companies.id
 Ref: company_whatsapp_stickers.company_id > companies.id
 Ref: course_enrollments.company_id > companies.id
-Ref: course_enrollments.catalog_item_id > catalog_items.id
 Ref: course_enrollments.customer_id > customers.id
+Ref: course_enrollments.catalog_item_id > catalog_items.id
+Ref: customers.company_id > companies.id
+Ref: customers.user_id > company_users.id
+Ref: google_calendar_registry.company_id > companies.id
+Ref: google_calendar_registry.assigned_to_staff_id > company_staff.id
+Ref: google_calendar_webhook_channels.company_id > companies.id
 Ref: order_items.company_id > companies.id
 Ref: order_items.order_id > orders.id
 Ref: order_items.catalog_item_id > catalog_items.id
@@ -302,4 +556,13 @@ Ref: payments.order_id > orders.id
 Ref: public_knowledge_entries.company_id > companies.id
 Ref: staff_availability.company_id > companies.id
 Ref: staff_availability.staff_id > company_staff.id
+Ref: staff_catalog_services.company_id > companies.id
+Ref: staff_catalog_services.staff_id > company_staff.id
+Ref: staff_catalog_services.catalog_item_id > catalog_items.id
+Ref: staff_time_off.company_id > companies.id
+Ref: staff_time_off.staff_id > company_staff.id
+Ref: staff_time_off.created_by_user_id > company_users.id
+Ref: staff_working_hours.company_id > companies.id
+Ref: staff_working_hours.staff_id > company_staff.id
 Ref: user_integrations.user_id > company_users.id
+Ref: whatsapp_inbound_message_receipts.company_id > companies.id
