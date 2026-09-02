@@ -493,7 +493,7 @@ export class OAuthService {
         `UPDATE company_users
             SET company_id = COALESCE(company_id, $1),
                 role = CASE
-                  WHEN TRIM(COALESCE(role::text, '')) = '' THEN 'ADMIN'::user_role
+                  WHEN TRIM(COALESCE(role::text, '')) = '' THEN 'ADMIN'
                   ELSE role
                 END,
                 email = COALESCE(email, $2),
@@ -531,7 +531,7 @@ export class OAuthService {
       `INSERT INTO company_users (
        company_id, email, alias, phone, role, is_phone_verified, created_at, last_login_at
        )
-       VALUES ($1, $2, $3, $4, 'ADMIN'::user_role, false, timezone('utc', now()), timezone('utc', now()))
+       VALUES ($1, $2, $3, $4, 'ADMIN', false, timezone('utc', now()), timezone('utc', now()))
        RETURNING id, company_id, role`,
       [targetCompanyId, email, alias, normalizedPhone],
     );
